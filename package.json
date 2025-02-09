@@ -2,10 +2,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "copy-images": "xcopy /E /I /Y resources\\images public\\images",
-        "copy-public": "xcopy /E /I /Y resources\\public public",
-        "copy-assets": "npm run copy-images && npm run copy-public",
-        "dev": "npm run copy-assets && vite",
+        "dev": "vite",
         "build": "vite build"
     },
     "devDependencies": {
