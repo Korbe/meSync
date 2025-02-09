@@ -1,0 +1,72 @@
+ @import './additional-styles/utility-patterns.css' layer(components);
+
+@plugin "@tailwindcss/forms" {
+  strategy: base;
+}
+
+@theme {
+  --color-primary-50: #E6F7ED;
+  --color-primary-100: #C1EAD4;
+  --color-primary-200: #99DDBA;
+  --color-primary-300: #72D09F;
+  --color-primary-400: #4BC486;
+  --color-primary-500: #278F5A;
+  --color-primary-600: #207A4C;
+  --color-primary-700: #18603B;
+  --color-primary-800: #10452A;
+  --color-primary-900: #082918;
+  --color-primary-950: #04150E;
+
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #cfd2d6;
+  --color-gray-400: #a9adb3;
+  --color-gray-500: #181818;
+  --color-gray-600: #141414;
+  --color-gray-700: #101010;
+  --color-gray-800: #0c0c0c;
+  --color-gray-900: #080808;
+  --color-gray-950: #030303;
+
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.5715;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5;
+  --text-base--letter-spacing: -0.01em;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.5;
+  --text-lg--letter-spacing: -0.01em;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.5;
+  --text-xl--letter-spacing: -0.01em;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.33;
+  --text-2xl--letter-spacing: -0.01em;
+  --text-3xl: 1.88rem;
+  --text-3xl--line-height: 1.33;
+  --text-3xl--letter-spacing: -0.01em;
+  --text-4xl: 2.25rem;
+  --text-4xl--line-height: 1.25;
+  --text-4xl--letter-spacing: -0.02em;
+  --text-5xl: 3rem;
+  --text-5xl--line-height: 1.25;
+  --text-5xl--letter-spacing: -0.02em;
+  --text-6xl: 3.75rem;
+  --text-6xl--line-height: 1.2;
+  --text-6xl--letter-spacing: -0.02em;
+
+  --breakpoint-xs: 480px;
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+}

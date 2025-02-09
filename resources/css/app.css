@@ -1,7 +1,12 @@
-@tailwind base;
-@tailwind components;
+
+@import "tailwindcss";
 @tailwind utilities;
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@import './style.css';
 
 [x-cloak] {
     display: none;
 }
+
