@@ -18,19 +18,19 @@ export default defineConfig({
                 },
             },
         }),
-        viteStaticCopy({
-            targets: [
-              {
-                src: 'resources/images/**/*',
-                dest: 'images'
-              },
-              {
-                src: 'resources/public/**/*',
-                dest: ''
-              }
-            ],
-            watch: true,
-        }),
+        // viteStaticCopy({
+        //     targets: [
+        //       {
+        //         src: 'resources/images/**/*',
+        //         dest: 'images'
+        //       },
+        //       {
+        //         src: 'resources/public/**/*',
+        //         dest: ''
+        //       }
+        //     ],
+        //     watch: true,
+        // }),
         tailwindcss()
     ],
 });
