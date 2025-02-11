@@ -64,4 +64,9 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function emotions()
+    {
+        return $this->hasMany(Emotion::class);
+    }
 }
