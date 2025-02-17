@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import ApplicationMark from '@/JetstreamComponents/ApplicationMark.vue';
-import Banner from '@/JetstreamComponents/Banner.vue';
+import Banner from '@/components/Banner.vue';
 import Dropdown from '@/JetstreamComponents/Dropdown.vue';
 import DropdownLink from '@/JetstreamComponents/DropdownLink.vue';
 import NavLink from '@/JetstreamComponents/NavLink.vue';

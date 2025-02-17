@@ -3,11 +3,14 @@ import { ref } from 'vue';
 import Sidebar from './Sidebar/Sidebar.vue';
 import Header from './Header/Header.vue';
 import { Head } from '@inertiajs/vue3';
+import Banner from '@/components/Banner.vue';
+import { ChevronLeftIcon } from '@heroicons/vue/24/solid';
 
 const sidebarOpen = ref(false);
 
 defineProps({
   title: String,
+  backTo: String,
 });
 
 </script>
@@ -27,14 +30,17 @@ defineProps({
       <!-- Site header -->
       <Header :sidebarOpen="sidebarOpen" @toggle-sidebar="sidebarOpen = !sidebarOpen" />
 
+      <Banner />
+
       <div class="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-[96rem] mx-auto">
 
         <!-- Actions -->
         <div class="sm:flex sm:justify-between sm:items-center mb-8">
 
           <!-- Left: Title -->
-          <div class="mb-4 sm:mb-0">
-            <h1 class="text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">{{title}}</h1>
+          <div class="mb-4 sm:mb-0 flex items-center">
+            <Link v-if="backTo" :href="backTo"><ChevronLeftIcon class="w-6 h-6 mr-2"></ChevronLeftIcon></Link>
+            <h1 class="p-0 m-0 text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">{{title}}</h1>
           </div>
 
           <!-- Right: Actions -->

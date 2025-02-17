@@ -41,7 +41,22 @@
             <span class="lg:hidden lg:sidebar-expanded:block 2xl:block">Pages</span>
           </h3>
           <ul class="mt-3">
-                  
+            <li class="pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 bg-linear-to-r" :class="isActive('/') && 'from-primary-500/[0.12] dark:from-primary-500/[0.24] to-primary-500/[0.04]'">
+              <Link href="/" class="block text-gray-800 dark:text-gray-100 truncate transition" :class="isActive('/') ? '' : 'hover:text-gray-900 dark:hover:text-white'">
+                <div class="flex items-center">
+                  <HomeIcon class="w-5 h-5" :class="isActive('/') ? 'text-primary-500' : 'text-gray-400 dark:text-gray-500'" />
+                  <span class="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Dashboard</span>
+                </div>
+              </Link>
+            </li>
+            <li class="pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 bg-linear-to-r" :class="isActive('/emotions') && 'from-primary-500/[0.12] dark:from-primary-500/[0.24] to-primary-500/[0.04]'">
+              <Link href="/emotions" class="block text-gray-800 dark:text-gray-100 truncate transition" :class="isActive('/emotions') ? '' : 'hover:text-gray-900 dark:hover:text-white'">
+                <div class="flex items-center">
+                  <SparklesIcon class="w-5 h-5" :class="isActive('/emotions') ? 'text-primary-500' : 'text-gray-400 dark:text-gray-500'" />
+                  <span class="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Emotions</span>
+                </div>
+              </Link>
+            </li>
           </ul>
         </div>
       </div>
@@ -63,9 +78,12 @@
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { usePage } from "@inertiajs/vue3";
+
 
 import SidebarLinkGroup from './SidebarLinkGroup.vue'
+import { HomeIcon, SparklesIcon } from '@heroicons/vue/24/solid';
 
 export default {
   name: 'Sidebar',
@@ -74,6 +92,8 @@ export default {
   ],
   components: {
     SidebarLinkGroup,
+    HomeIcon,
+    SparklesIcon
   },  
   setup(props, { emit }) {
 
@@ -82,6 +102,12 @@ export default {
 
     const storedSidebarExpanded = localStorage.getItem('sidebar-expanded')
     const sidebarExpanded = ref(storedSidebarExpanded === null ? false : storedSidebarExpanded === 'true')
+
+    const currentUrl = computed(() => usePage().url);
+
+    
+
+    const isActive = (href) => currentUrl.value === href;
 
     const currentRoute = {
         name: '',         // Default to null for route name
@@ -133,7 +159,8 @@ export default {
       trigger,
       sidebar,
       sidebarExpanded,
-      currentRoute
+      currentRoute,
+      isActive,
     }
   },
 }
