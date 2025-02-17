@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use Inertia\Inertia;
 use App\Models\Emotion;
 use Illuminate\Http\Request;
+use App\Enums\PrimaryEmotion;
+use App\Enums\SecondaryEmotion;
 use Illuminate\Support\Facades\Auth;
-use Inertia\Inertia;
 
 class EmotionController extends Controller
 {
@@ -14,10 +16,14 @@ class EmotionController extends Controller
      */
     public function index()
     {
+        // @var User $user1
+        $user = Auth::user();
+
         return Inertia::render('Emotions/Index', [
-            "emotions" => Auth::user()->emotions
+            "emotions" => $user->emotions()->orderBy('updated_at', 'desc')->paginate(10)
         ]);
     }
+
 
     /**
      * Show the form for creating a new resource.
@@ -47,7 +53,9 @@ class EmotionController extends Controller
             'description' => $validated['description'] ?? null,
         ]);
 
+        //return redirect("asdfasdf");//
         return redirect()->route('emotions.index')->with('success', 'Emotion successfully created');
+
     }
 
     /**
@@ -94,7 +102,7 @@ class EmotionController extends Controller
 
         $emotion->update($validated);
 
-        return response()->json($emotion);
+        return redirect()->route('emotions.show', $emotion->id)->with('success', 'Emotion updated successfully');
     }
 
     /**
