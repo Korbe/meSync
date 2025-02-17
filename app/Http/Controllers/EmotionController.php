@@ -110,4 +110,81 @@ class EmotionController extends Controller
 
         return redirect()->route('emotions.index')->with('success', 'Emotion deleted successfully');
     }
+
+    public function EmotionsMapping()
+    {
+        $emotions = [
+            PrimaryEmotion::Glücklich->value => [
+                SecondaryEmotion::Freudig->value,
+                SecondaryEmotion::Dankbar->value,
+                SecondaryEmotion::Neugierig->value,
+                SecondaryEmotion::Ausgeglichen->value,
+                SecondaryEmotion::Begeistert->value,
+                SecondaryEmotion::Leidenschaftlich->value,
+                SecondaryEmotion::Angezogen->value,
+                SecondaryEmotion::Erschöpft->value,
+                
+            ],
+            PrimaryEmotion::Traurig->value => [
+                SecondaryEmotion::Melancholisch->value,
+                SecondaryEmotion::Frustriert->value,
+                SecondaryEmotion::Nachdenklich->value,
+                SecondaryEmotion::Deprimiert->value,
+                SecondaryEmotion::Erschöpft->value,
+                SecondaryEmotion::Gekränkt->value,
+                SecondaryEmotion::Enttäuscht->value,
+            ],
+            PrimaryEmotion::Wütend->value => [
+                SecondaryEmotion::Frustriert->value,
+                SecondaryEmotion::Genervt->value,
+                SecondaryEmotion::Verärgert->value,
+                SecondaryEmotion::Gereizt->value,
+                SecondaryEmotion::Gekränkt->value,
+                SecondaryEmotion::Enttäuscht->value,
+                SecondaryEmotion::Explosiv->value,
+            ],
+            PrimaryEmotion::Überfordert->value => [
+                SecondaryEmotion::Erschöpft->value,
+                SecondaryEmotion::Verwirrt->value,
+                SecondaryEmotion::Frustriert->value,
+                SecondaryEmotion::Gestresst->value,
+                SecondaryEmotion::Überwältigt->value,
+            ],
+            PrimaryEmotion::Ängstlich->value => [
+                SecondaryEmotion::Verwirrt->value,
+                SecondaryEmotion::Genervt->value,
+                SecondaryEmotion::Nachdenklich->value,
+                SecondaryEmotion::Erschöpft->value,
+                SecondaryEmotion::Panisch->value,
+
+            ],
+            PrimaryEmotion::Angewidert->value => [
+                SecondaryEmotion::Abgestossen->value,
+                SecondaryEmotion::Genervt->value,
+                SecondaryEmotion::Schockiert->value,
+            ],
+            PrimaryEmotion::Neutral->value => [
+                SecondaryEmotion::Ausgeglichen->value,
+                SecondaryEmotion::Okay->value,
+                SecondaryEmotion::Reflektiert->value,
+                SecondaryEmotion::Nachdenklich->value,
+            ],
+        ];
+
+        // Konvertiere das Mapping in das gewünschte Format
+        $formattedEmotions = [];
+
+        foreach ($emotions as $primaryKey => $secondaryKeys) {
+            $formattedEmotions[] = [
+                'label' => PrimaryEmotion::from($primaryKey)->name, // Deutscher Name
+                'value' => $primaryKey, // Englischer Wert
+                'options' => array_map(fn($key) => [
+                    'label' => SecondaryEmotion::from($key)->name, // Deutscher Name
+                    'value' => $key // Englischer Wert
+                ], $secondaryKeys)
+            ];
+        }
+
+        return response()->json($formattedEmotions);
+    }
 }

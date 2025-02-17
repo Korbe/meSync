@@ -2,6 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Models\User;
+use App\Enums\PrimaryEmotion;
+use App\Enums\SecondaryEmotion;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,8 +20,8 @@ class EmotionFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id'   => User::factory(), // Create a user if not provided
-            'score'     => $this->faker->numberBetween(0, 10),
+            'user_id'   => User::factory(),
+            'score'     => $this->faker->numberBetween(1, 100),
             'primary'   => $this->faker->randomElement(PrimaryEmotion::cases()),
             'secondary' => $this->faker->randomElement(SecondaryEmotion::cases()),
             'description' => $this->faker->sentence(),
