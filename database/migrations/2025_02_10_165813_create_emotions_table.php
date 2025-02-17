@@ -17,7 +17,7 @@ return new class extends Migration
         Schema::create('emotions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->tinyInteger('score')->unsigned()->check('score BETWEEN 0 AND 10');
+            $table->tinyInteger('score')->unsigned()->check('score BETWEEN 1 AND 100');
             $table->enum('primary', array_column(PrimaryEmotion::cases(), 'value'));
             $table->enum('secondary', array_column(SecondaryEmotion::cases(), 'value'));
             $table->text('description')->nullable();

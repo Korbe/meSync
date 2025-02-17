@@ -33,7 +33,7 @@ class EmotionController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'score' => 'required|integer|min:0|max:10',
+            'score' => 'required|integer|min:1|max:100',
             'primary' => 'required|string',
             'secondary' => 'required|string',
             'description' => 'nullable|string',
@@ -86,7 +86,7 @@ class EmotionController extends Controller
         }
 
         $validated = $request->validate([
-            'score' => 'sometimes|integer|min:0|max:10',
+            'score' => 'sometimes|integer|min:1|max:100',
             'primary' => 'sometimes|string',
             'secondary' => 'sometimes|string',
             'description' => 'nullable|string',
