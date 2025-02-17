@@ -1,34 +1,84 @@
 <template>
-    <form @submit.prevent="submit">
-        <input v-model="form.score" type="number" min="0" max="10" placeholder="Score" />
-        <input v-model="form.primary" type="text" placeholder="Primary Emotion" />
-        <input v-model="form.secondary" type="text" placeholder="Secondary Emotion" />
-        <textarea v-model="form.description" placeholder="Description"></textarea>
+    <div class="bg-white shadow-xl sm:rounded-lg p-5">
+        <form @submit.prevent="submit" class="space-y-5">
+            <VInput v-model="form.score" type="number" min="0" max="100" label="Score" />
+            
+            <!-- Primäre Emotion -->
+            <VSelect
+                id="primary-emotion"
+                label="Primäre Emotion"
+                :options="primaryEmotions"
+                placeholder="Bitte wählen..."
+                v-model="form.primary"
+                @change="handlePrimaryEmotionChange"
+            />
 
-        <button type="submit">{{ isEdit ? 'Update' : 'Create' }}</button>
+            <!-- Sekundäre Emotion -->
+            <VSelect
+                id="secondary-emotion"
+                label="Sekundäre Emotion"
+                :options="secondaryEmotions"
+                placeholder="Bitte wählen..."
+                v-model="form.secondary"
+                class="mt-4"
+            />
 
-        <!-- Show delete button only when editing -->
-        <button v-if="isEdit" type="button" @click="deleteEmotion" class="bg-red-500 text-white px-4 py-2">
-            Delete
-        </button>
-    </form>
+            <VTextarea v-model="form.description" label="Description"></VTextarea>
+
+            <div class="flex justify-end">
+                <VButton type="submit">{{ isEdit ? 'Update' : 'Create' }}</VButton>
+                <VButton v-if="isEdit" type="button" @click="deleteEmotion" variant="danger" class="ml-3">
+                    Delete
+                </VButton>
+            </div>
+        </form>
+    </div>
 </template>
 
 <script setup>
+import VButton from '@/components/VButton.vue';
+import VInput from '@/components/VInput.vue';
+import VSelect from '@/components/VSelect.vue';
+import VTextarea from '@/components/VTextarea.vue';
+import { useEmotions } from '@/services/useEmotions';
 import { useForm } from '@inertiajs/vue3';
-import { defineProps } from 'vue';
+import { onMounted, watch, ref } from 'vue';
 
 const props = defineProps({
-    emotion: Object, // If editing, we receive an emotion object
-    isEdit: Boolean, // Determines whether to send a POST or PUT request
+    emotion: Object, // Wenn wir bearbeiten, empfangen wir ein Emotionsobjekt
+    isEdit: Boolean, // Bestimmt, ob wir eine POST- oder PUT-Anfrage senden
 });
 
+const { primaryEmotions, secondaryEmotions, updateSecondaryEmotions } = useEmotions();
+
+// Initialisiere das Formular mit Standardwerten
 const form = useForm({
-    score: props.emotion?.score || '',
-    primary: props.emotion?.primary || '',
-    secondary: props.emotion?.secondary || '',
-    description: props.emotion?.description || '',
+    score: '',
+    primary: '',
+    secondary: '',
+    description: '',
 });
+
+// Wenn sich die primäre Emotion ändert, aktualisieren wir die sekundären Emotionen
+const handlePrimaryEmotionChange = () => {
+    updateSecondaryEmotions(form.primary);
+};
+
+watch(
+    () => props.emotion,
+    (newEmotion) => {
+        if (newEmotion) {
+            form.score = newEmotion.score || '';
+            form.primary = newEmotion.primary || '';
+            form.secondary = newEmotion.secondary || '';
+            form.description = newEmotion.description || '';
+
+            // Nach dem Laden der Emotionen, auch die sekundären Emotionen aktualisieren
+            updateSecondaryEmotions(form.primary);
+        }
+    },
+    { immediate: true } // Setzt die Werte direkt beim ersten Laden
+);
 
 const submit = () => {
     if (props.isEdit)
@@ -38,8 +88,6 @@ const submit = () => {
 };
 
 const deleteEmotion = () => {
-    if (confirm('Are you sure you want to delete this emotion?')) {
-        router.delete(route('emotions.destroy', props.emotion.id));
-    }
+    form.delete(route('emotions.destroy', props.emotion.id));
 };
 </script>

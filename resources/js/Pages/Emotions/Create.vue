@@ -4,7 +4,7 @@ import EmotionForm from './EmotionForm.vue';
 </script>
 
 <template>
-    <Layout title="Create Emotion">
+    <Layout title="Create Emotion" :backTo="route('emotions.index')">
         <EmotionForm :isEdit="false" />
     </Layout>
 </template>
