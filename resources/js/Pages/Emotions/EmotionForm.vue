@@ -1,7 +1,7 @@
 <template>
     <div class="bg-white shadow-xl sm:rounded-lg p-5">
         <form @submit.prevent="submit" class="space-y-5">
-            <VInput v-model="form.score" type="number" min="0" max="100" label="Score" />
+            <VSlider v-model="form.score" min="0" max="100" label="Score"></VSlider>
             
             <!-- Primäre Emotion -->
             <VSelect
@@ -39,6 +39,7 @@
 import VButton from '@/components/VButton.vue';
 import VInput from '@/components/VInput.vue';
 import VSelect from '@/components/VSelect.vue';
+import VSlider from '@/components/VSlider.vue';
 import VTextarea from '@/components/VTextarea.vue';
 import { useEmotions } from '@/services/useEmotions';
 import { useForm } from '@inertiajs/vue3';
