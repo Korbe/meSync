@@ -17,6 +17,8 @@ class Emotion extends Model
     protected $casts = [
         'primary' => PrimaryEmotion::class,
         'secondary' => SecondaryEmotion::class,
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     public function user()

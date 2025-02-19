@@ -6,21 +6,43 @@ use Inertia\Inertia;
 use App\Models\Emotion;
 use Illuminate\Http\Request;
 use App\Enums\PrimaryEmotion;
+use Illuminate\Support\Carbon;
 use App\Enums\SecondaryEmotion;
 use Illuminate\Support\Facades\Auth;
 
 class EmotionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(Request $request)
     {
-        // @var User $user1
+        /** @var \App\Models\User $user */
         $user = Auth::user();
+        
+        // Get the earliest and latest timestamps from emotions
+        $dateRange = $user->emotions()
+            ->selectRaw('MIN(created_at) as earliest, MAX(created_at) as latest')
+            ->first();
+
+        // Parse filter dates from request or use defaults
+        $startDate = $request->input('startDate') 
+            ? Carbon::parse($request->input('startDate'))->startOfDay()
+            : Carbon::parse($dateRange->earliest)->startOfDay();
+            
+        $endDate = $request->input('endDate')
+            ? Carbon::parse($request->input('endDate'))->endOfDay()
+            : Carbon::parse($dateRange->latest)->endOfDay();
+
+        $emotions = $user->emotions()
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->orderBy('created_at', 'desc')
+            ->paginate(2)
+            ->withQueryString();
 
         return Inertia::render('Emotions/Index', [
-            "emotions" => $user->emotions()->orderBy('updated_at', 'desc')->paginate(10)
+            'emotions' => $emotions,
+            'dateRange' => [
+                'startDate' => $startDate,
+                'endDate' => $endDate
+            ]
         ]);
     }
 

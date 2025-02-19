@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\User;
 use App\Enums\PrimaryEmotion;
+use Illuminate\Support\Carbon;
 use App\Enums\SecondaryEmotion;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -25,6 +26,7 @@ class EmotionFactory extends Factory
             'primary'   => $this->faker->randomElement(PrimaryEmotion::cases()),
             'secondary' => $this->faker->randomElement(SecondaryEmotion::cases()),
             'description' => $this->faker->sentence(),
+            'created_at' => Carbon::now()->subDays(rand(0, 90))->subHours(rand(0, 23))->subMinutes(rand(0, 59)),
         ];
     }
 }
