@@ -23,6 +23,8 @@
         "@heroicons/vue": "^2.2.0",
         "@tailwindcss/vite": "^4.0.5",
         "@vueuse/core": "^12.5.0",
+        "chart.js": "^4.4.7",
+        "chartjs-adapter-moment": "^1.0.1",
         "flatpickr": "^4.6.13",
         "postcss-import": "^16.1.0",
         "vue-flatpickr-component": "^11.0.5"
