@@ -34,7 +34,7 @@ class EmotionController extends Controller
         $emotions = $user->emotions()
             ->whereBetween('created_at', [$startDate, $endDate])
             ->orderBy('created_at', 'desc')
-            ->paginate(2)
+            ->paginate(10)
             ->withQueryString();
 
         return Inertia::render('Emotions/Index', [

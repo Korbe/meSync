@@ -23,7 +23,7 @@ class EmotionSeeder extends Seeder
         ]);
 
         // 100 Emotionen für diesen User erstellen
-        Emotion::factory(100)->create([
+        Emotion::factory(365)->create([
             'user_id' => $user->id,
         ]);
     }

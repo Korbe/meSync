@@ -22,11 +22,11 @@ class EmotionFactory extends Factory
     {
         return [
             'user_id'   => User::factory(),
-            'score'     => $this->faker->numberBetween(1, 100),
+            'score'     => $this->faker->numberBetween(33, 92),
             'primary'   => $this->faker->randomElement(PrimaryEmotion::cases()),
             'secondary' => $this->faker->randomElement(SecondaryEmotion::cases()),
             'description' => $this->faker->sentence(),
-            'created_at' => Carbon::now()->subDays(rand(0, 90))->subHours(rand(0, 23))->subMinutes(rand(0, 59)),
+            'created_at' => Carbon::now()->subDays(rand(0, 365))->subHours(rand(0, 23))->subMinutes(rand(0, 59)),
         ];
     }
 }
