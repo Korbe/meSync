@@ -4,6 +4,9 @@
   strategy: base;
 }
 
+@custom-variant dark (&:is(.dark *));
+@custom-variant sidebar-expanded (&:is(.sidebar-expanded *));
+
 @theme {
   --color-primary-50: #E6F7ED;
   --color-primary-100: #C1EAD4;

@@ -7,9 +7,11 @@ use App\Http\Controllers\DashboardController;
 
 Route::get('/emotions/enum', [EmotionController::class, 'EmotionsMapping']);
 
+Route::redirect('/', '/dashboard');
+
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->group(function () {
 
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('emotions', EmotionController::class);
 });
