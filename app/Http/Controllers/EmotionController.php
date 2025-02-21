@@ -9,10 +9,13 @@ use App\Enums\PrimaryEmotion;
 use Illuminate\Support\Carbon;
 use App\Enums\SecondaryEmotion;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\EmotionRequest;
+use App\Http\Requests\StoreEmotionRequest;
+use App\Http\Requests\EmotionFilterRequest;
 
 class EmotionController extends Controller
 {
-    public function index(Request $request)
+    public function index(EmotionFilterRequest $request)
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
@@ -65,14 +68,9 @@ class EmotionController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(EmotionRequest $request)
     {
-        $validated = $request->validate([
-            'score' => 'required|integer|min:1|max:100',
-            'primary' => 'required|string',
-            'secondary' => 'required|string',
-            'description' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $emotion = Emotion::create([
             'user_id' => Auth::id(),
@@ -121,18 +119,13 @@ class EmotionController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Emotion $emotion)
+    public function update(EmotionRequest $request, Emotion $emotion)
     {
         if ($emotion->user_id !== Auth::id()) {
             return response()->json(['message' => 'Unauthorized'], Response::HTTP_FORBIDDEN);
         }
 
-        $validated = $request->validate([
-            'score' => 'sometimes|integer|min:1|max:100',
-            'primary' => 'sometimes|string',
-            'secondary' => 'sometimes|string',
-            'description' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $emotion->update($validated);
 
