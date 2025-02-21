@@ -17,7 +17,7 @@
         <input
           type="range"
           :id="id"
-          class="w-full h-2 bg-gray-300 rounded-lg cursor-pointer"
+          class="w-full h-2  dark:bg-gray-800 rounded-lg cursor-pointer"
           :min="min"
           :max="max"
           :step="step"
@@ -70,7 +70,7 @@
     -webkit-appearance: none;
     appearance: none;
     height: 8px;
-    background: #ddd;
+    border:1px solid white;
     border-radius: 4px;
   }
   
