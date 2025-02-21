@@ -1,7 +1,7 @@
 <template>
     <div class="bg-white dark:bg-gray-800 shadow-xl sm:rounded-lg p-5">
         <form @submit.prevent="submit" class="space-y-5">
-            <VSlider v-model="form.score" min="0" max="100" label="Score"></VSlider>
+            <VSlider v-model="form.score" min="1" max="100" label="Score"></VSlider>
             
             <VInput label="Something" />
 
