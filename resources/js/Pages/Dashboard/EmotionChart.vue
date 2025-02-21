@@ -4,7 +4,7 @@
       <header class="flex justify-between items-start mb-2">
         <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Allgemeinzustand</h2>
       </header>
-      <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-1">Durchschnittlicher Score</div>
+      <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-1">Durchschnittlicher Score aus {{ dataLength }} Einträgen</div>
       <div class="flex items-start">
         <div class="text-3xl font-bold text-gray-800 dark:text-gray-100 mr-2">{{ score }}</div>
       </div>
@@ -18,7 +18,7 @@
 </template>
 
 <script setup>
-import { defineProps } from 'vue'
+import { defineProps, computed } from 'vue'
 import LineChart from '@/components/Charts/LineChart.vue'
 
 const props = defineProps({
@@ -35,5 +35,7 @@ const props = defineProps({
     default: () => [],
   },
 })
+
+const dataLength = computed(() => props.data.length)
 
 </script>

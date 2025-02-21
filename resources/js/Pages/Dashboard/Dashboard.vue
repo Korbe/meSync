@@ -38,7 +38,7 @@ const dateRange = ref({
 });
 
 watch(dateRange, (newRange) => {
-    router.get('/', {
+    router.get('/dashboard', {
         startDate: newRange.startDate.toLocaleString(),
         endDate: newRange.endDate.toLocaleString()
     }, { preserveState: true, replace: true });
