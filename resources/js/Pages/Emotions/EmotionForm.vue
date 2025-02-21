@@ -3,8 +3,6 @@
         <form @submit.prevent="submit" class="space-y-5">
             <VSlider v-model="form.score" min="1" max="100" label="Score"></VSlider>
             
-            <VInput label="Something" />
-
             <!-- Primäre Emotion -->
             <VSelect
                 id="primary-emotion"
