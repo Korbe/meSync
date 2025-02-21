@@ -57,7 +57,7 @@ watch(dateRange, (newRange) => {
 
             <EmotionChart :score="averageEmotionScore" :labels="timestamps" :data="scores" />
 
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 mt-5">
+            <!-- <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 mt-5">
                 <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
                     <div class="space-y-4 space-x-4 p-5">
 
@@ -108,42 +108,27 @@ watch(dateRange, (newRange) => {
                             { value: 'uk', label: 'United Kingdom' }
                         ]" v-model="selectedCountry" />
 
-                        <!-- Default Input -->
                         <VInput id="default" label="Default" />
 
-                        <!-- Input mit Tooltip -->
                         <VInput id="tooltip" label="W/ Tooltip" tooltip="Hier steht ein Hinweis!" />
 
-                        <!-- Pflichtfeld -->
                         <VInput id="mandatory" label="Mandatory" mandatory />
 
-                        <!-- Mit Prefix -->
                         <VInput id="prefix" label="W/ Prefix" prefix="USD" />
 
-                        <!-- Mit Suffix -->
                         <VInput id="suffix" label="W/ Suffix" suffix="%" />
 
-                        <!-- Mit Platzhalter -->
                         <VInput id="placeholder" label="W/ Placeholder" placeholder="Something cool..." />
 
-                        <!-- Mit Icon (beispielhaft mit einem Vue-Icon) -->
                         <VInput id="icon" label="W/ Icon" :icon="'IconComponent'" />
-
-                        <!-- Mit Supporting Text -->
                         <VInput id="supporting-text" label="W/ Supporting Text"
                             supportingText="Zusätzliche Informationen" />
-
-                        <!-- Disabled Input -->
                         <VInput id="disabled" label="Disabled" placeholder="Something cool..." disabled />
-
-                        <!-- Fehlerhafter Input -->
                         <VInput id="error" label="Error" error="Dieses Feld ist erforderlich!" />
-
-                        <!-- Erfolgreicher Input -->
                         <VInput id="success" label="Success" success="Klingt gut!" />
                     </div>
                 </div>
-            </div>
+            </div> -->
         </div>
     </Layout>
 </template>

@@ -14,34 +14,42 @@ return [
         'icons' => [
             '72x72' => [
                 'path' => '/images/icons/icon-72x72.png',
+                'size' => '72x72',
                 'purpose' => 'any'
             ],
             '96x96' => [
                 'path' => '/images/icons/icon-96x96.png',
+                'size' => '96x96',
                 'purpose' => 'any'
             ],
             '128x128' => [
                 'path' => '/images/icons/icon-128x128.png',
+                'size' => '128x128',
                 'purpose' => 'any'
             ],
             '144x144' => [
                 'path' => '/images/icons/icon-144x144.png',
+                'size' => '144x144',
                 'purpose' => 'any'
             ],
             '152x152' => [
                 'path' => '/images/icons/icon-152x152.png',
+                'size' => '152x152',
                 'purpose' => 'any'
             ],
             '192x192' => [
                 'path' => '/images/icons/icon-192x192.png',
+                'size' => '192x192',
                 'purpose' => 'any'
             ],
             '384x384' => [
                 'path' => '/images/icons/icon-384x384.png',
+                'size' => '384x384',
                 'purpose' => 'any'
             ],
             '512x512' => [
                 'path' => '/images/icons/icon-512x512.png',
+                'size' => '512x512',
                 'purpose' => 'any'
             ],
         ],
@@ -58,21 +66,30 @@ return [
             '2048x2732' => '/images/icons/splash-2048x2732.png',
         ],
         'shortcuts' => [
+            // [
+            //     'name' => 'Shortcut Link 1',
+            //     'description' => 'Shortcut Link 1 Description',
+            //     'url' => '/shortcutlink1',
+            //     'icons' => [
+            //         "src" => "/images/icons/icon-72x72.png",
+            //         "purpose" => "any"
+            //     ]
+            // ],
+        ],
+        'custom' => [],
+        'screenshots' => [
             [
-                'name' => 'Shortcut Link 1',
-                'description' => 'Shortcut Link 1 Description',
-                'url' => '/shortcutlink1',
-                'icons' => [
-                    "src" => "/images/icons/icon-72x72.png",
-                    "purpose" => "any"
-                ]
+                'src' => '/images/icons/splash-1242x2208.png',
+                'sizes' => '1242x2208',
+                'type' => 'image/png',
+                'form_factor' => 'wide'
             ],
             [
-                'name' => 'Shortcut Link 2',
-                'description' => 'Shortcut Link 2 Description',
-                'url' => '/shortcutlink2'
+                'src' => '/images/icons/splash-1242x2208.png',
+                'sizes' => '1242x2208',
+                'type' => 'image/png'
             ]
         ],
-        'custom' => []
+
     ]
 ];
