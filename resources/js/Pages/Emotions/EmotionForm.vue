@@ -1,8 +1,10 @@
 <template>
-    <div class="bg-white shadow-xl sm:rounded-lg p-5">
+    <div class="bg-white dark:bg-gray-800 shadow-xl sm:rounded-lg p-5">
         <form @submit.prevent="submit" class="space-y-5">
             <VSlider v-model="form.score" min="0" max="100" label="Score"></VSlider>
             
+            <VInput label="Something" />
+
             <!-- Primäre Emotion -->
             <VSelect
                 id="primary-emotion"
@@ -43,16 +45,15 @@ import VSlider from '@/components/VSlider.vue';
 import VTextarea from '@/components/VTextarea.vue';
 import { useEmotions } from '@/services/useEmotions';
 import { useForm } from '@inertiajs/vue3';
-import { onMounted, watch, ref } from 'vue';
+import { watch } from 'vue';
 
 const props = defineProps({
-    emotion: Object, // Wenn wir bearbeiten, empfangen wir ein Emotionsobjekt
-    isEdit: Boolean, // Bestimmt, ob wir eine POST- oder PUT-Anfrage senden
+    emotion: Object, 
+    isEdit: Boolean,
 });
 
 const { primaryEmotions, secondaryEmotions, updateSecondaryEmotions } = useEmotions();
 
-// Initialisiere das Formular mit Standardwerten
 const form = useForm({
     score: '',
     primary: '',
@@ -60,7 +61,6 @@ const form = useForm({
     description: '',
 });
 
-// Wenn sich die primäre Emotion ändert, aktualisieren wir die sekundären Emotionen
 const handlePrimaryEmotionChange = () => {
     updateSecondaryEmotions(form.primary);
 };
@@ -79,6 +79,15 @@ watch(
         }
     },
     { immediate: true } // Setzt die Werte direkt beim ersten Laden
+);
+
+watch(
+    () => primaryEmotions.value,
+    () => {
+        if (form.primary) {
+            updateSecondaryEmotions(form.primary);
+        }
+    }
 );
 
 const submit = () => {

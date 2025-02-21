@@ -10,7 +10,9 @@ interface EmotionData {
     id: number;
     user_id: number;
     primary: string;
+    primary_label: string;
     secondary: string;
+    secondary_label: string;
     description: string;
     score: number;
     created_at: string;
@@ -130,17 +132,17 @@ onMounted(() => {
             <div v-for="emotion in props.emotions.data" :key="emotion.id">
                 <Link :href="route('emotions.show', emotion.id)">
                 <div class="bg-white dark:bg-gray-800 shadow-xs rounded-xl px-5 py-4">
-                    <div class="md:flex justify-between items-center space-y-4 md:space-y-0 space-x-2">
+                    <div class="flex justify-between items-center space-x-2">
                         <!-- Left side -->
                         <div class="flex items-start space-x-3 md:space-x-4">
-                            <div class="w-9 h-9 shrink-0 mt-1">
+                            <div class="text-4xl">
                                 {{ emotion.score }}
                             </div>
                             <div>
                                 <span class="inline-flex font-semibold text-gray-800 dark:text-gray-100">
-                                    {{ emotion.primary }}
+                                    {{ emotion.primary_label }}
                                 </span>
-                                <div class="text-sm">{{ emotion.secondary }}</div>
+                                <div class="text-sm">{{ emotion.secondary_label }}</div>
                             </div>
                         </div>
                         <!-- Right side -->

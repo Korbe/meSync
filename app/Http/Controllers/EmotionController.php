@@ -37,6 +37,13 @@ class EmotionController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        // Übersetzungsfelder hinzufügen: primary_label und secondary_label
+        $emotions->getCollection()->transform(function ($emotion) {
+            $emotion->primary_label = __('emotions.primary.' . $emotion->primary->value);
+            $emotion->secondary_label = __('emotions.secondary.' . $emotion->secondary->value);
+            return $emotion;
+        });
+
         return Inertia::render('Emotions/Index', [
             'emotions' => $emotions,
             'dateRange' => [
@@ -88,8 +95,13 @@ class EmotionController extends Controller
         if ($emotion->user_id !== Auth::id())
             abort(403);
 
+        $primaryTranslation = __('emotions.primary.' . $emotion->primary->value);
+        $secondaryTranslation = __('emotions.secondary.' . $emotion->secondary->value);
+
         return Inertia::render('Emotions/Show', [
-            'emotion' => $emotion
+            'emotion' => $emotion,
+            'primaryLabel' => $primaryTranslation,
+            'secondaryLabel' => $secondaryTranslation,
         ]);
     }
 
@@ -144,60 +156,58 @@ class EmotionController extends Controller
     public function EmotionsMapping()
     {
         $emotions = [
-            PrimaryEmotion::Glücklich->value => [
-                SecondaryEmotion::Freudig->value,
-                SecondaryEmotion::Dankbar->value,
-                SecondaryEmotion::Neugierig->value,
-                SecondaryEmotion::Ausgeglichen->value,
-                SecondaryEmotion::Begeistert->value,
-                SecondaryEmotion::Leidenschaftlich->value,
-                SecondaryEmotion::Angezogen->value,
-                SecondaryEmotion::Erschöpft->value,
-                
+            PrimaryEmotion::Happy->value => [
+                SecondaryEmotion::Joyful->value,
+                SecondaryEmotion::Grateful->value,
+                SecondaryEmotion::Curious->value,
+                SecondaryEmotion::Balanced->value,
+                SecondaryEmotion::Enthusiastic->value,
+                SecondaryEmotion::Passionate->value,
+                SecondaryEmotion::Attracted->value,
+                SecondaryEmotion::Exhausted->value,
             ],
-            PrimaryEmotion::Traurig->value => [
-                SecondaryEmotion::Melancholisch->value,
-                SecondaryEmotion::Frustriert->value,
-                SecondaryEmotion::Nachdenklich->value,
-                SecondaryEmotion::Deprimiert->value,
-                SecondaryEmotion::Erschöpft->value,
-                SecondaryEmotion::Gekränkt->value,
-                SecondaryEmotion::Enttäuscht->value,
+            PrimaryEmotion::Sad->value => [
+                SecondaryEmotion::Melancholic->value,
+                SecondaryEmotion::Frustrated->value,
+                SecondaryEmotion::Thoughtful->value,
+                SecondaryEmotion::Depressed->value,
+                SecondaryEmotion::Exhausted->value,
+                SecondaryEmotion::Offended->value,
+                SecondaryEmotion::Disappointed->value,
             ],
-            PrimaryEmotion::Wütend->value => [
-                SecondaryEmotion::Frustriert->value,
-                SecondaryEmotion::Genervt->value,
-                SecondaryEmotion::Verärgert->value,
-                SecondaryEmotion::Gereizt->value,
-                SecondaryEmotion::Gekränkt->value,
-                SecondaryEmotion::Enttäuscht->value,
-                SecondaryEmotion::Explosiv->value,
+            PrimaryEmotion::Angry->value => [
+                SecondaryEmotion::Frustrated->value,
+                SecondaryEmotion::Annoyed->value,
+                SecondaryEmotion::Irritated->value,
+                SecondaryEmotion::Agitated->value,
+                SecondaryEmotion::Offended->value,
+                SecondaryEmotion::Disappointed->value,
+                SecondaryEmotion::Explosive->value,
             ],
-            PrimaryEmotion::Überfordert->value => [
-                SecondaryEmotion::Erschöpft->value,
-                SecondaryEmotion::Verwirrt->value,
-                SecondaryEmotion::Frustriert->value,
-                SecondaryEmotion::Gestresst->value,
-                SecondaryEmotion::Überwältigt->value,
+            PrimaryEmotion::Overwhelmed->value => [
+                SecondaryEmotion::Exhausted->value,
+                SecondaryEmotion::Confused->value,
+                SecondaryEmotion::Frustrated->value,
+                SecondaryEmotion::Stressed->value,
+                SecondaryEmotion::Overwhelmed->value,
             ],
-            PrimaryEmotion::Ängstlich->value => [
-                SecondaryEmotion::Verwirrt->value,
-                SecondaryEmotion::Genervt->value,
-                SecondaryEmotion::Nachdenklich->value,
-                SecondaryEmotion::Erschöpft->value,
-                SecondaryEmotion::Panisch->value,
-
+            PrimaryEmotion::Fearful->value => [
+                SecondaryEmotion::Confused->value,
+                SecondaryEmotion::Annoyed->value,
+                SecondaryEmotion::Thoughtful->value,
+                SecondaryEmotion::Exhausted->value,
+                SecondaryEmotion::Panicky->value,
             ],
-            PrimaryEmotion::Angewidert->value => [
-                SecondaryEmotion::Abgestossen->value,
-                SecondaryEmotion::Genervt->value,
-                SecondaryEmotion::Schockiert->value,
+            PrimaryEmotion::Disgusted->value => [
+                SecondaryEmotion::Repulsed->value,
+                SecondaryEmotion::Annoyed->value,
+                SecondaryEmotion::Shocked->value,
             ],
             PrimaryEmotion::Neutral->value => [
-                SecondaryEmotion::Ausgeglichen->value,
+                SecondaryEmotion::Balanced->value,
                 SecondaryEmotion::Okay->value,
-                SecondaryEmotion::Reflektiert->value,
-                SecondaryEmotion::Nachdenklich->value,
+                SecondaryEmotion::Reflective->value,
+                SecondaryEmotion::Thoughtful->value,
             ],
         ];
 
@@ -206,10 +216,10 @@ class EmotionController extends Controller
 
         foreach ($emotions as $primaryKey => $secondaryKeys) {
             $formattedEmotions[] = [
-                'label' => PrimaryEmotion::from($primaryKey)->name, // Deutscher Name
+                'label' => __('emotions.primary.' . PrimaryEmotion::from($primaryKey)->value),
                 'value' => $primaryKey, // Englischer Wert
                 'options' => array_map(fn($key) => [
-                    'label' => SecondaryEmotion::from($key)->name, // Deutscher Name
+                    'label' => __('emotions.secondary.' . SecondaryEmotion::from($key)->value),
                     'value' => $key // Englischer Wert
                 ], $secondaryKeys)
             ];

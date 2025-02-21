@@ -3,7 +3,9 @@ import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 
 defineProps({
-    emotion: Object
+    emotion: Object,
+    primaryLabel: String,
+    secondaryLabel: String,
 });
 
 function formatDate(dateString) {
@@ -21,14 +23,14 @@ function formatDate(dateString) {
             <VButton :href="route('emotions.edit', emotion.id)">Edit</VButton>
         </template>
 
-        <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-5">
+        <div class="bg-white dark:bg-gray-800 shadow-xs overflow-hidden shadow-xl sm:rounded-lg p-5">
 
             <div class="flex flex-row justify-between items-center">
                 <div class="flex justify-center items-center">
                     <h1 class="mr-4 text-6xl">{{ emotion.score }}</h1>
                     <div>
-                        <h1 class="text-3xl">{{ emotion.primary }}</h1>
-                        <h2>{{ emotion.secondary }}</h2>
+                        <h1 class="text-3xl">{{ primaryLabel }}</h1>
+                        <h2>{{ secondaryLabel }}</h2>
                     </div>
                 </div>
                 <p>{{ formatDate(emotion.created_at) }}</p>

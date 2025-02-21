@@ -2,13 +2,12 @@
 
 namespace App\Enums;
 
-enum PrimaryEmotion: string
-{
-    case Glücklich = 'happy';
-    case Traurig = 'sad';
-    case Wütend = 'angry';
-    case Überfordert = 'Overwhelmed';
-    case Ängstlich = 'fearful';
-    case Angewidert = 'disgusted';
+enum PrimaryEmotion: string {
+    case Happy = 'happy';
+    case Sad = 'sad';
+    case Angry = 'angry';
+    case Overwhelmed = 'overwhelmed';
+    case Fearful = 'fearful';
+    case Disgusted = 'disgusted';
     case Neutral = 'neutral';
 }
