@@ -4,14 +4,12 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Models\Emotion;
-use Illuminate\Http\Request;
 use App\Enums\PrimaryEmotion;
 use Illuminate\Support\Carbon;
 use App\Enums\SecondaryEmotion;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Requests\EmotionRequest;
-use App\Http\Requests\StoreEmotionRequest;
-use App\Http\Requests\EmotionFilterRequest;
+use App\Http\Requests\Emotion\EmotionRequest;
+use App\Http\Requests\Emotion\EmotionFilterRequest;
 
 class EmotionController extends Controller
 {

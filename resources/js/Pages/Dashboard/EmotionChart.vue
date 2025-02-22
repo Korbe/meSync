@@ -18,7 +18,7 @@
 </template>
 
 <script setup>
-import { defineProps, computed } from 'vue'
+import { computed } from 'vue'
 import LineChart from '@/components/Charts/LineChart.vue'
 
 const props = defineProps({

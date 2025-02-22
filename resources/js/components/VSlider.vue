@@ -34,7 +34,7 @@ export default {
     VTooltip
   },
   props: {
-    id: { type: String, required: true },
+    id: { type: String, required: false },
     label: { type: String, default: '' },
     tooltip: { type: String, default: '' },
     mandatory: { type: Boolean, default: false },

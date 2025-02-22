@@ -24,7 +24,7 @@
 <script>
 export default {
   props: {
-    id: { type: String, required: true },
+    id: { type: String, required: false },
     label: { type: String, default: '' },
     options: { type: Array, required: true }, // Array von Objekten { value, label }
     placeholder: { type: String, default: '' },

@@ -1,27 +1,14 @@
 <template>
     <div class="bg-white dark:bg-gray-800 shadow-xl sm:rounded-lg p-5">
         <form @submit.prevent="submit" class="space-y-5">
-            <VSlider v-model="form.score" min="1" max="100" label="Score"></VSlider>
-            
-            <!-- Primäre Emotion -->
-            <VSelect
-                id="primary-emotion"
-                label="Primäre Emotion"
-                :options="primaryEmotions"
-                placeholder="Bitte wählen..."
-                v-model="form.primary"
-                @change="handlePrimaryEmotionChange"
-            />
+            <VSlider v-model="form.score" :min=1 :max=100 label="Score" :error="errors?.score" />
 
-            <!-- Sekundäre Emotion -->
-            <VSelect
-                id="secondary-emotion"
-                label="Sekundäre Emotion"
-                :options="secondaryEmotions"
-                placeholder="Bitte wählen..."
-                v-model="form.secondary"
-                class="mt-4"
-            />
+            <VSelect id="primary-emotion" label="Primäre Emotion" :options="primaryEmotions"
+                placeholder="Bitte wählen..." v-model="form.primary" :error="errors?.primary"
+                @change="handlePrimaryEmotionChange" />
+
+            <VSelect id="secondary-emotion" label="Sekundäre Emotion" :options="secondaryEmotions"
+                placeholder="Bitte wählen..." v-model="form.secondary" :error="errors?.secondary" class="mt-4" />
 
             <VTextarea v-model="form.description" label="Description"></VTextarea>
 
@@ -37,7 +24,6 @@
 
 <script setup>
 import VButton from '@/components/VButton.vue';
-import VInput from '@/components/VInput.vue';
 import VSelect from '@/components/VSelect.vue';
 import VSlider from '@/components/VSlider.vue';
 import VTextarea from '@/components/VTextarea.vue';
@@ -46,14 +32,15 @@ import { useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 
 const props = defineProps({
-    emotion: Object, 
+    errors: Object,
+    emotion: Object,
     isEdit: Boolean,
 });
 
 const { primaryEmotions, secondaryEmotions, updateSecondaryEmotions } = useEmotions();
 
 const form = useForm({
-    score: '',
+    score: 0,
     primary: '',
     secondary: '',
     description: '',
