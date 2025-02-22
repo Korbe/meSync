@@ -28,8 +28,8 @@
         </button>
         <!-- Logo -->
         <Link class="block" href="/">
-          <img src="/images/logo/android-icon-144x144.png" class="h-8 dark:hidden" />
-          <img src="/images/logo/android-icon-144x144-dark.png" class="h-8 hidden dark:block" />
+          <img src="/images/logo/logo-144x144.png" class="h-8 dark:hidden" />
+          <img src="/images/logo/logo-144x144-dark.png" class="h-8 hidden dark:block" />
         </Link>
       </div>
 

@@ -12,43 +12,58 @@ return [
         'orientation'=> 'any',
         'status_bar'=> 'black',
         'icons' => [
+            '16x16' => [
+                'path' => '/images/logo/logo-16x16.png',
+                'size' => '16x16',
+                'purpose' => 'any'
+            ],
+            '32x32' => [
+                'path' => '/images/logo/logo-32x32.png',
+                'size' => '32x32',
+                'purpose' => 'any'
+            ],
+            '48x48' => [
+                'path' => '/images/logo/logo-48x48.png',
+                'size' => '48x48',
+                'purpose' => 'any'
+            ],
             '72x72' => [
-                'path' => '/images/icons/icon-72x72.png',
+                'path' => '/images/logo/logo-72x72.png',
                 'size' => '72x72',
                 'purpose' => 'any'
             ],
             '96x96' => [
-                'path' => '/images/icons/icon-96x96.png',
+                'path' => '/images/logo/logo-96x96.png',
                 'size' => '96x96',
                 'purpose' => 'any'
             ],
             '128x128' => [
-                'path' => '/images/icons/icon-128x128.png',
+                'path' => '/images/logo/logo-128x128.png',
                 'size' => '128x128',
                 'purpose' => 'any'
             ],
             '144x144' => [
-                'path' => '/images/icons/icon-144x144.png',
+                'path' => '/images/logo/logo-144x144.png',
                 'size' => '144x144',
                 'purpose' => 'any'
             ],
             '152x152' => [
-                'path' => '/images/icons/icon-152x152.png',
+                'path' => '/images/logo/logo-152x152.png',
                 'size' => '152x152',
                 'purpose' => 'any'
             ],
             '192x192' => [
-                'path' => '/images/icons/icon-192x192.png',
+                'path' => '/images/logo/logo-192x192.png',
                 'size' => '192x192',
                 'purpose' => 'any'
             ],
-            '384x384' => [
-                'path' => '/images/icons/icon-384x384.png',
-                'size' => '384x384',
+            '310x310' => [
+                'path' => '/images/logo/logo-310x310.png',
+                'size' => '310x310',
                 'purpose' => 'any'
             ],
             '512x512' => [
-                'path' => '/images/icons/icon-512x512.png',
+                'path' => '/images/logo/logo-512x512.png',
                 'size' => '512x512',
                 'purpose' => 'any'
             ],

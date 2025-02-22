@@ -23,6 +23,20 @@
     </head>
     <body>
         <script>
+            function updateFavicon() {
+                const favicon = document.querySelector('link[rel="icon"][sizes="512x512"]');
+                if (!favicon) return;
+                
+                const darkModeActive = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                favicon.href = darkModeActive ? "/images/logo/logo-512x512-dark.png" : "/images/logo/logo-512x512.png";
+            }
+
+            updateFavicon();
+
+            const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+            darkModeMediaQuery.addEventListener('change', updateFavicon);
+
+
             if (localStorage.getItem('sidebar-expanded') == 'true') {
                 document.querySelector('body').classList.add('sidebar-expanded');
             } else {
