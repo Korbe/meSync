@@ -24,6 +24,7 @@ class EmotionFilterRequest extends FormRequest
         return [
             'startDate' => 'nullable|date|before_or_equal:endDate',
             'endDate' => 'nullable|date|after_or_equal:startDate',
+            'onlyWithDescription' => 'nullable|boolean',
         ];
     }
 }

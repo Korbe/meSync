@@ -5,6 +5,7 @@ import Layout from '@/Layouts/Layout.vue';
 import PaginationNumeric from "@/components/pagination/PaginationNumeric.vue";
 import VButton from "@/components/VButton.vue";
 import Datepicker from "@/components/Datepicker.vue";
+import DropdownFilter from "@/components/DropdownFilter.vue";
 
 interface EmotionData {
     id: number;
@@ -43,48 +44,76 @@ interface Props {
 
 const props = defineProps<Props>();
 
+let isUpdating = false;
+
 const emotions = ref<EmotionData[]>(props.emotions.data);
 const dateRange = ref({
     startDate: new Date(props.dateRange?.startDate || new Date().setDate(new Date().getDate() - 7)),
     endDate: new Date(props.dateRange?.endDate || new Date())
 });
 
+const filters = ref([
+    { label: 'Beschreibung', value: 'onlyWithDescription', selected: false },
+])
+
 watch(dateRange, (newRange) => {
     handleDateRangeUpdate(newRange);
 }, { deep: true });
 
-let isUpdating = false;
+
+
+const getFilterParams = () => {
+    return filters.value
+        .filter(filter => filter.selected)
+        .map(filter => ({ [filter.value]: 1 }))
+        .reduce((acc, curr) => ({ ...acc, ...curr }), {});
+};
+
 
 const handleDateRangeUpdate = (newRange) => {
-    if (isUpdating) return;
-
-    console.log("newRange", newRange);
-    
     // Check if both dates are present and valid
     if (!newRange?.startDate || !newRange?.endDate) {
-        dateRange.value = newRange; // Update local state but don't trigger router
+        dateRange.value = newRange; // Update local state but don't trigger search
         return;
     }
-    
+
     // Validate dates are actual Date objects
-    if (!(newRange.startDate instanceof Date) || !(newRange.endDate instanceof Date)) {
+    if (!(newRange.startDate instanceof Date) || !(newRange.endDate instanceof Date)) 
         return;
-    }
-    
+
     // Check if dates are valid (not NaN)
-    if (isNaN(newRange.startDate.getTime()) || isNaN(newRange.endDate.getTime())) {
+    if (isNaN(newRange.startDate.getTime()) || isNaN(newRange.endDate.getTime()))
         return;
-    }
-    
-    isUpdating = true;
+
     dateRange.value = newRange;
 
+    search();
+};
+
+const handleFiltersChanged = (newFilters) => {
+    filters.value = newFilters;
+
+    search();
+};
+
+const search = () => {
+    if (isUpdating) return;
+
+    isUpdating = true;
+
+    const filterParams = getFilterParams();
+    console.log(filterParams);
+
+    const request = {
+            startDate: dateRange.value.startDate.toLocaleString(),
+            endDate: dateRange.value.endDate.toLocaleString(),
+            ...filterParams
+        };
+    
+    console.log(request);
+
     router.get(
-        route('emotions.index'),
-        {
-            startDate: newRange.startDate.toLocaleString(),
-            endDate: newRange.endDate.toLocaleString()
-        },
+        route('emotions.index'), request,        
         {
             preserveState: true,
             preserveScroll: true,
@@ -114,6 +143,7 @@ onMounted(() => {
 <template>
     <Layout title="Emotions">
         <template v-slot:actions>
+            <DropdownFilter :options="filters" @filtersChanged="handleFiltersChanged" />
             <Datepicker align="right" v-model="dateRange" />
             <VButton :href="route('emotions.create')">Create</VButton>
         </template>
@@ -125,6 +155,15 @@ onMounted(() => {
                     Showing {{ props.emotions.total }} Emotions
                 </div>
             </div>
+        </div>
+
+        <div class="mt-4">
+            <h2>Aktuelle Filter:</h2>
+            <ul>
+                <li v-for="filter in filters" :key="filter.value">
+                    {{ filter.label }}: {{ filter.selected ? 'aktiv' : 'inaktiv' }}
+                </li>
+            </ul>
         </div>
 
         <!-- Rest of your template remains the same -->

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Models\Emotion;
+use Illuminate\Http\Request;
 use App\Enums\PrimaryEmotion;
 use Illuminate\Support\Carbon;
 use App\Enums\SecondaryEmotion;
@@ -17,28 +18,38 @@ class EmotionController extends Controller
     {
         /** @var \App\Models\User $user */
         $user = Auth::user();
-        
+
         // Get the earliest and latest timestamps from emotions
         $dateRange = $user->emotions()
             ->selectRaw('MIN(created_at) as earliest, MAX(created_at) as latest')
             ->first();
 
-        // Parse filter dates from request or use defaults
-        $startDate = $request->input('startDate') 
-            ? Carbon::parse($request->input('startDate'))->startOfDay()
+        // Retrieve validated data from the request
+        $validated = $request->validated();
+
+        // Parse filter dates from validated data or use defaults
+        $startDate = isset($validated['startDate'])
+            ? Carbon::parse($validated['startDate'])->startOfDay()
             : Carbon::parse($dateRange->earliest)->startOfDay();
-            
-        $endDate = $request->input('endDate')
-            ? Carbon::parse($request->input('endDate'))->endOfDay()
+
+        $endDate = isset($validated['endDate'])
+            ? Carbon::parse($validated['endDate'])->endOfDay()
             : Carbon::parse($dateRange->latest)->endOfDay();
 
-        $emotions = $user->emotions()
-            ->whereBetween('created_at', [$startDate, $endDate])
+        $emotionsQuery = $user->emotions()
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        // Check if 'description' is present in the validated request data
+        if (isset($validated['onlyWithDescription']) && filter_var($validated['onlyWithDescription'], FILTER_VALIDATE_BOOLEAN)) {
+            $emotionsQuery->whereNotNull('description')->where('description', '!=', '');
+        }
+
+        $emotions = $emotionsQuery
             ->orderBy('created_at', 'desc')
             ->paginate(10)
             ->withQueryString();
 
-        // Übersetzungsfelder hinzufügen: primary_label und secondary_label
+        // Add translation fields: primary_label and secondary_label
         $emotions->getCollection()->transform(function ($emotion) {
             $emotion->primary_label = __('emotions.primary.' . $emotion->primary->value);
             $emotion->secondary_label = __('emotions.secondary.' . $emotion->secondary->value);
@@ -80,7 +91,6 @@ class EmotionController extends Controller
 
         //return redirect("asdfasdf");//
         return redirect()->route('emotions.index')->with('success', 'Emotion successfully created');
-
     }
 
     /**

@@ -33,7 +33,7 @@ function formatDate(dateString) {
                         <h2>{{ secondaryLabel }}</h2>
                     </div>
                 </div>
-                <p>{{ formatDate(emotion.created_at) }}</p>
+                <p class="text-xl">{{ formatDate(emotion.created_at) }}</p>
             </div>
 
 
