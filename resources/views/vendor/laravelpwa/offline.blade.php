@@ -1,7 +1,7 @@
-@extends('layouts.app')
+@extends('laravelpwa::minimal')
 
-@section('content')
+@section('message')
 
-    <h1>You are currently not connected to any networks.</h1>
+    <h3>You are currently not connected to any networks.</h3>
 
 @endsection
