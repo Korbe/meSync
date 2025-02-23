@@ -157,15 +157,6 @@ onMounted(() => {
             </div>
         </div>
 
-        <div class="mt-4">
-            <h2>Aktuelle Filter:</h2>
-            <ul>
-                <li v-for="filter in filters" :key="filter.value">
-                    {{ filter.label }}: {{ filter.selected ? 'aktiv' : 'inaktiv' }}
-                </li>
-            </ul>
-        </div>
-
         <!-- Rest of your template remains the same -->
         <div class="space-y-2">
             <div v-for="emotion in props.emotions.data" :key="emotion.id">
