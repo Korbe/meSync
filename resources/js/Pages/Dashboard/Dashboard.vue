@@ -1,30 +1,56 @@
 <script setup>
 import Layout from '@/Layouts/Layout.vue';
-import VInput from "@/components/VInput.vue";
-import VSelect from "@/components/VSelect.vue";
-import VCheckbox from "@/components/VCheckbox.vue";
-import VRadio from "@/components/VRadio.vue";
-import VButton from "@/components/VButton.vue";
-import { HomeIcon } from '@heroicons/vue/24/solid';
 import EmotionChart from './EmotionChart.vue';
 
-import { defineProps, ref, watch  } from 'vue';
+import { defineProps, ref, watch } from 'vue';
 import Datepicker from '@/components/Datepicker.vue';
 import { router } from '@inertiajs/vue3';
+import DigestionChart from './DigestionChart.vue';
+import DigestionFrequencyChart from './DigestionFrequencyChart.vue';
 
 // Definiere die Props, die von Inertia übergeben werden
 const props = defineProps({
-    averageEmotionScore: {
-        type: Number,
-        required: true,
+    emotionStats: {
+        average: {
+            type: Number,
+            required: true,
+        },
+        timestamps: {
+            type: Array,
+            required: true,
+        },
+        scores: {
+            type: Array,
+            required: true,
+        },
     },
-    timestamps: {
-        type: Array,
-        required: true,
+    digestionStats: {
+        average: {
+            type: Number,
+            required: true,
+        },
+        timestamps: {
+            type: Array,
+            required: true,
+        },
+        scores: {
+            type: Array,
+            required: true,
+        },
     },
-    scores: {
-        type: Array,
-        required: true,
+    digestionFrequencyStats: {
+        average: {
+            type: Number,
+            required: true,
+        },
+        timestamps: {
+            type: Array,
+            required: true,
+        },
+        scores: {
+            type: Array,
+            required: true,
+        },
     },
     dateRange: {
         type: Object,
@@ -53,10 +79,20 @@ watch(dateRange, (newRange) => {
         </template>
 
 
-        <div class="py-12">
+        <div class="py-12 space-y-5">
 
-            <EmotionChart :score="averageEmotionScore" :labels="timestamps" :data="scores" />
+            <EmotionChart :score="emotionStats.average" :labels="emotionStats.timestamps" :data="emotionStats.scores" />
 
+            <div class="grid grid-cols-8 gap-6">
+
+                <DigestionChart :score="digestionStats.average" :labels="digestionStats.timestamps"
+                :data="digestionStats.scores" />
+
+            <DigestionFrequencyChart :score="digestionFrequencyStats.average"
+                :labels="digestionFrequencyStats.timestamps" :data="digestionFrequencyStats.scores" />
+                
+            </div>
+            
             <!-- <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 mt-5">
                 <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
                     <div class="space-y-4 space-x-4 p-5">

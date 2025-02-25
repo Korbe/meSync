@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Database\Seeders\EmotionSeeder;
+use Database\Seeders\DigestionSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,5 +14,6 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(EmotionSeeder::class);
+        $this->call(DigestionSeeder::class);
     }
 }

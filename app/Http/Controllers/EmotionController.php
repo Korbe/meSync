@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Models\Emotion;
-use Illuminate\Http\Request;
 use App\Enums\PrimaryEmotion;
 use Illuminate\Support\Carbon;
 use App\Enums\SecondaryEmotion;
@@ -36,15 +35,15 @@ class EmotionController extends Controller
             ? Carbon::parse($validated['endDate'])->endOfDay()
             : Carbon::parse($dateRange->latest)->endOfDay();
 
-        $emotionsQuery = $user->emotions()
+        $query = $user->emotions()
             ->whereBetween('created_at', [$startDate, $endDate]);
 
         // Check if 'description' is present in the validated request data
         if (isset($validated['onlyWithDescription']) && filter_var($validated['onlyWithDescription'], FILTER_VALIDATE_BOOLEAN)) {
-            $emotionsQuery->whereNotNull('description')->where('description', '!=', '');
+            $query->whereNotNull('description')->where('description', '!=', '');
         }
 
-        $emotions = $emotionsQuery
+        $emotions = $query
             ->orderBy('created_at', 'desc')
             ->paginate(10)
             ->withQueryString();
@@ -190,7 +189,6 @@ class EmotionController extends Controller
                 SecondaryEmotion::Confused->value,
                 SecondaryEmotion::Frustrated->value,
                 SecondaryEmotion::Stressed->value,
-                SecondaryEmotion::Overwhelmed->value,
             ],
             PrimaryEmotion::Fearful->value => [
                 SecondaryEmotion::Confused->value,
