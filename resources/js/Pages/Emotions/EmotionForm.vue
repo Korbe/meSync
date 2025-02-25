@@ -59,11 +59,10 @@ watch(
             form.secondary = newEmotion.secondary || '';
             form.description = newEmotion.description || '';
 
-            // Nach dem Laden der Emotionen, auch die sekundären Emotionen aktualisieren
             updateSecondaryEmotions(form.primary);
         }
     },
-    { immediate: true } // Setzt die Werte direkt beim ersten Laden
+    { immediate: true }
 );
 
 watch(

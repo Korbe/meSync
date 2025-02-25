@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, reactive } from "vue";
+import { ref, watch } from "vue";
 import { router } from '@inertiajs/vue3';
 import Layout from '@/Layouts/Layout.vue';
 import PaginationNumeric from "@/components/pagination/PaginationNumeric.vue";
@@ -133,11 +133,6 @@ function formatDate(dateString: string): string {
     const year = date.getFullYear();
     return day + "." + month + "." + year;
 }
-
-onMounted(() => {
-    console.log(props.emotions);
-});
-
 </script>
 
 <template>

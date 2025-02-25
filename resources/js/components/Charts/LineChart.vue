@@ -8,7 +8,7 @@ import { Chart, LineController, LineElement, Filler, PointElement, LinearScale, 
 import 'chartjs-adapter-moment'
 import { useDark } from '@vueuse/core'
 import { getChartColors, chartAreaGradient } from '@/services/ChartjsConfig'
-import { getCssVariable, adjustColorOpacity  } from '@/utils/Utils'
+import { getCssVariable, adjustColorOpacity } from '@/utils/Utils'
 
 Chart.register(LineController, LineElement, Filler, PointElement, LinearScale, TimeScale, Tooltip)
 
@@ -30,6 +30,10 @@ export default {
     height: {
       type: Number,
       default: 200
+    },
+    color: {
+      type: String,
+      default: 'primary-500' // Standard als CSS-Variable-Name
     }
   },
   setup(props) {
@@ -38,7 +42,12 @@ export default {
     const darkMode = useDark()
     const { tooltipBodyColor, tooltipBgColor, tooltipBorderColor } = getChartColors()
 
+    // Funktion zur Umwandlung in eine echte CSS-Variable
+    const resolveCssVariable = (variableName) => getCssVariable(`--color-${variableName}`)
+
     const initChart = () => {
+      const primaryColor = resolveCssVariable(props.color)
+
       const ctx = canvas.value
       chart = new Chart(ctx, {
         type: 'line',
@@ -46,23 +55,22 @@ export default {
           labels: props.labels,
           datasets: [
             {
-              label: 'Score', // Diese Bezeichnung kannst du anpassen
+              label: 'Score',
               data: props.data,
               fill: true,
               backgroundColor: function (context) {
-                const chart = context.chart
-                const { ctx, chartArea } = chart
+                const { ctx, chartArea } = context.chart
                 return chartAreaGradient(ctx, chartArea, [
-                  { stop: 0, color: adjustColorOpacity(getCssVariable('--color-primary-500'), 0) },
-                  { stop: 1, color: adjustColorOpacity(getCssVariable('--color-primary-500'), 0.2) },
+                  { stop: 0, color: adjustColorOpacity(primaryColor, 0) },
+                  { stop: 1, color: adjustColorOpacity(primaryColor, 0.2) },
                 ])
               },
-              borderColor: getCssVariable('--color-primary-500'),
+              borderColor: primaryColor,
               borderWidth: 2,
               pointRadius: 0,
               pointHoverRadius: 3,
-              pointBackgroundColor: getCssVariable('--color-primary-500'),
-              pointHoverBackgroundColor: getCssVariable('--color-primary-500'),
+              pointBackgroundColor: primaryColor,
+              pointHoverBackgroundColor: primaryColor,
               pointBorderWidth: 0,
               pointHoverBorderWidth: 0,
               clip: 20,
@@ -71,9 +79,7 @@ export default {
           ],
         },
         options: {
-          layout: {
-            padding: 20,
-          },
+          layout: { padding: 20 },
           scales: {
             y: {
               display: false,
@@ -82,17 +88,17 @@ export default {
             x: {
               type: 'time',
               time: {
-                unit: 'day', // oder 'week' für Wochen
-                stepSize: 3,  // Nur alle 3 Tage ein Label (beim 'day' Unit)
+                unit: 'day',
+                stepSize: 3,
                 tooltipFormat: 'DD-MM-YYYY',
                 displayFormats: {
-                  day: 'DD-MM', // Format für das Tageslabel
-                  week: 'DD-MM', // Format für das Wochenlabel
+                  day: 'DD-MM',
+                  week: 'DD-MM',
                 },
               },
               ticks: {
                 autoSkip: true,
-                maxTicksLimit: 5, // Maximal 5 Ticks anzeigen
+                maxTicksLimit: 5,
               },
             },
           },
@@ -123,7 +129,7 @@ export default {
     onMounted(() => initChart())
     onUnmounted(() => chart.destroy())
 
-    watch(() => props.data, () => {
+    watch([() => props.data, () => props.color], () => {
       if (chart) {
         chart.destroy()
         chart = null
