@@ -7,6 +7,7 @@ import InputError from '@/JetstreamComponents/InputError.vue';
 import InputLabel from '@/JetstreamComponents/InputLabel.vue';
 import PrimaryButton from '@/JetstreamComponents/PrimaryButton.vue';
 import TextInput from '@/JetstreamComponents/TextInput.vue';
+import VInput from '@/components/VInput.vue';
 
 const passwordInput = ref(null);
 const currentPasswordInput = ref(null);
@@ -39,51 +40,22 @@ const updatePassword = () => {
 
 <template>
     <FormSection @submitted="updatePassword">
-        <template #title>
-            Update Password
-        </template>
-
-        <template #description>
-            Ensure your account is using a long, random password to stay secure.
+        <template #header>
+            <h1 class="text-lg font-medium text-gray-900 dark:text-gray-100">Update Password</h1>
+            <p class="mt-1 mb-5 text-sm text-gray-600 dark:text-gray-300">Ensure your account is using a long, random password to stay secure.</p>
         </template>
 
         <template #form>
             <div class="col-span-6 sm:col-span-4">
-                <InputLabel for="current_password" value="Current Password" />
-                <TextInput
-                    id="current_password"
-                    ref="currentPasswordInput"
-                    v-model="form.current_password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    autocomplete="current-password"
-                />
-                <InputError :message="form.errors.current_password" class="mt-2" />
+                <VInput id="current_password" label="Current Password" type="password" v-model="form.current_password" :error="form.errors.current_password" />
             </div>
 
             <div class="col-span-6 sm:col-span-4">
-                <InputLabel for="password" value="New Password" />
-                <TextInput
-                    id="password"
-                    ref="passwordInput"
-                    v-model="form.password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    autocomplete="new-password"
-                />
-                <InputError :message="form.errors.password" class="mt-2" />
+                <VInput id="password" label="New Password" type="password" v-model="form.password" :error="form.errors.password" />
             </div>
 
             <div class="col-span-6 sm:col-span-4">
-                <InputLabel for="password_confirmation" value="Confirm Password" />
-                <TextInput
-                    id="password_confirmation"
-                    v-model="form.password_confirmation"
-                    type="password"
-                    class="mt-1 block w-full"
-                    autocomplete="new-password"
-                />
-                <InputError :message="form.errors.password_confirmation" class="mt-2" />
+                <VInput id="password_confirmation" label="Confirm Password" type="password" v-model="form.password_confirmation" :error="form.errors.password_confirmation" />
             </div>
         </template>
 

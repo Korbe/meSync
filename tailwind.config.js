@@ -48,7 +48,6 @@ export default {
                 text: "#333333"        
               },
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
                 inter: ["Inter", "sans-serif"],
             },
             boxShadow: {
