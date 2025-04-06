@@ -41,7 +41,7 @@ task('build', function () {
 //after('deploy:symlink', 'permissions');
 
 after('deploy:update_code', 'composer-install');
-after('composer-install', 'npm-install');
+// after('composer-install', 'npm-install');
 after('npm-install', 'build');
 
 //after('deploy:setup', 'deploy:unlock');
