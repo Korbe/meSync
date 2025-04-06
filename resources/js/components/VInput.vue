@@ -85,12 +85,3 @@ export default {
   }
 };
 </script>
-
-
-<style scoped>
-.form-input {
-  border: 1px solid #ccc;
-  padding: 8px;
-  border-radius: 4px;
-}
-</style>

@@ -7,7 +7,7 @@
     </label>
 
     <!-- Select Input -->
-    <select :id="id" class="form-select w-full bg-white dark:bg-gray-800" :class="selectClass" :disabled="disabled" :value="modelValue"
+    <select :id="id" class="form-select w-full" :class="selectClass" :disabled="disabled" :value="modelValue"
       @change="$emit('update:modelValue', $event.target.value)">
       <option v-if="placeholder" value="" disabled>{{ placeholder }}</option>
       <option v-for="(option, index) in options" :key="index" :value="option.value">
@@ -45,11 +45,3 @@ export default {
   }
 };
 </script>
-
-<style scoped>
-.form-select {
-  border: 1px solid #ccc;
-  padding: 8px;
-  border-radius: 4px;
-}
-</style>

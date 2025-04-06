@@ -11,7 +11,7 @@
         <div class="text-sm text-gray-500">{{ tooltip }}</div>
       </VTooltip>
     </div>
-    <textarea :id="id" class="form-textarea w-full focus:border-gray-300" :rows="rows" :placeholder="placeholder"
+    <textarea :id="id" class="form-textarea w-full" :rows="rows" :placeholder="placeholder"
       :value="modelValue" @input="$emit('update:modelValue', $event.target.value)"></textarea>
   </div>
 </template>
