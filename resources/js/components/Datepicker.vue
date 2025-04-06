@@ -15,7 +15,7 @@
 
 <script>
 import flatPickr from "vue-flatpickr-component";
-const { isDeepStrictEqual } = require('node:util');
+import equal from 'fast-deep-equal';
 
 export default {
   name: "Datepicker",
@@ -70,7 +70,7 @@ export default {
   watch: {
     modelValue: {
       handler(newVal) {
-        if (!isDeepStrictEqual([newVal.startDate, newVal.endDate], this.date)) {
+        if (!equal([newVal.startDate, newVal.endDate], this.date)) {
           this.date = [newVal.startDate, newVal.endDate];
         }
       },

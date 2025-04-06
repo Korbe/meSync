@@ -2,9 +2,9 @@
   <div class="flex flex-col col-span-full sm:col-span-6 xl:col-span-4 bg-white dark:bg-gray-800 shadow-xs rounded-xl">
     <div class="px-5 pt-5">
       <header class="flex justify-between items-start mb-2">
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Geistiger Allgemeinzustand</h2>
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">{{ title }}</h2>
       </header>
-      <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-1">Durchschnittlicher Score</div>
+      <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ subtitle }}</div>
       <div class="flex items-start">
         <div class="text-3xl font-bold text-gray-800 dark:text-gray-100 mr-2">{{ score }}</div>
       </div>
@@ -17,10 +17,17 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import LineChart from '@/components/Charts/LineChart.vue'
 
 const props = defineProps({
+  title: {
+    type: String,
+    default: 'Title',
+  },
+  subtitle: {
+    type: String,
+    default: 'Subtitle',
+  },
   score: {
     type: Number,
     default: 0,
@@ -34,7 +41,4 @@ const props = defineProps({
     default: () => [],
   },
 })
-
-const dataLength = computed(() => props.data.length)
-
 </script>

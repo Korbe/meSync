@@ -21,8 +21,25 @@ class EmotionSeeder extends Seeder
             'password' => Hash::make('123456789'),
         ]);
 
-        Emotion::factory(365)->create([
-            'user_id' => $user->id,
-        ]);
+        $this->createEmotions($user);
+    }
+
+    public function createEmotions($user)
+    {
+        $startDate = now()->subMonths(3)->startOfDay();
+        $endDate = now()->endOfDay();
+
+        while ($startDate->lessThanOrEqualTo($endDate)) {
+            // Anzahl der Emotionen pro Tag (mindestens 1, zufällig bis zu 3)
+            $emotionsPerDay = rand(1, 3);
+
+            Emotion::factory($emotionsPerDay)->create([
+                'user_id' => $user->id,
+                'created_at' => $startDate->copy()->addHours(rand(6, 23))->addMinutes(rand(0, 59)), // Zufällige Uhrzeit am Tag
+            ]);
+
+            // Zum nächsten Tag gehen
+            $startDate->addDay();
+        }
     }
 }

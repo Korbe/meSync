@@ -97,8 +97,37 @@ class EmotionController extends Controller
      */
     public function show(Emotion $emotion)
     {
-        if ($emotion->user_id !== Auth::id())
+        if ($emotion->user_id !== Auth::id()) {
             abort(403);
+        }
+
+        // Start- und Endzeitpunkt der Woche basierend auf dem created_at der Emotion
+        $startOfWeek = $emotion->created_at->startOfWeek();
+        $endOfWeek = $emotion->created_at->endOfWeek();
+
+        // Emotionen derselben Woche des Benutzers abrufen
+        $weeklyEmotions = Emotion::where('user_id', Auth::id())
+            ->whereBetween('created_at', [$startOfWeek, $endOfWeek])
+            ->orderBy('created_at') // Sortierung nach Zeit
+            ->get();
+
+        // Gruppiere Emotionen nach dem Datum (nur das Datum ohne Uhrzeit)
+        $groupedByDate = $weeklyEmotions->groupBy(function ($emotion) {
+            return $emotion->created_at->toDateString(); // Nur das Datum (YYYY-MM-DD)
+        });
+
+        // Arrays für Zeitstempel und Scores vorbereiten
+        $timestamps = [];
+        $scores = [];
+
+        // Für jeden gruppierten Tag den Durchschnitt der Scores berechnen
+        foreach ($groupedByDate as $date => $emotionsOnDate) {
+            // Berechne den Durchschnitt der Scores für diesen Tag
+            $averageScore = ceil($emotionsOnDate->avg('score') / 2) * 2;
+
+            $timestamps[] = $date; // Füge das Datum zum Array hinzu
+            $scores[] = $averageScore; // Füge den Durchschnitts-Score zum Array hinzu
+        }
 
         $primaryTranslation = __('emotions.primary.' . $emotion->primary->value);
         $secondaryTranslation = __('emotions.secondary.' . $emotion->secondary->value);
@@ -107,8 +136,13 @@ class EmotionController extends Controller
             'emotion' => $emotion,
             'primaryLabel' => $primaryTranslation,
             'secondaryLabel' => $secondaryTranslation,
+            'weeklyEmotions' => $weeklyEmotions,
+            'week_timestamps' => $timestamps,
+            'week_scores' => $scores,
+            'average_week_score' => ceil($weeklyEmotions->avg('score') / 2) * 2, // Laravel Collection Methode
         ]);
     }
+
 
     /**
      * Show the form for editing the specified resource.

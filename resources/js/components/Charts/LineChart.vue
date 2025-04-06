@@ -113,7 +113,7 @@ export default {
               borderColor: darkMode.value ? tooltipBorderColor.dark : tooltipBorderColor.light,
             },
             legend: {
-              display: false,
+              display: true,
             },
           },
           interaction: {

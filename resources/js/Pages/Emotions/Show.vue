@@ -1,11 +1,16 @@
 <script setup>
 import Layout from '@/Layouts/Layout.vue';
+import ChartCard from '@/components/Charts/ChartCard.vue';
 import VButton from '@/components/VButton.vue';
 
 defineProps({
     emotion: Object,
     primaryLabel: String,
     secondaryLabel: String,
+    weeklyEmotions: Array,
+    week_timestamps: Array,
+    week_scores: Array,
+    average_week_score: Number,
 });
 
 function formatDate(dateString) {
@@ -24,6 +29,8 @@ function formatDate(dateString) {
         </template>
 
         <div class="bg-white dark:bg-gray-800 shadow-xs overflow-hidden shadow-xl sm:rounded-lg p-5">
+
+            <ChartCard title="Wochenverfassung" subtitle="Einträge aus der Woche" :labels="week_timestamps" :data="week_scores" :score="average_week_score" />
 
             <div class="flex flex-row justify-between items-center">
                 <div class="flex justify-center items-center">
