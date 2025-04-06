@@ -7,10 +7,7 @@ import InputError from '@/JetstreamComponents/InputError.vue';
 import InputLabel from '@/JetstreamComponents/InputLabel.vue';
 import PrimaryButton from '@/JetstreamComponents/PrimaryButton.vue';
 import SecondaryButton from '@/JetstreamComponents/SecondaryButton.vue';
-import TextInput from '@/JetstreamComponents/TextInput.vue';
 import VInput from '@/components/VInput.vue';
-import VTextarea from '@/components/VTextarea.vue';
-import VSelect from '@/components/VSelect.vue';
 
 const props = defineProps({
     user: Object,

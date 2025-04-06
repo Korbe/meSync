@@ -7,6 +7,7 @@ import DialogModal from '@/JetstreamComponents/DialogModal.vue';
 import InputError from '@/JetstreamComponents/InputError.vue';
 import SecondaryButton from '@/JetstreamComponents/SecondaryButton.vue';
 import TextInput from '@/JetstreamComponents/TextInput.vue';
+import VInput from '@/components/VInput.vue';
 
 const confirmingUserDeletion = ref(false);
 const passwordInput = ref(null);
@@ -66,17 +67,7 @@ const closeModal = () => {
                     Are you sure you want to delete your account? Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.
 
                     <div class="mt-4">
-                        <TextInput
-                            ref="passwordInput"
-                            v-model="form.password"
-                            type="password"
-                            class="mt-1 block w-3/4"
-                            placeholder="Password"
-                            autocomplete="current-password"
-                            @keyup.enter="deleteUser"
-                        />
-
-                        <InputError :message="form.errors.password" class="mt-2" />
+                        <VInput class="mt-1 w-3/4" ref="passwordInput" v-model="form.password" type="password" :error="form.errors.password"/>
                     </div>
                 </template>
 

@@ -6,7 +6,6 @@ import SectionBorder from '@/JetstreamComponents/SectionBorder.vue';
 import TwoFactorAuthenticationForm from '@/Pages/Profile/Partials/TwoFactorAuthenticationForm.vue';
 import UpdatePasswordForm from '@/Pages/Profile/Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from '@/Pages/Profile/Partials/UpdateProfileInformationForm.vue';
-import AppLayout from '@/Layouts/AppLayout.vue';
 
 defineProps({
     confirmsTwoFactorAuthentication: Boolean,
@@ -16,14 +15,8 @@ defineProps({
 
 <template>
     <Layout title="Profile">
-        <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Profile
-            </h2>
-        </template>
-
         <div>
-            <div class="max-w-3xl mx-auto py-10 sm:px-6 lg:px-8">
+            <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
                 <div v-if="$page.props.jetstream.canUpdateProfileInformation">
                     <UpdateProfileInformationForm :user="$page.props.auth.user" />
 

@@ -8,6 +8,7 @@ import InputError from '@/JetstreamComponents/InputError.vue';
 import PrimaryButton from '@/JetstreamComponents/PrimaryButton.vue';
 import SecondaryButton from '@/JetstreamComponents/SecondaryButton.vue';
 import TextInput from '@/JetstreamComponents/TextInput.vue';
+import VInput from '@/components/VInput.vue';
 
 defineProps({
     sessions: Array,
@@ -105,17 +106,7 @@ const closeModal = () => {
                     Please enter your password to confirm you would like to log out of your other browser sessions across all of your devices.
 
                     <div class="mt-4">
-                        <TextInput
-                            ref="passwordInput"
-                            v-model="form.password"
-                            type="password"
-                            class="mt-1 block w-3/4"
-                            placeholder="Password"
-                            autocomplete="current-password"
-                            @keyup.enter="logoutOtherBrowserSessions"
-                        />
-
-                        <InputError :message="form.errors.password" class="mt-2" />
+                        <VInput class="mt-1 w-3/4" ref="passwordInput" v-model="form.password" type="password" :error="form.errors.password"/>
                     </div>
                 </template>
 

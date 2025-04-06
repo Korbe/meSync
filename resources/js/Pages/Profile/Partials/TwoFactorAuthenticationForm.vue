@@ -9,6 +9,7 @@ import InputLabel from '@/JetstreamComponents/InputLabel.vue';
 import PrimaryButton from '@/JetstreamComponents/PrimaryButton.vue';
 import SecondaryButton from '@/JetstreamComponents/SecondaryButton.vue';
 import TextInput from '@/JetstreamComponents/TextInput.vue';
+import VInput from '@/components/VInput.vue';
 
 const props = defineProps({
     requiresConfirmation: Boolean,
@@ -133,7 +134,7 @@ const disableTwoFactorAuthentication = () => {
 
             <div v-if="twoFactorEnabled">
                 <div v-if="qrCode">
-                    <div class="mt-4 max-w-xl text-sm text-gray-600">
+                    <div class="mt-4 max-w-xl text-sm text-gray-600 dark:text-gray-300">
                         <p v-if="confirming" class="font-semibold">
                             To finish enabling two factor authentication, scan the following QR code using your phone's authenticator application or enter the setup key and provide the generated OTP code.
                         </p>
@@ -145,39 +146,25 @@ const disableTwoFactorAuthentication = () => {
 
                     <div class="mt-4 p-2 inline-block bg-white" v-html="qrCode" />
 
-                    <div v-if="setupKey" class="mt-4 max-w-xl text-sm text-gray-600">
+                    <div v-if="setupKey" class="mt-4 max-w-xl text-sm text-gray-600 dark:text-gray-300">
                         <p class="font-semibold">
                             Setup Key: <span v-html="setupKey"></span>
                         </p>
                     </div>
 
                     <div v-if="confirming" class="mt-4">
-                        <InputLabel for="code" value="Code" />
-
-                        <TextInput
-                            id="code"
-                            v-model="confirmationForm.code"
-                            type="text"
-                            name="code"
-                            class="block mt-1 w-1/2"
-                            inputmode="numeric"
-                            autofocus
-                            autocomplete="one-time-code"
-                            @keyup.enter="confirmTwoFactorAuthentication"
-                        />
-
-                        <InputError :message="confirmationForm.errors.code" class="mt-2" />
+                        <VInput id="code" label="Code" v-model="confirmationForm.code" :error="confirmationForm.errors.code" />
                     </div>
                 </div>
 
                 <div v-if="recoveryCodes.length > 0 && ! confirming">
-                    <div class="mt-4 max-w-xl text-sm text-gray-600">
+                    <div class="mt-4 max-w-xl text-sm text-gray-600 dark:text-gray-300">
                         <p class="font-semibold">
                             Store these recovery codes in a secure password manager. They can be used to recover access to your account if your two factor authentication device is lost.
                         </p>
                     </div>
 
-                    <div class="grid gap-1 max-w-xl mt-4 px-4 py-4 font-mono text-sm bg-gray-100 rounded-lg">
+                    <div class="grid gap-1 max-w-xl mt-4 px-4 py-4 font-mono text-sm bg-gray-100 dark:bg-gray-900 rounded-lg">
                         <div v-for="code in recoveryCodes" :key="code">
                             {{ code }}
                         </div>
