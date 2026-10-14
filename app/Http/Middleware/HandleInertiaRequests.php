@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\MaintenanceContract;
 use Inertia\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -41,6 +42,11 @@ class HandleInertiaRequests extends Middleware
                 'success' => Session::get('success'),
                 'error' => Session::get('error'),
             ],
+            // Badge in the sidebar: overdue + due soon maintenance invoices
+            'dueContractsCount' => fn () => $request->user()?->maintenanceContracts()
+                ->billable()
+                ->where('next_invoice_date', '<=', today()->addDays(MaintenanceContract::DUE_SOON_DAYS))
+                ->count() ?? 0,
         ]);
     }
 }

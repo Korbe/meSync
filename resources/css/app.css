@@ -1,6 +1,6 @@
 
 @import "tailwindcss";
-@tailwind utilities;
+@import '@fontsource-variable/bricolage-grotesque';
 @import './additional-styles/flatpickr.css';
 @import './additional-styles/utility-patterns.css' layer(components);
 

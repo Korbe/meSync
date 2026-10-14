@@ -7,7 +7,7 @@ return [
         'short_name' => 'meSync',
         'start_url' => '/',
         'background_color' => '#ffffff',
-        'theme_color' => '#278F5A',
+        'theme_color' => '#1fadae',
         'display' => 'standalone',
         'orientation'=> 'any',
         'status_bar'=> 'black',

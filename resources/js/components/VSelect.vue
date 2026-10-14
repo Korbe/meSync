@@ -17,7 +17,7 @@
 
     <!-- Supporting Text / Error / Success Messages -->
     <div v-if="error" class="text-xs mt-1 text-red-500">{{ error }}</div>
-    <div v-if="success" class="text-xs mt-1 text-green-500">{{ success }}</div>
+    <div v-if="success" class="text-xs mt-1 text-primary-500">{{ success }}</div>
   </div>
 </template>
 
@@ -38,7 +38,7 @@ export default {
     selectClass() {
       return {
         'border-red-300': this.error,
-        'border-green-300': this.success,
+        'border-primary-300': this.success,
         'dark:disabled:bg-gray-800 disabled:bg-gray-100 disabled:cursor-not-allowed': this.disabled
       };
     }

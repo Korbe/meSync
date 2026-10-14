@@ -8,29 +8,35 @@
 @custom-variant sidebar-expanded (&:is(.sidebar-expanded *));
 
 @theme {
-  --color-primary-50: #E6F7ED;
-  --color-primary-100: #C1EAD4;
-  --color-primary-200: #99DDBA;
-  --color-primary-300: #72D09F;
-  --color-primary-400: #4BC486;
-  --color-primary-500: #278F5A;
-  --color-primary-600: #207A4C;
-  --color-primary-700: #18603B;
-  --color-primary-800: #10452A;
-  --color-primary-900: #082918;
-  --color-primary-950: #04150E;
+  /* Brand: teal #1fadae (matches korbitsch.at), accent: amber */
+  --color-primary-50: #ecfcfc;
+  --color-primary-100: #cff7f6;
+  --color-primary-200: #a4eeee;
+  --color-primary-300: #6be0e1;
+  --color-primary-400: #36c8ca;
+  --color-primary-500: #1fadae;
+  --color-primary-600: #188b8e;
+  --color-primary-700: #176f73;
+  --color-primary-800: #18595d;
+  --color-primary-900: #174a4e;
+  --color-primary-950: #082f33;
 
-  --color-gray-50:  #f9fafb;
-  --color-gray-100: #f0f1f3;
-  --color-gray-200: #e1e3e6;
-  --color-gray-300: #d2d4d7;
-  --color-gray-400: #b3b6ba;
-  --color-gray-500: #5a5a5a;
-  --color-gray-600: #484848;
-  --color-gray-700: #363636;
-  --color-gray-800: #242424;
-  --color-gray-900: #080808;
-  --color-gray-950: #010101;
+  --color-accent: #f5a524;
+
+  /* Neutral grays like korbitsch.at */
+  --color-gray-50: #fafafa;
+  --color-gray-100: #f5f5f5;
+  --color-gray-200: #e5e5e5;
+  --color-gray-300: #d4d4d4;
+  --color-gray-400: #a3a3a3;
+  --color-gray-500: #737373;
+  --color-gray-600: #525252;
+  --color-gray-700: #404040;
+  --color-gray-800: #262626;
+  --color-gray-900: #171717;
+  --color-gray-950: #0a0a0a;
+
+  --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
 
   --text-xs: 0.75rem;
   --text-xs--line-height: 1.5;
@@ -72,4 +78,61 @@
   ::file-selector-button {
     border-color: var(--color-gray-200, currentColor);
   }
+}
+/* Sidebar navigation (korbitsch.at look: dark glass, teal glow) */
+.sidebar-grid {
+    background-image: linear-gradient(90deg, #ffffff08 1px, transparent 1px), linear-gradient(#ffffff08 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(120% 60% at 0% 0%, #000 0%, transparent 70%);
+}
+
+.nav-link {
+    @apply relative flex items-center rounded-xl px-3 py-2.5 text-gray-400 transition duration-200 hover:bg-white/5 hover:text-white;
+}
+
+.nav-link-active {
+    @apply bg-linear-to-r from-primary-500/20 via-primary-500/[0.08] to-transparent text-white ring-1 ring-inset ring-primary-500/25 hover:bg-transparent;
+    box-shadow: 0 10px 30px -12px rgb(31 173 174 / 0.55);
+}
+
+.nav-link-active::before {
+    content: "";
+    @apply absolute -left-4 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary-400;
+    box-shadow: 0 0 12px 1px rgb(31 173 174 / 0.8);
+}
+
+.nav-icon {
+    @apply h-5 w-5 shrink-0 text-gray-500 transition duration-200;
+}
+
+.nav-link:hover .nav-icon {
+    @apply text-gray-300;
+}
+
+.nav-link-active .nav-icon,
+.nav-link-active:hover .nav-icon {
+    @apply text-primary-400;
+    filter: drop-shadow(0 0 8px rgb(31 173 174 / 0.7));
+}
+
+.nav-label {
+    @apply ml-3 whitespace-nowrap text-sm font-medium duration-200 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100;
+}
+
+/* Glass surfaces for header controls and dropdowns */
+.glass-button {
+    @apply flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white/70 text-gray-500 backdrop-blur transition hover:border-primary-400 hover:text-primary-600 dark:border-white/10 dark:bg-white/5 dark:text-gray-400 dark:hover:border-primary-500/50 dark:hover:text-primary-300;
+}
+
+.glass-button:hover {
+    box-shadow: 0 0 20px -6px rgb(31 173 174 / 0.6);
+}
+
+/* Content cards (glass look like korbitsch.at) */
+.card {
+    @apply rounded-2xl border border-gray-200/80 bg-white/80 shadow-xs backdrop-blur dark:border-white/[0.08] dark:bg-white/[0.03];
+}
+
+.card-title {
+    @apply flex items-center gap-2 font-display text-lg font-semibold tracking-tight text-gray-900 dark:text-white;
 }

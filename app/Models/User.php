@@ -74,4 +74,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Digestion::class);
     }
+
+    public function customers()
+    {
+        return $this->hasMany(Customer::class);
+    }
+
+    public function maintenanceContracts()
+    {
+        return $this->hasMany(MaintenanceContract::class);
+    }
 }

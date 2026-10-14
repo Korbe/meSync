@@ -1,22 +1,28 @@
 <template>
   <div class="min-w-fit">
     <!-- Sidebar backdrop (mobile only) -->
-    <div class="fixed inset-0 bg-gray-900 z-40 lg:hidden lg:z-auto transition-opacity duration-200" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'" aria-hidden="true"></div>
+    <div class="fixed inset-0 bg-gray-950/70 backdrop-blur-sm z-40 lg:hidden lg:z-auto transition-opacity duration-200" :class="sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'" aria-hidden="true"></div>
 
-    <!-- Sidebar -->
+    <!-- Sidebar (always dark, like korbitsch.at) -->
     <div
       id="sidebar"
       ref="sidebar"
-      class="flex lg:flex! flex-col absolute z-40 left-0 top-0 lg:static lg:left-auto lg:top-auto lg:translate-x-0 h-[100dvh] overflow-y-scroll lg:overflow-y-auto no-scrollbar w-64 lg:w-20 lg:sidebar-expanded:!w-64 2xl:w-64! shrink-0 bg-white dark:bg-gray-800 p-4 transition-all duration-200 ease-in-out"
-      :class="['rounded-r-2xl lg:rounded-none shadow-xs', sidebarOpen ? 'translate-x-0' : '-translate-x-64']"
+      class="isolate flex lg:flex! flex-col absolute z-40 left-0 top-0 lg:static lg:left-auto lg:top-auto lg:translate-x-0 h-[100dvh] overflow-y-scroll lg:overflow-y-auto no-scrollbar w-64 lg:w-20 lg:sidebar-expanded:!w-64 2xl:w-64! shrink-0 bg-gray-950 text-gray-400 border-r border-white/[0.06] p-4 transition-all duration-200 ease-in-out"
+      :class="['rounded-r-2xl lg:rounded-none shadow-2xl lg:shadow-none', sidebarOpen ? 'translate-x-0' : '-translate-x-64']"
     >
+      <!-- Glow decoration -->
+      <div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
+        <div class="absolute -top-24 -left-24 h-64 w-64 rounded-full bg-primary-500/20 blur-[90px]"></div>
+        <div class="absolute bottom-0 -right-24 h-56 w-56 rounded-full bg-accent/[0.06] blur-[90px]"></div>
+        <div class="sidebar-grid absolute inset-0"></div>
+      </div>
 
       <!-- Sidebar header -->
-      <div class="flex justify-between mb-10 pr-3 sm:px-2">
+      <div class="flex items-center justify-between mb-10 pr-3 sm:px-2">
         <!-- Close button -->
         <button
           ref="trigger"
-          class="lg:hidden text-gray-500 hover:text-gray-400"
+          class="lg:hidden text-gray-500 hover:text-white transition"
           @click.stop="$emit('close-sidebar')"
           aria-controls="sidebar"
           :aria-expanded="sidebarOpen"
@@ -27,9 +33,9 @@
           </svg>
         </button>
         <!-- Logo -->
-        <Link class="block" href="/">
-          <img src="/images/logo/logo-144x144.png" class="h-8 dark:hidden" />
-          <img src="/images/logo/logo-144x144-dark.png" class="h-8 hidden dark:block" />
+        <Link class="group flex items-center gap-3" href="/">
+          <img src="/images/logo/logo-144x144-dark.png" alt="meSync" class="h-9 w-9 shrink-0 drop-shadow-[0_0_14px_rgba(31,173,174,0.45)] transition-transform duration-300 group-hover:scale-105" />
+          <span class="font-display text-xl font-bold tracking-tight text-white lg:hidden lg:sidebar-expanded:block 2xl:block">me<span class="text-primary-400">Sync</span></span>
         </Link>
       </div>
 
@@ -37,33 +43,32 @@
       <div class="space-y-8">
         <!-- Pages group -->
         <div>
-          <h3 class="text-xs uppercase text-gray-400 dark:text-gray-500 font-semibold pl-3">
+          <h3 class="pl-3 font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-gray-500">
             <span class="hidden lg:block lg:sidebar-expanded:hidden 2xl:hidden text-center w-6" aria-hidden="true">•••</span>
-            <span class="lg:hidden lg:sidebar-expanded:block 2xl:block">Pages</span>
+            <span class="lg:hidden lg:sidebar-expanded:block 2xl:block">Menü</span>
           </h3>
-          <ul class="mt-3">
-            <li class="pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 bg-linear-to-r" :class="isActive('/dashboard') && 'from-primary-500/[0.12] dark:from-primary-500/[0.24] to-primary-500/[0.04]'">
-              <Link href="/" class="block text-gray-800 dark:text-gray-100 truncate transition" :class="isActive('/') ? '' : 'hover:text-gray-900 dark:hover:text-white'">
-                <div class="flex items-center">
-                  <HomeIcon class="shrink-0 w-5 h-5" :class="isActive('/dashboard') ? 'text-primary-500' : 'text-gray-400 dark:text-gray-500'" />
-                  <span class="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Dashboard</span>
-                </div>
+          <ul class="mt-3 space-y-1">
+            <li>
+              <Link href="/" class="nav-link" :class="isActive('/dashboard') && 'nav-link-active'">
+                <HomeIcon class="nav-icon" />
+                <span class="nav-label">Dashboard</span>
               </Link>
             </li>
-            <li class="pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 bg-linear-to-r" :class="isActive('/emotions') && 'from-primary-500/[0.12] dark:from-primary-500/[0.24] to-primary-500/[0.04]'">
-              <Link href="/emotions" class="block text-gray-800 dark:text-gray-100 truncate transition" :class="isActive('/emotions') ? '' : 'hover:text-gray-900 dark:hover:text-white'">
-                <div class="flex items-center">
-                  <HeartIcon class="shrink-0 w-5 h-5" :class="isActive('/emotions') ? 'text-primary-500' : 'text-gray-400 dark:text-gray-500'" />
-                  <span class="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Emotions</span>
-                </div>
+            <li>
+              <Link :href="route('customers.index')" class="nav-link" :class="isActive('/customers') && 'nav-link-active'">
+                <UsersIcon class="nav-icon" />
+                <span class="nav-label">Kunden</span>
               </Link>
             </li>
-            <li class="pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 bg-linear-to-r" :class="isActive('/digestions') && 'from-primary-500/[0.12] dark:from-primary-500/[0.24] to-primary-500/[0.04]'">
-              <Link href="/digestions" class="block text-gray-800 dark:text-gray-100 truncate transition" :class="isActive('/digestions') ? '' : 'hover:text-gray-900 dark:hover:text-white'">
-                <div class="flex items-center">
-                  <BeakerIcon class="shrink-0 w-5 h-5" :class="isActive('/digestions') ? 'text-primary-500' : 'text-gray-400 dark:text-gray-500'" />
-                  <span class="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">Digestions</span>
-                </div>
+            <li>
+              <Link :href="route('contracts.index')" class="nav-link" :class="isActive('/contracts') && 'nav-link-active'">
+                <span class="relative">
+                  <WrenchScrewdriverIcon class="nav-icon" />
+                  <!-- Due badge on the icon (visible when the sidebar is collapsed) -->
+                  <span v-if="dueCount" class="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-gray-950 shadow-[0_0_10px_rgba(245,165,36,0.7)] max-lg:hidden lg:sidebar-expanded:hidden 2xl:hidden">{{ dueCount }}</span>
+                </span>
+                <span class="nav-label">Wartungsverträge</span>
+                <span v-if="dueCount" class="ml-auto hidden rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-accent ring-1 ring-inset ring-accent/40 lg:sidebar-expanded:inline 2xl:inline max-lg:inline">{{ dueCount }}</span>
               </Link>
             </li>
           </ul>
@@ -72,14 +77,12 @@
 
       <!-- Expand / collapse button -->
       <div class="pt-3 hidden lg:inline-flex 2xl:hidden justify-end mt-auto">
-        <div class="w-12 pl-4 pr-3 py-2">
-          <button class="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400" @click.prevent="sidebarExpanded = !sidebarExpanded">
-            <span class="sr-only">Expand / collapse sidebar</span>
-            <svg class="shrink-0 fill-current text-gray-400 dark:text-gray-500 sidebar-expanded:rotate-180" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
-                <path d="M15 16a1 1 0 0 1-1-1V1a1 1 0 1 1 2 0v14a1 1 0 0 1-1 1ZM8.586 7H1a1 1 0 1 0 0 2h7.586l-2.793 2.793a1 1 0 1 0 1.414 1.414l4.5-4.5A.997.997 0 0 0 12 8.01M11.924 7.617a.997.997 0 0 0-.217-.324l-4.5-4.5a1 1 0 0 0-1.414 1.414L8.586 7M12 7.99a.996.996 0 0 0-.076-.373Z" />
-            </svg>
-          </button>
-        </div>
+        <button class="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-400 backdrop-blur transition hover:border-primary-500/50 hover:text-primary-300 hover:shadow-[0_0_20px_-4px_rgba(31,173,174,0.6)]" @click.prevent="sidebarExpanded = !sidebarExpanded">
+          <span class="sr-only">Expand / collapse sidebar</span>
+          <svg class="shrink-0 fill-current sidebar-expanded:rotate-180 transition-transform" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16">
+            <path d="M15 16a1 1 0 0 1-1-1V1a1 1 0 1 1 2 0v14a1 1 0 0 1-1 1ZM8.586 7H1a1 1 0 1 0 0 2h7.586l-2.793 2.793a1 1 0 1 0 1.414 1.414l4.5-4.5A.997.997 0 0 0 12 8.01M11.924 7.617a.997.997 0 0 0-.217-.324l-4.5-4.5a1 1 0 0 0-1.414 1.414L8.586 7M12 7.99a.996.996 0 0 0-.076-.373Z" />
+          </svg>
+        </button>
       </div>
 
     </div>
@@ -92,7 +95,7 @@ import { usePage } from "@inertiajs/vue3";
 
 
 import SidebarLinkGroup from './SidebarLinkGroup.vue'
-import { BeakerIcon, HeartIcon, HomeIcon, SparklesIcon } from '@heroicons/vue/24/solid';
+import { BeakerIcon, HeartIcon, HomeIcon, SparklesIcon, UsersIcon, WrenchScrewdriverIcon } from '@heroicons/vue/24/solid';
 
 export default {
   name: 'Sidebar',
@@ -104,7 +107,9 @@ export default {
     HomeIcon,
     SparklesIcon,
     HeartIcon,
-    BeakerIcon
+    BeakerIcon,
+    UsersIcon,
+    WrenchScrewdriverIcon,
   },  
   setup(props, { emit }) {
 
@@ -115,6 +120,7 @@ export default {
     const sidebarExpanded = ref(storedSidebarExpanded === null ? false : storedSidebarExpanded === 'true')
 
     const currentUrl = computed(() => usePage().url);
+    const dueCount = computed(() => usePage().props.dueContractsCount);
 
     
 
@@ -172,6 +178,7 @@ export default {
       sidebarExpanded,
       currentRoute,
       isActive,
+      dueCount,
     }
   },
 }

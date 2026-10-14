@@ -17,7 +17,7 @@ defineProps({
 <template>
 
   <div
-    class="flex h-[100dvh] overflow-hidden font-inter antialiased bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400">
+    class="flex h-[100dvh] overflow-hidden antialiased bg-gray-50 dark:bg-gray-950 text-gray-600 dark:text-gray-400">
 
     <Head :title="title" />
 
@@ -25,7 +25,13 @@ defineProps({
     <Sidebar :sidebarOpen="sidebarOpen" @close-sidebar="sidebarOpen = false" />
 
     <!-- Content area -->
-    <div class="relative flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+    <div scroll-region class="relative isolate flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
+
+      <!-- Ambient brand glow behind the content -->
+      <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
+        <div class="absolute -top-40 right-0 h-[480px] w-[480px] rounded-full bg-primary-400/15 blur-[140px] dark:bg-primary-500/10"></div>
+        <div class="absolute bottom-0 left-1/3 h-[320px] w-[320px] rounded-full bg-accent/[0.06] blur-[140px]"></div>
+      </div>
 
       <!-- Site header -->
       <Header :sidebarOpen="sidebarOpen" @toggle-sidebar="sidebarOpen = !sidebarOpen" />
@@ -40,7 +46,7 @@ defineProps({
           <!-- Left: Title -->
           <div class="mb-4 sm:mb-0 flex items-center">
             <Link v-if="backTo" :href="backTo"><ChevronLeftIcon class="w-6 h-6 mr-2"></ChevronLeftIcon></Link>
-            <h1 class="p-0 m-0 text-2xl md:text-3xl text-gray-800 dark:text-gray-100 font-bold">{{title}}</h1>
+            <h1 class="p-0 m-0 font-display text-3xl md:text-4xl font-bold tracking-tight text-gray-900 dark:text-white">{{title}}</h1>
           </div>
 
           <!-- Right: Actions -->

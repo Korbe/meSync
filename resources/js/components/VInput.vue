@@ -22,6 +22,7 @@
         :placeholder="placeholder"
         :required="mandatory" 
         :disabled="disabled"
+        :list="list || undefined"
         :value="modelValue"
         @input="$emit('update:modelValue', $event.target.value)"
       />
@@ -45,7 +46,7 @@
     <!-- Supporting Text / Error / Success Messages -->
     <div v-if="supportingText" class="text-xs mt-1">{{ supportingText }}</div>
     <div v-if="error" class="text-xs mt-1 text-red-500">{{ error }}</div>
-    <div v-if="success" class="text-xs mt-1 text-green-500">{{ success }}</div>
+    <div v-if="success" class="text-xs mt-1 text-primary-500">{{ success }}</div>
   </div>
 </template>
 
@@ -68,6 +69,7 @@ export default {
     icon: { type: [String, Object], default: null },
     supportingText: { type: String, default: '' },
     disabled: { type: Boolean, default: false },
+    list: { type: String, default: '' },
     error: { type: String, default: '' },
     success: { type: String, default: '' },
     modelValue: { type: String, default: '' }
@@ -78,7 +80,7 @@ export default {
         'pl-12': this.prefix,
         'pr-8': this.suffix || this.icon,
         'border-red-300': this.error,
-        'border-green-300': this.success,
+        'border-primary-300': this.success,
         'dark:disabled:placeholder:text-gray-600 disabled:border-gray-200 dark:disabled:border-gray-700 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600 disabled:cursor-not-allowed shadow-none': this.disabled
       };
     }

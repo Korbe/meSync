@@ -22,7 +22,7 @@
     <!-- Supporting Text / Error / Success Messages -->
     <div v-if="supportingText" class="text-xs mt-1">{{ supportingText }}</div>
     <div v-if="error" class="text-xs mt-1 text-red-500">{{ error }}</div>
-    <div v-if="success" class="text-xs mt-1 text-green-500">{{ success }}</div>
+    <div v-if="success" class="text-xs mt-1 text-primary-500">{{ success }}</div>
   </div>
 </template>
 
