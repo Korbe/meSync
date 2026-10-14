@@ -1,5 +1,5 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="de">
 <head>
 <title>{{ config('app.name') }}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -37,6 +37,10 @@ width: 100% !important;
 <tr>
 <td class="body" width="100%" cellpadding="0" cellspacing="0" style="border: hidden !important;">
 <table class="inner-body" align="center" width="570" cellpadding="0" cellspacing="0" role="presentation">
+<!-- Teal accent bar (korbitsch.at brand) -->
+<tr>
+<td class="accent-bar" height="4" style="font-size: 0; line-height: 0;">&nbsp;</td>
+</tr>
 <!-- Body content -->
 <tr>
 <td class="content-cell">

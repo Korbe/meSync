@@ -1,0 +1,16 @@
+{
+    "Hello!": "Hallo!",
+    "Whoops!": "Hoppla!",
+    "Regards,": "Viele Grüße,",
+    "All rights reserved.": "Alle Rechte vorbehalten.",
+    "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\ninto your web browser:": "Falls der Button „:actionText“ nicht funktioniert, kopiere diesen Link in deinen Browser:",
+    "Verify your email address": "Bitte bestätige deine E-Mail-Adresse",
+    "Please click the button below to verify your email address.": "Bitte klicke auf den Button, um deine E-Mail-Adresse zu bestätigen.",
+    "Verify Email Address": "E-Mail-Adresse bestätigen",
+    "If you did not create an account, no further action is required.": "Falls du kein Konto angelegt oder deine E-Mail-Adresse nicht geändert hast, kannst du diese Mail ignorieren.",
+    "Reset your password": "Passwort zurücksetzen",
+    "You are receiving this email because we received a password reset request for your account.": "Du bekommst diese Mail, weil für dein Konto ein neues Passwort angefordert wurde.",
+    "Reset Password": "Neues Passwort festlegen",
+    "This password reset link will expire in :count minutes.": "Der Link ist :count Minuten gültig.",
+    "If you did not request a password reset, no further action is required.": "Falls du kein neues Passwort angefordert hast, kannst du diese Mail ignorieren."
+}
