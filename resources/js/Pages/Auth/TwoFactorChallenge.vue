@@ -1,12 +1,9 @@
 <script setup>
 import { nextTick, ref } from 'vue';
-import { Head, useForm } from '@inertiajs/vue3';
-import AuthenticationCard from '@/JetstreamComponents/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/JetstreamComponents/AuthenticationCardLogo.vue';
-import InputError from '@/JetstreamComponents/InputError.vue';
-import InputLabel from '@/JetstreamComponents/InputLabel.vue';
-import PrimaryButton from '@/JetstreamComponents/PrimaryButton.vue';
-import TextInput from '@/JetstreamComponents/TextInput.vue';
+import { useForm } from '@inertiajs/vue3';
+import AuthLayout from '@/Layouts/AuthLayout.vue';
+import VButton from '@/components/VButton.vue';
+import VInput from '@/components/VInput.vue';
 
 const recovery = ref(false);
 
@@ -38,67 +35,29 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Two-factor Confirmation" />
-
-    <AuthenticationCard>
-        <template #logo>
-            <AuthenticationCardLogo />
-        </template>
-
+    <AuthLayout title="Zwei-Faktor-Bestätigung">
         <div class="mb-4 text-sm text-gray-400">
             <template v-if="! recovery">
-                Please confirm access to your account by entering the authentication code provided by your authenticator application.
+                Bitte gib den Code aus deiner Authenticator-App ein.
             </template>
 
             <template v-else>
-                Please confirm access to your account by entering one of your emergency recovery codes.
+                Bitte gib einen deiner Wiederherstellungscodes ein.
             </template>
         </div>
 
-        <form @submit.prevent="submit">
-            <div v-if="! recovery">
-                <InputLabel for="code" value="Code" />
-                <TextInput
-                    id="code"
-                    ref="codeInput"
-                    v-model="form.code"
-                    type="text"
-                    inputmode="numeric"
-                    class="mt-1 block w-full"
-                    autofocus
-                    autocomplete="one-time-code"
-                />
-                <InputError class="mt-2" :message="form.errors.code" />
-            </div>
+        <form @submit.prevent="submit" class="space-y-4">
+            <VInput v-if="! recovery" id="code" ref="codeInput" label="Code" v-model="form.code" :error="form.errors.code" inputmode="numeric" autofocus autocomplete="one-time-code" />
 
-            <div v-else>
-                <InputLabel for="recovery_code" value="Recovery Code" />
-                <TextInput
-                    id="recovery_code"
-                    ref="recoveryCodeInput"
-                    v-model="form.recovery_code"
-                    type="text"
-                    class="mt-1 block w-full"
-                    autocomplete="one-time-code"
-                />
-                <InputError class="mt-2" :message="form.errors.recovery_code" />
-            </div>
+            <VInput v-else id="recovery_code" ref="recoveryCodeInput" label="Wiederherstellungscode" v-model="form.recovery_code" :error="form.errors.recovery_code" autocomplete="one-time-code" />
 
-            <div class="flex items-center justify-end mt-4">
-                <button type="button" class="text-sm text-gray-400 hover:text-primary-300 underline cursor-pointer" @click.prevent="toggleRecovery">
-                    <template v-if="! recovery">
-                        Use a recovery code
-                    </template>
-
-                    <template v-else>
-                        Use an authentication code
-                    </template>
+            <div class="flex items-center justify-end gap-4 pt-2">
+                <button type="button" class="cursor-pointer text-sm text-gray-400 underline hover:text-primary-300" @click.prevent="toggleRecovery">
+                    {{ recovery ? 'Code aus der App verwenden' : 'Wiederherstellungscode verwenden' }}
                 </button>
 
-                <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                    Log in
-                </PrimaryButton>
+                <VButton type="submit" :loading="form.processing" :disabled="form.processing">Anmelden</VButton>
             </div>
         </form>
-    </AuthenticationCard>
+    </AuthLayout>
 </template>

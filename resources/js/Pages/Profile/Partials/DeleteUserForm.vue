@@ -2,11 +2,8 @@
 import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import DangerButton from '@/JetstreamComponents/DangerButton.vue';
-import DialogModal from '@/JetstreamComponents/DialogModal.vue';
-import InputError from '@/JetstreamComponents/InputError.vue';
-import SecondaryButton from '@/JetstreamComponents/SecondaryButton.vue';
-import TextInput from '@/JetstreamComponents/TextInput.vue';
+import VButton from '@/components/VButton.vue';
+import VModal from '@/components/VModal.vue';
 import VInput from '@/components/VInput.vue';
 
 const confirmingUserDeletion = ref(false);
@@ -50,10 +47,10 @@ const closeModal = () => {
                 </p>
             </div>
 
-            <DangerButton class="shrink-0" @click="confirmUserDeletion">Konto löschen</DangerButton>
+            <VButton variant="danger" class="shrink-0" @click="confirmUserDeletion">Konto löschen</VButton>
         </div>
 
-        <DialogModal :show="confirmingUserDeletion" @close="closeModal">
+        <VModal :show="confirmingUserDeletion" @close="closeModal">
             <template #title>Konto wirklich löschen?</template>
 
             <template #content>
@@ -65,10 +62,10 @@ const closeModal = () => {
             </template>
 
             <template #footer>
-                <SecondaryButton @click="closeModal">Abbrechen</SecondaryButton>
+                <VButton variant="secondary" @click="closeModal">Abbrechen</VButton>
 
-                <DangerButton :disabled="form.processing" @click="deleteUser">Endgültig löschen</DangerButton>
+                <VButton variant="danger" :disabled="form.processing" @click="deleteUser">Endgültig löschen</VButton>
             </template>
-        </DialogModal>
+        </VModal>
     </section>
 </template>

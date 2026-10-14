@@ -2,14 +2,9 @@
 import { ShieldCheckIcon } from '@heroicons/vue/24/outline';
 import { ref, computed, watch } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
-import ActionSection from '@/JetstreamComponents/ActionSection.vue';
-import ConfirmsPassword from '@/JetstreamComponents/ConfirmsPassword.vue';
-import DangerButton from '@/JetstreamComponents/DangerButton.vue';
-import InputError from '@/JetstreamComponents/InputError.vue';
-import InputLabel from '@/JetstreamComponents/InputLabel.vue';
-import PrimaryButton from '@/JetstreamComponents/PrimaryButton.vue';
-import SecondaryButton from '@/JetstreamComponents/SecondaryButton.vue';
-import TextInput from '@/JetstreamComponents/TextInput.vue';
+import VButton from '@/components/VButton.vue';
+import VActionSection from '@/components/VActionSection.vue';
+import VConfirmsPassword from '@/components/VConfirmsPassword.vue';
 import VInput from '@/components/VInput.vue';
 
 const props = defineProps({
@@ -107,7 +102,7 @@ const disableTwoFactorAuthentication = () => {
 </script>
 
 <template>
-    <ActionSection>
+    <VActionSection>
         <template #header>
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -167,33 +162,33 @@ const disableTwoFactorAuthentication = () => {
 
             <div class="mt-6 flex flex-wrap gap-3">
                 <template v-if="! twoFactorEnabled">
-                    <ConfirmsPassword @confirmed="enableTwoFactorAuthentication">
-                        <PrimaryButton type="button" :disabled="enabling">Aktivieren</PrimaryButton>
-                    </ConfirmsPassword>
+                    <VConfirmsPassword @confirmed="enableTwoFactorAuthentication">
+                        <VButton type="button" :disabled="enabling">Aktivieren</VButton>
+                    </VConfirmsPassword>
                 </template>
 
                 <template v-else>
-                    <ConfirmsPassword @confirmed="confirmTwoFactorAuthentication">
-                        <PrimaryButton v-if="confirming" type="button" :disabled="enabling">Bestätigen</PrimaryButton>
-                    </ConfirmsPassword>
+                    <VConfirmsPassword @confirmed="confirmTwoFactorAuthentication">
+                        <VButton v-if="confirming" type="button" :disabled="enabling">Bestätigen</VButton>
+                    </VConfirmsPassword>
 
-                    <ConfirmsPassword @confirmed="regenerateRecoveryCodes">
-                        <SecondaryButton v-if="recoveryCodes.length > 0 && ! confirming">Neue Wiederherstellungscodes</SecondaryButton>
-                    </ConfirmsPassword>
+                    <VConfirmsPassword @confirmed="regenerateRecoveryCodes">
+                        <VButton variant="secondary" v-if="recoveryCodes.length > 0 && ! confirming">Neue Wiederherstellungscodes</VButton>
+                    </VConfirmsPassword>
 
-                    <ConfirmsPassword @confirmed="showRecoveryCodes">
-                        <SecondaryButton v-if="recoveryCodes.length === 0 && ! confirming">Wiederherstellungscodes anzeigen</SecondaryButton>
-                    </ConfirmsPassword>
+                    <VConfirmsPassword @confirmed="showRecoveryCodes">
+                        <VButton variant="secondary" v-if="recoveryCodes.length === 0 && ! confirming">Wiederherstellungscodes anzeigen</VButton>
+                    </VConfirmsPassword>
 
-                    <ConfirmsPassword @confirmed="disableTwoFactorAuthentication">
-                        <SecondaryButton v-if="confirming" :disabled="disabling">Abbrechen</SecondaryButton>
-                    </ConfirmsPassword>
+                    <VConfirmsPassword @confirmed="disableTwoFactorAuthentication">
+                        <VButton variant="secondary" v-if="confirming" :disabled="disabling">Abbrechen</VButton>
+                    </VConfirmsPassword>
 
-                    <ConfirmsPassword @confirmed="disableTwoFactorAuthentication">
-                        <DangerButton v-if="! confirming" :disabled="disabling">Deaktivieren</DangerButton>
-                    </ConfirmsPassword>
+                    <VConfirmsPassword @confirmed="disableTwoFactorAuthentication">
+                        <VButton variant="danger" v-if="! confirming" :disabled="disabling">Deaktivieren</VButton>
+                    </VConfirmsPassword>
                 </template>
             </div>
         </template>
-    </ActionSection>
+    </VActionSection>
 </template>

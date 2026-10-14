@@ -1,11 +1,8 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
-import AuthenticationCard from '@/JetstreamComponents/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/JetstreamComponents/AuthenticationCardLogo.vue';
-import InputError from '@/JetstreamComponents/InputError.vue';
-import InputLabel from '@/JetstreamComponents/InputLabel.vue';
-import PrimaryButton from '@/JetstreamComponents/PrimaryButton.vue';
-import TextInput from '@/JetstreamComponents/TextInput.vue';
+import { Link, useForm } from '@inertiajs/vue3';
+import AuthLayout from '@/Layouts/AuthLayout.vue';
+import VButton from '@/components/VButton.vue';
+import VInput from '@/components/VInput.vue';
 
 defineProps({
     status: String,
@@ -21,41 +18,23 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Forgot Password" />
-
-    <AuthenticationCard>
-        <template #logo>
-            <AuthenticationCardLogo />
-        </template>
-
+    <AuthLayout title="Passwort vergessen">
         <div class="mb-4 text-sm text-gray-400">
-            Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.
+            Passwort vergessen? Kein Problem. Gib deine E-Mail-Adresse ein, dann schicken wir dir einen Link, mit dem du ein neues Passwort festlegen kannst.
         </div>
 
         <div v-if="status" class="mb-4 font-medium text-sm text-primary-300">
             {{ status }}
         </div>
 
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="email" value="Email" />
-                <TextInput
-                    id="email"
-                    v-model="form.email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
+        <form @submit.prevent="submit" class="space-y-4">
+            <VInput id="email" type="email" label="E-Mail" v-model="form.email" :error="form.errors.email" autofocus autocomplete="username" />
 
-            <div class="flex items-center justify-end mt-4">
-                <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                    Email Password Reset Link
-                </PrimaryButton>
+            <div class="flex items-center justify-end gap-4 pt-2">
+                <Link :href="route('login')" class="text-sm text-gray-400 underline hover:text-primary-300">Zurück zur Anmeldung</Link>
+
+                <VButton type="submit" :loading="form.processing" :disabled="form.processing">Link senden</VButton>
             </div>
         </form>
-    </AuthenticationCard>
+    </AuthLayout>
 </template>

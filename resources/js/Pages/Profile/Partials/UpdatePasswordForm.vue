@@ -2,12 +2,9 @@
 import { KeyIcon } from '@heroicons/vue/24/outline';
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import ActionMessage from '@/JetstreamComponents/ActionMessage.vue';
-import FormSection from '@/JetstreamComponents/FormSection.vue';
-import InputError from '@/JetstreamComponents/InputError.vue';
-import InputLabel from '@/JetstreamComponents/InputLabel.vue';
-import PrimaryButton from '@/JetstreamComponents/PrimaryButton.vue';
-import TextInput from '@/JetstreamComponents/TextInput.vue';
+import VButton from '@/components/VButton.vue';
+import VActionMessage from '@/components/VActionMessage.vue';
+import VFormSection from '@/components/VFormSection.vue';
 import VInput from '@/components/VInput.vue';
 
 const passwordInput = ref(null);
@@ -40,7 +37,7 @@ const updatePassword = () => {
 </script>
 
 <template>
-    <FormSection @submitted="updatePassword">
+    <VFormSection @submitted="updatePassword">
         <template #header>
             <h2 class="card-title"><KeyIcon class="h-5 w-5 text-primary-500" />Passwort</h2>
             <p class="mt-1 mb-5 text-sm text-gray-500 dark:text-gray-400">Verwende ein langes, zufälliges Passwort, damit dein Konto sicher bleibt.</p>
@@ -48,11 +45,11 @@ const updatePassword = () => {
 
         <template #form>
             <div class="col-span-6">
-                <VInput id="current_password" label="Aktuelles Passwort" type="password" v-model="form.current_password" :error="form.errors.current_password" />
+                <VInput id="current_password" ref="currentPasswordInput" label="Aktuelles Passwort" type="password" v-model="form.current_password" :error="form.errors.current_password" />
             </div>
 
             <div class="col-span-6 sm:col-span-3">
-                <VInput id="password" label="Neues Passwort" type="password" v-model="form.password" :error="form.errors.password" />
+                <VInput id="password" ref="passwordInput" label="Neues Passwort" type="password" v-model="form.password" :error="form.errors.password" />
             </div>
 
             <div class="col-span-6 sm:col-span-3">
@@ -61,9 +58,9 @@ const updatePassword = () => {
         </template>
 
         <template #actions>
-            <ActionMessage :on="form.recentlySuccessful">Gespeichert.</ActionMessage>
+            <VActionMessage :on="form.recentlySuccessful">Gespeichert.</VActionMessage>
 
-            <PrimaryButton :disabled="form.processing">Speichern</PrimaryButton>
+            <VButton type="submit" :loading="form.processing" :disabled="form.processing">Speichern</VButton>
         </template>
-    </FormSection>
+    </VFormSection>
 </template>

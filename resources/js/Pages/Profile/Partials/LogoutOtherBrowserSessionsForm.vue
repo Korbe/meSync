@@ -2,13 +2,10 @@
 import { ComputerDesktopIcon, DevicePhoneMobileIcon, GlobeEuropeAfricaIcon } from '@heroicons/vue/24/outline';
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import ActionMessage from '@/JetstreamComponents/ActionMessage.vue';
-import ActionSection from '@/JetstreamComponents/ActionSection.vue';
-import DialogModal from '@/JetstreamComponents/DialogModal.vue';
-import InputError from '@/JetstreamComponents/InputError.vue';
-import PrimaryButton from '@/JetstreamComponents/PrimaryButton.vue';
-import SecondaryButton from '@/JetstreamComponents/SecondaryButton.vue';
-import TextInput from '@/JetstreamComponents/TextInput.vue';
+import VButton from '@/components/VButton.vue';
+import VActionMessage from '@/components/VActionMessage.vue';
+import VActionSection from '@/components/VActionSection.vue';
+import VModal from '@/components/VModal.vue';
 import VInput from '@/components/VInput.vue';
 
 defineProps({
@@ -45,7 +42,7 @@ const closeModal = () => {
 </script>
 
 <template>
-    <ActionSection>
+    <VActionSection>
         <template #header>
             <h2 class="card-title"><GlobeEuropeAfricaIcon class="h-5 w-5 text-primary-500" />Browser-Sitzungen</h2>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Verwalte deine aktiven Sitzungen auf anderen Browsern und Geräten.</p>
@@ -78,12 +75,12 @@ const closeModal = () => {
             </ul>
 
             <div class="mt-5 flex items-center gap-3">
-                <SecondaryButton @click="confirmLogout">Andere Sitzungen abmelden</SecondaryButton>
+                <VButton variant="secondary" @click="confirmLogout">Andere Sitzungen abmelden</VButton>
 
-                <ActionMessage :on="form.recentlySuccessful">Erledigt.</ActionMessage>
+                <VActionMessage :on="form.recentlySuccessful">Erledigt.</VActionMessage>
             </div>
 
-            <DialogModal :show="confirmingLogout" @close="closeModal">
+            <VModal :show="confirmingLogout" @close="closeModal">
                 <template #title>Andere Sitzungen abmelden</template>
 
                 <template #content>
@@ -95,11 +92,11 @@ const closeModal = () => {
                 </template>
 
                 <template #footer>
-                    <SecondaryButton @click="closeModal">Abbrechen</SecondaryButton>
+                    <VButton variant="secondary" @click="closeModal">Abbrechen</VButton>
 
-                    <PrimaryButton :disabled="form.processing" @click="logoutOtherBrowserSessions">Abmelden</PrimaryButton>
+                    <VButton :disabled="form.processing" @click="logoutOtherBrowserSessions">Abmelden</VButton>
                 </template>
-            </DialogModal>
+            </VModal>
         </template>
-    </ActionSection>
+    </VActionSection>
 </template>

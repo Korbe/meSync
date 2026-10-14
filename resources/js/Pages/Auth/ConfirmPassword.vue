@@ -1,12 +1,9 @@
 <script setup>
 import { ref } from 'vue';
-import { Head, useForm } from '@inertiajs/vue3';
-import AuthenticationCard from '@/JetstreamComponents/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/JetstreamComponents/AuthenticationCardLogo.vue';
-import InputError from '@/JetstreamComponents/InputError.vue';
-import InputLabel from '@/JetstreamComponents/InputLabel.vue';
-import PrimaryButton from '@/JetstreamComponents/PrimaryButton.vue';
-import TextInput from '@/JetstreamComponents/TextInput.vue';
+import { useForm } from '@inertiajs/vue3';
+import AuthLayout from '@/Layouts/AuthLayout.vue';
+import VButton from '@/components/VButton.vue';
+import VInput from '@/components/VInput.vue';
 
 const form = useForm({
     password: '',
@@ -26,38 +23,17 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Secure Area" />
-
-    <AuthenticationCard>
-        <template #logo>
-            <AuthenticationCardLogo />
-        </template>
-
+    <AuthLayout title="Geschützter Bereich">
         <div class="mb-4 text-sm text-gray-400">
-            This is a secure area of the application. Please confirm your password before continuing.
+            Das ist ein geschützter Bereich. Bitte bestätige dein Passwort, um fortzufahren.
         </div>
 
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="password" value="Password" />
-                <TextInput
-                    id="password"
-                    ref="passwordInput"
-                    v-model="form.password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    required
-                    autocomplete="current-password"
-                    autofocus
-                />
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
+        <form @submit.prevent="submit" class="space-y-4">
+            <VInput id="password" ref="passwordInput" type="password" label="Passwort" v-model="form.password" :error="form.errors.password" autofocus autocomplete="current-password" />
 
-            <div class="flex justify-end mt-4">
-                <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                    Confirm
-                </PrimaryButton>
+            <div class="flex justify-end pt-2">
+                <VButton type="submit" :loading="form.processing" :disabled="form.processing">Bestätigen</VButton>
             </div>
         </form>
-    </AuthenticationCard>
+    </AuthLayout>
 </template>

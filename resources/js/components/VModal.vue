@@ -93,7 +93,24 @@ const maxWidthClass = computed(() => {
                 leave-to-class="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
                 <div v-show="show" class="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl transform transition-all sm:w-full sm:mx-auto dark:border-white/10 dark:bg-gray-900 dark:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8),0_0_60px_-20px_rgba(31,173,174,0.35)]" :class="maxWidthClass">
-                    <slot v-if="showSlot"/>
+                    <template v-if="showSlot">
+                        <!-- Either free content via the default slot, or the title / content / footer layout -->
+                        <slot>
+                            <div v-if="$slots.title || $slots.content" class="px-6 pt-6 pb-4">
+                                <div v-if="$slots.title" class="font-display text-xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                                    <slot name="title" />
+                                </div>
+
+                                <div v-if="$slots.content" class="mt-4 text-sm text-gray-600 dark:text-gray-300">
+                                    <slot name="content" />
+                                </div>
+                            </div>
+
+                            <div v-if="$slots.footer" class="flex flex-row justify-end gap-3 border-t border-gray-200 bg-gray-50/80 px-6 py-4 text-end dark:border-white/[0.06] dark:bg-white/[0.02]">
+                                <slot name="footer" />
+                            </div>
+                        </slot>
+                    </template>
                 </div>
             </transition>
         </div>

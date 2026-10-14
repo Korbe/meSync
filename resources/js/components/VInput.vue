@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :class="$attrs.class" :style="$attrs.style">
     <!-- Label with optional tooltip and mandatory mark -->
     <div class="flex items-center justify-between" v-if="label">
       <label :for="id" class="block text-sm font-medium mb-1">
@@ -15,6 +15,8 @@
     <!-- Input wrapper for prefix, suffix, and icon -->
     <div class="relative">
       <input 
+        ref="input"
+        v-bind="inputAttrs"
         :id="id" 
         class="form-input w-full" 
         :class="inputClass" 
@@ -54,6 +56,8 @@
 import VTooltip from './VTooltip.vue';
 
 export default {
+  // Native attributes (autocomplete, autofocus, required, inputmode …) go to the <input>, class/style stay on the wrapper
+  inheritAttrs: false,
   components: {
     VTooltip
   },
@@ -74,7 +78,16 @@ export default {
     success: { type: String, default: '' },
     modelValue: { type: String, default: '' }
   },
+  methods: {
+    focus() {
+      this.$refs.input.focus();
+    },
+  },
   computed: {
+    inputAttrs() {
+      const { class: _class, style: _style, ...attrs } = this.$attrs;
+      return attrs;
+    },
     inputClass() {
       return {
         'pl-12': this.prefix,

@@ -1,12 +1,9 @@
 <script setup>
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import AuthenticationCard from '@/JetstreamComponents/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/JetstreamComponents/AuthenticationCardLogo.vue';
-import Checkbox from '@/JetstreamComponents/Checkbox.vue';
-import InputError from '@/JetstreamComponents/InputError.vue';
-import InputLabel from '@/JetstreamComponents/InputLabel.vue';
-import PrimaryButton from '@/JetstreamComponents/PrimaryButton.vue';
-import TextInput from '@/JetstreamComponents/TextInput.vue';
+import { Link, useForm } from '@inertiajs/vue3';
+import AuthLayout from '@/Layouts/AuthLayout.vue';
+import VButton from '@/components/VButton.vue';
+import VCheckbox from '@/components/VCheckbox.vue';
+import VInput from '@/components/VInput.vue';
 
 const form = useForm({
     name: '',
@@ -24,89 +21,31 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Register" />
+    <AuthLayout title="Registrieren">
+        <form @submit.prevent="submit" class="space-y-4">
+            <VInput id="name" label="Name" v-model="form.name" :error="form.errors.name" autofocus autocomplete="name" />
 
-    <AuthenticationCard>
-        <template #logo>
-            <AuthenticationCardLogo />
-        </template>
+            <VInput id="email" type="email" label="E-Mail" v-model="form.email" :error="form.errors.email" autocomplete="username" />
 
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="name" value="Name" />
-                <TextInput
-                    id="name"
-                    v-model="form.name"
-                    type="text"
-                    class="mt-1 block w-full"
-                    required
-                    autofocus
-                    autocomplete="name"
-                />
-                <InputError class="mt-2" :message="form.errors.name" />
+            <VInput id="password" type="password" label="Passwort" v-model="form.password" :error="form.errors.password" autocomplete="new-password" />
+
+            <VInput id="password_confirmation" type="password" label="Passwort bestätigen" v-model="form.password_confirmation" :error="form.errors.password_confirmation" autocomplete="new-password" />
+
+            <div v-if="$page.props.jetstream.hasTermsAndPrivacyPolicyFeature">
+                <VCheckbox v-model="form.terms" name="terms">
+                    Ich akzeptiere die
+                    <a target="_blank" :href="route('terms.show')" class="underline hover:text-primary-300">Nutzungsbedingungen</a>
+                    und die
+                    <a target="_blank" :href="route('policy.show')" class="underline hover:text-primary-300">Datenschutzerklärung</a>
+                </VCheckbox>
+                <div v-if="form.errors.terms" class="text-xs mt-1 text-red-400">{{ form.errors.terms }}</div>
             </div>
 
-            <div class="mt-4">
-                <InputLabel for="email" value="Email" />
-                <TextInput
-                    id="email"
-                    v-model="form.email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    required
-                    autocomplete="username"
-                />
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
+            <div class="flex items-center justify-end gap-4 pt-2">
+                <Link :href="route('login')" class="text-sm text-gray-400 underline hover:text-primary-300">Schon registriert?</Link>
 
-            <div class="mt-4">
-                <InputLabel for="password" value="Password" />
-                <TextInput
-                    id="password"
-                    v-model="form.password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    required
-                    autocomplete="new-password"
-                />
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel for="password_confirmation" value="Confirm Password" />
-                <TextInput
-                    id="password_confirmation"
-                    v-model="form.password_confirmation"
-                    type="password"
-                    class="mt-1 block w-full"
-                    required
-                    autocomplete="new-password"
-                />
-                <InputError class="mt-2" :message="form.errors.password_confirmation" />
-            </div>
-
-            <div v-if="$page.props.jetstream.hasTermsAndPrivacyPolicyFeature" class="mt-4">
-                <InputLabel for="terms">
-                    <div class="flex items-center">
-                        <Checkbox id="terms" v-model:checked="form.terms" name="terms" required />
-
-                        <div class="ms-2">
-                            I agree to the <a target="_blank" :href="route('terms.show')" class="underline text-sm text-gray-400 hover:text-primary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-950 focus:ring-primary-500">Terms of Service</a> and <a target="_blank" :href="route('policy.show')" class="underline text-sm text-gray-400 hover:text-primary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-950 focus:ring-primary-500">Privacy Policy</a>
-                        </div>
-                    </div>
-                    <InputError class="mt-2" :message="form.errors.terms" />
-                </InputLabel>
-            </div>
-
-            <div class="flex items-center justify-end mt-4">
-                <Link :href="route('login')" class="underline text-sm text-gray-400 hover:text-primary-300 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-950 focus:ring-primary-500">
-                    Already registered?
-                </Link>
-
-                <PrimaryButton class="ms-4" :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                    Register
-                </PrimaryButton>
+                <VButton type="submit" :loading="form.processing" :disabled="form.processing">Registrieren</VButton>
             </div>
         </form>
-    </AuthenticationCard>
+    </AuthLayout>
 </template>

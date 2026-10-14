@@ -31,7 +31,7 @@
     class="btn"
     :class="buttonClasses"
     :disabled="disabled"
-    @click="$emit('click')"
+    @click="$emit('click', $event)"
   >
     <svg
       v-if="loading"
@@ -56,6 +56,7 @@
 import * as HeroIcons from '@heroicons/vue/24/solid';
 
 export default {
+  emits: ['click'],
   props: {
     href: {
       type: String,
@@ -87,10 +88,10 @@ export default {
   computed: {
     buttonClasses() {
       return {
-        "cursor-pointer bg-primary-500 text-gray-100 hover:bg-primary-600 active:bg-primary-600 transition-all duration-150 dark:bg-primary-500 dark:text-gray-100 dark:hover:bg-primary-600 dark:active:bg-primary-600": this.variant === "primary",
-        "cursor-pointer bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700/60 hover:border-gray-300 dark:hover:border-gray-600 text-gray-800 dark:text-gray-300 active:bg-gray-100 dark:active:bg-gray-700": this.variant === "secondary",
-        "cursor-pointer bg-red-500 hover:bg-red-600 active:bg-red-700 text-white transition-all duration-150": this.variant === "danger",
-        "disabled:border-gray-200 dark:disabled:border-gray-700 disabled:bg-white dark:disabled:bg-gray-800 disabled:text-gray-300 dark:disabled:text-gray-600 disabled:cursor-not-allowed": this.disabled,
+        "cursor-pointer bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700 hover:shadow-[0_8px_24px_-8px_rgba(31,173,174,0.8)] focus:ring-primary-500": this.variant === "primary",
+        "cursor-pointer bg-white border-gray-200! text-gray-700 hover:border-gray-300! hover:bg-gray-50 focus:ring-primary-500 dark:bg-white/5 dark:border-white/10! dark:text-gray-200 dark:hover:border-white/20! dark:hover:bg-white/10": this.variant === "secondary",
+        "cursor-pointer bg-red-600 text-white hover:bg-red-500 active:bg-red-700 hover:shadow-[0_8px_24px_-8px_rgba(239,68,68,0.7)] focus:ring-red-500": this.variant === "danger",
+        "cursor-not-allowed! opacity-50 shadow-none!": this.disabled,
       };
     },
     iconComponent() {

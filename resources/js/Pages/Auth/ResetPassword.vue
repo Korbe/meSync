@@ -1,11 +1,8 @@
 <script setup>
-import { Head, useForm } from '@inertiajs/vue3';
-import AuthenticationCard from '@/JetstreamComponents/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/JetstreamComponents/AuthenticationCardLogo.vue';
-import InputError from '@/JetstreamComponents/InputError.vue';
-import InputLabel from '@/JetstreamComponents/InputLabel.vue';
-import PrimaryButton from '@/JetstreamComponents/PrimaryButton.vue';
-import TextInput from '@/JetstreamComponents/TextInput.vue';
+import { useForm } from '@inertiajs/vue3';
+import AuthLayout from '@/Layouts/AuthLayout.vue';
+import VButton from '@/components/VButton.vue';
+import VInput from '@/components/VInput.vue';
 
 const props = defineProps({
     email: String,
@@ -27,59 +24,17 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Reset Password" />
+    <AuthLayout title="Passwort zurücksetzen">
+        <form @submit.prevent="submit" class="space-y-4">
+            <VInput id="email" type="email" label="E-Mail" v-model="form.email" :error="form.errors.email" autocomplete="username" />
 
-    <AuthenticationCard>
-        <template #logo>
-            <AuthenticationCardLogo />
-        </template>
+            <VInput id="password" type="password" label="Neues Passwort" v-model="form.password" :error="form.errors.password" autofocus autocomplete="new-password" />
 
-        <form @submit.prevent="submit">
-            <div>
-                <InputLabel for="email" value="Email" />
-                <TextInput
-                    id="email"
-                    v-model="form.email"
-                    type="email"
-                    class="mt-1 block w-full"
-                    required
-                    autofocus
-                    autocomplete="username"
-                />
-                <InputError class="mt-2" :message="form.errors.email" />
-            </div>
+            <VInput id="password_confirmation" type="password" label="Passwort bestätigen" v-model="form.password_confirmation" :error="form.errors.password_confirmation" autocomplete="new-password" />
 
-            <div class="mt-4">
-                <InputLabel for="password" value="Password" />
-                <TextInput
-                    id="password"
-                    v-model="form.password"
-                    type="password"
-                    class="mt-1 block w-full"
-                    required
-                    autocomplete="new-password"
-                />
-                <InputError class="mt-2" :message="form.errors.password" />
-            </div>
-
-            <div class="mt-4">
-                <InputLabel for="password_confirmation" value="Confirm Password" />
-                <TextInput
-                    id="password_confirmation"
-                    v-model="form.password_confirmation"
-                    type="password"
-                    class="mt-1 block w-full"
-                    required
-                    autocomplete="new-password"
-                />
-                <InputError class="mt-2" :message="form.errors.password_confirmation" />
-            </div>
-
-            <div class="flex items-center justify-end mt-4">
-                <PrimaryButton :class="{ 'opacity-25': form.processing }" :disabled="form.processing">
-                    Reset Password
-                </PrimaryButton>
+            <div class="flex justify-end pt-2">
+                <VButton type="submit" :loading="form.processing" :disabled="form.processing">Passwort speichern</VButton>
             </div>
         </form>
-    </AuthenticationCard>
+    </AuthLayout>
 </template>

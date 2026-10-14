@@ -2,12 +2,9 @@
 import { UserCircleIcon } from '@heroicons/vue/24/outline';
 import { ref } from 'vue';
 import { Link, router, useForm } from '@inertiajs/vue3';
-import ActionMessage from '@/JetstreamComponents/ActionMessage.vue';
-import FormSection from '@/JetstreamComponents/FormSection.vue';
-import InputError from '@/JetstreamComponents/InputError.vue';
-import InputLabel from '@/JetstreamComponents/InputLabel.vue';
-import PrimaryButton from '@/JetstreamComponents/PrimaryButton.vue';
-import SecondaryButton from '@/JetstreamComponents/SecondaryButton.vue';
+import VButton from '@/components/VButton.vue';
+import VActionMessage from '@/components/VActionMessage.vue';
+import VFormSection from '@/components/VFormSection.vue';
 import VInput from '@/components/VInput.vue';
 
 const props = defineProps({
@@ -77,7 +74,7 @@ const clearPhotoFileInput = () => {
 </script>
 
 <template>
-    <FormSection @submitted="updateProfileInformation">
+    <VFormSection @submitted="updateProfileInformation">
         <template #header>
             <h2 class="card-title"><UserCircleIcon class="h-5 w-5 text-primary-500" />Profil</h2>
             <p class="mt-1 mb-5 text-sm text-gray-500 dark:text-gray-400">Name und E-Mail-Adresse deines Kontos.</p>
@@ -88,17 +85,17 @@ const clearPhotoFileInput = () => {
             <div v-if="$page.props.jetstream.managesProfilePhotos" class="col-span-6">
                 <input id="photo" ref="photoInput" type="file" class="hidden" @change="updatePhotoPreview">
 
-                <InputLabel for="photo" value="Foto" />
+                <label for="photo" class="block text-sm font-medium">Foto</label>
 
                 <div class="mt-2 flex items-center gap-4">
                     <img v-show="! photoPreview" :src="user.profile_photo_url" :alt="user.name" class="size-16 rounded-full object-cover ring-2 ring-primary-500/40">
                     <span v-show="photoPreview" class="block size-16 rounded-full bg-cover bg-no-repeat bg-center ring-2 ring-primary-500/40" :style="{ backgroundImage: `url(${photoPreview})` }" />
 
-                    <SecondaryButton type="button" @click.prevent="selectNewPhoto">Neues Foto wählen</SecondaryButton>
-                    <SecondaryButton v-if="user.profile_photo_path" type="button" @click.prevent="deletePhoto">Entfernen</SecondaryButton>
+                    <VButton variant="secondary" type="button" @click.prevent="selectNewPhoto">Neues Foto wählen</VButton>
+                    <VButton variant="secondary" v-if="user.profile_photo_path" type="button" @click.prevent="deletePhoto">Entfernen</VButton>
                 </div>
 
-                <InputError :message="form.errors.photo" class="mt-2" />
+                <div v-if="form.errors.photo" class="mt-2 text-xs text-red-500">{{ form.errors.photo }}</div>
             </div>
 
             <div class="col-span-6">
@@ -128,9 +125,9 @@ const clearPhotoFileInput = () => {
         </template>
 
         <template #actions>
-            <ActionMessage :on="form.recentlySuccessful">Gespeichert.</ActionMessage>
+            <VActionMessage :on="form.recentlySuccessful">Gespeichert.</VActionMessage>
 
-            <PrimaryButton :disabled="form.processing">Speichern</PrimaryButton>
+            <VButton type="submit" :loading="form.processing" :disabled="form.processing">Speichern</VButton>
         </template>
-    </FormSection>
+    </VFormSection>
 </template>

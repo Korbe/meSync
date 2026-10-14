@@ -1,9 +1,8 @@
 <script setup>
 import { ref, reactive, nextTick } from 'vue';
-import DialogModal from './DialogModal.vue';
-import PrimaryButton from './PrimaryButton.vue';
-import SecondaryButton from './SecondaryButton.vue';
-import VInput from '@/components/VInput.vue';
+import VModal from './VModal.vue';
+import VButton from './VButton.vue';
+import VInput from './VInput.vue';
 
 const emit = defineEmits(['confirmed']);
 
@@ -75,7 +74,7 @@ const closeModal = () => {
             <slot />
         </span>
 
-        <DialogModal :show="confirmingPassword" @close="closeModal">
+        <VModal :show="confirmingPassword" @close="closeModal">
             <template #title>
                 {{ title }}
             </template>
@@ -89,17 +88,10 @@ const closeModal = () => {
             </template>
 
             <template #footer>
-                <SecondaryButton @click="closeModal">
-                    Abbrechen
-                </SecondaryButton>
+                <VButton variant="secondary" @click="closeModal">Abbrechen</VButton>
 
-                <PrimaryButton
-                    :disabled="form.processing"
-                    @click="confirmPassword"
-                >
-                    {{ button }}
-                </PrimaryButton>
+                <VButton :loading="form.processing" :disabled="form.processing" @click="confirmPassword">{{ button }}</VButton>
             </template>
-        </DialogModal>
+        </VModal>
     </span>
 </template>
