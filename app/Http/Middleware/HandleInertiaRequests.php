@@ -42,6 +42,10 @@ class HandleInertiaRequests extends Middleware
                 'success' => Session::get('success'),
                 'error' => Session::get('error'),
             ],
+            // Company logo, only needed on the profile page
+            'logoUrl' => fn () => $request->routeIs('profile.show')
+                ? ($request->user()?->getFirstMediaUrl('logo') ?: null)
+                : null,
             // Badge in the sidebar: overdue + due soon maintenance invoices
             'dueContractsCount' => fn () => $request->user()?->maintenanceContracts()
                 ->billable()

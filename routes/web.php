@@ -5,11 +5,15 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MaintenanceContractController;
 use App\Http\Controllers\MaintenanceInvoiceController;
+use App\Http\Controllers\ProfileLogoController;
 
 Route::redirect('/', '/dashboard');
 
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::post('/user/profile/logo', [ProfileLogoController::class, 'store'])->name('profile.logo.store');
+    Route::delete('/user/profile/logo', [ProfileLogoController::class, 'destroy'])->name('profile.logo.destroy');
 
     Route::get('/customers/{customer}/delete', [CustomerController::class, 'delete'])->name('customers.delete');
     Route::resource('customers', CustomerController::class)->except('show');

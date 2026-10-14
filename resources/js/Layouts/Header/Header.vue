@@ -33,6 +33,10 @@
         <!-- Header: Right side -->
         <div class="flex items-center gap-3">
           <ThemeToggle />
+          <!-- korbitsch.at brand mark (loaded straight from the website) -->
+          <a href="https://korbitsch.at" target="_blank" rel="noopener" title="korbitsch.at" class="glass-button">
+            <img src="https://korbitsch.at/assets/logo-DC1elymH.png" alt="korbitsch.at" class="h-5 w-5 object-contain">
+          </a>
           <!-- Divider -->
           <hr class="w-px h-6 bg-gray-200 dark:bg-white/10 border-none" />
           <UserMenu align="right" />
