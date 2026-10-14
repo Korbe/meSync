@@ -13,10 +13,10 @@ add('writable_dirs', []);
 
 // Hosts
 
-host('192.168.0.135')
+host('217.154.67.144')
     ->set('ssh_multiplexing', false)
-    ->set('remote_user', 'deploy')
-    ->set('deploy_path', '/var/www/deployment/mesync');
+    ->set('remote_user', 'deployer')
+    ->set('deploy_path', '/var/www/mesync');
 
 task('composer-install', function () {
     cd('{{release_path}}');
