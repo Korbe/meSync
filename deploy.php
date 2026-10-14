@@ -3,47 +3,40 @@ namespace Deployer;
 
 require 'recipe/laravel.php';
 
-// Config
-
 set('repository', 'https://github.com/Korbe/meSync.git');
 
-add('shared_files', []);
-add('shared_dirs', []);
-add('writable_dirs', []);
-
-// Hosts
+add('shared_files', ['.env']);
+add('shared_dirs', ['storage']);
+add('writable_dirs', [
+    'storage',
+    'bootstrap/cache',
+]);
 
 host('217.154.67.144')
     ->set('ssh_multiplexing', false)
     ->set('remote_user', 'deployer')
     ->set('deploy_path', '/var/www/mesync');
 
-task('composer-install', function () {
+// PHP-Abhängigkeiten installieren
+task('app:composer-install', function () {
     cd('{{release_path}}');
-    run('composer install');
-    });
-
-task('npm-install', function () {
-    cd('{{release_path}}');
-    run('npm install');
+    run('composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader');
 });
 
-task('build', function () {
+// Frontend-Abhängigkeiten installieren
+task('app:npm-install', function () {
+    cd('{{release_path}}');
+    run('npm ci');
+});
+
+// Vite-Assets erzeugen
+task('app:npm-build', function () {
     cd('{{release_path}}');
     run('npm run build');
-    });
+});
 
-// task('permissions', function () {
-//     run('chown -R deploy:www-data {{release_path}}');
-//     run('chmod -R 775 {{release_path}}');
-// });
-
-//after('deploy:symlink', 'permissions');
-
-after('deploy:update_code', 'composer-install');
-// after('composer-install', 'npm-install');
-after('npm-install', 'build');
-
-//after('deploy:setup', 'deploy:unlock');
+after('deploy:update_code', 'app:composer-install');
+after('app:composer-install', 'app:npm-install');
+after('app:npm-install', 'app:npm-build');
 
 after('deploy:failed', 'deploy:unlock');
