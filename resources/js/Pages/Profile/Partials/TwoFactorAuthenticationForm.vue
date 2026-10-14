@@ -1,4 +1,5 @@
 <script setup>
+import { ShieldCheckIcon } from '@heroicons/vue/24/outline';
 import { ref, computed, watch } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import ActionSection from '@/JetstreamComponents/ActionSection.vue';
@@ -107,131 +108,91 @@ const disableTwoFactorAuthentication = () => {
 
 <template>
     <ActionSection>
-
         <template #header>
-            <h1 class="text-lg font-medium text-gray-900 dark:text-gray-100">Two Factor Authentication</h1>
-            <p class="mt-1 mb-5 text-sm text-gray-600 dark:text-gray-300">Add additional security to your account using two factor authentication.</p>
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2 class="card-title"><ShieldCheckIcon class="h-5 w-5 text-primary-500" />Zwei-Faktor-Authentifizierung</h2>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Zusätzliche Sicherheit mit einem Code aus deiner Authenticator-App.</p>
+                </div>
+
+                <span v-if="twoFactorEnabled && ! confirming" class="inline-flex items-center gap-1.5 rounded-full bg-primary-500/10 px-2.5 py-0.5 text-xs font-medium text-primary-700 ring-1 ring-inset ring-primary-500/30 dark:text-primary-300">
+                    <span class="h-1.5 w-1.5 rounded-full bg-primary-500"></span>Aktiv
+                </span>
+                <span v-else-if="twoFactorEnabled && confirming" class="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-accent/40 dark:text-accent">
+                    <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>Einrichtung läuft
+                </span>
+                <span v-else class="inline-flex items-center gap-1.5 rounded-full bg-gray-500/10 px-2.5 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/25 dark:text-gray-400">
+                    <span class="h-1.5 w-1.5 rounded-full bg-gray-400"></span>Nicht aktiv
+                </span>
+            </div>
         </template>
 
         <template #content>
-            <h3 v-if="twoFactorEnabled && ! confirming" class="text-lg font-medium text-gray-900 dark:text-gray-300">
-                You have enabled two factor authentication.
-            </h3>
-
-            <h3 v-else-if="twoFactorEnabled && confirming" class="text-lg font-medium text-gray-900 dark:text-gray-300">
-                Finish enabling two factor authentication.
-            </h3>
-
-            <h3 v-else class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                You have not enabled two factor authentication.
-            </h3>
-
-            <div class="mt-3 max-w-xl text-sm text-gray-600 dark:text-gray-300">
-                <p>
-                    When two factor authentication is enabled, you will be prompted for a secure, random token during authentication. You may retrieve this token from your phone's Google Authenticator application.
-                </p>
-            </div>
+            <p class="mt-4 max-w-2xl text-sm text-gray-600 dark:text-gray-400">
+                Wenn die Zwei-Faktor-Authentifizierung aktiv ist, wirst du beim Anmelden zusätzlich nach einem Code gefragt. Den Code bekommst du aus einer Authenticator-App wie Google Authenticator oder 1Password.
+            </p>
 
             <div v-if="twoFactorEnabled">
-                <div v-if="qrCode">
-                    <div class="mt-4 max-w-xl text-sm text-gray-600 dark:text-gray-300">
-                        <p v-if="confirming" class="font-semibold">
-                            To finish enabling two factor authentication, scan the following QR code using your phone's authenticator application or enter the setup key and provide the generated OTP code.
-                        </p>
+                <div v-if="qrCode" class="mt-5 flex flex-col gap-5 rounded-xl border border-gray-200 bg-gray-50/60 p-5 sm:flex-row dark:border-white/10 dark:bg-white/[0.03]">
+                    <div class="shrink-0 self-start rounded-xl bg-white p-3 shadow-[0_0_30px_-8px_rgba(31,173,174,0.6)]" v-html="qrCode" />
 
+                    <div class="text-sm text-gray-600 dark:text-gray-400">
+                        <p v-if="confirming" class="font-medium text-gray-900 dark:text-gray-100">
+                            Scanne den QR-Code mit deiner Authenticator-App oder gib den Schlüssel manuell ein und bestätige mit dem erzeugten Code.
+                        </p>
                         <p v-else>
-                            Two factor authentication is now enabled. Scan the following QR code using your phone's authenticator application or enter the setup key.
+                            Die Zwei-Faktor-Authentifizierung ist aktiv. Scanne den QR-Code mit deiner Authenticator-App oder gib den Schlüssel manuell ein.
                         </p>
-                    </div>
 
-                    <div class="mt-4 p-2 inline-block bg-white" v-html="qrCode" />
-
-                    <div v-if="setupKey" class="mt-4 max-w-xl text-sm text-gray-600 dark:text-gray-300">
-                        <p class="font-semibold">
-                            Setup Key: <span v-html="setupKey"></span>
+                        <p v-if="setupKey" class="mt-3">
+                            Schlüssel: <span class="font-mono text-gray-900 dark:text-gray-100" v-html="setupKey"></span>
                         </p>
-                    </div>
 
-                    <div v-if="confirming" class="mt-4">
-                        <VInput id="code" label="Code" v-model="confirmationForm.code" :error="confirmationForm.errors.code" />
-                    </div>
-                </div>
-
-                <div v-if="recoveryCodes.length > 0 && ! confirming">
-                    <div class="mt-4 max-w-xl text-sm text-gray-600 dark:text-gray-300">
-                        <p class="font-semibold">
-                            Store these recovery codes in a secure password manager. They can be used to recover access to your account if your two factor authentication device is lost.
-                        </p>
-                    </div>
-
-                    <div class="grid gap-1 max-w-xl mt-4 px-4 py-4 font-mono text-sm bg-gray-100 dark:bg-gray-900 rounded-lg">
-                        <div v-for="code in recoveryCodes" :key="code">
-                            {{ code }}
+                        <div v-if="confirming" class="mt-4 max-w-xs">
+                            <VInput id="code" label="Code" v-model="confirmationForm.code" :error="confirmationForm.errors.code" />
                         </div>
                     </div>
                 </div>
+
+                <div v-if="recoveryCodes.length > 0 && ! confirming" class="mt-5">
+                    <p class="max-w-2xl text-sm font-medium text-gray-900 dark:text-gray-100">
+                        Bewahre diese Wiederherstellungscodes sicher auf, z. B. in einem Passwort-Manager. Damit kommst du in dein Konto, falls du dein Handy verlierst.
+                    </p>
+
+                    <div class="mt-3 grid max-w-2xl grid-cols-2 gap-2 rounded-xl border border-gray-200 bg-gray-50 p-4 font-mono text-sm text-gray-800 dark:border-white/10 dark:bg-gray-950/60 dark:text-gray-200">
+                        <div v-for="code in recoveryCodes" :key="code">{{ code }}</div>
+                    </div>
+                </div>
             </div>
 
-            <div class="mt-5">
-                <div v-if="! twoFactorEnabled">
+            <div class="mt-6 flex flex-wrap gap-3">
+                <template v-if="! twoFactorEnabled">
                     <ConfirmsPassword @confirmed="enableTwoFactorAuthentication">
-                        <PrimaryButton type="button" :class="{ 'opacity-25': enabling }" :disabled="enabling">
-                            Enable
-                        </PrimaryButton>
+                        <PrimaryButton type="button" :disabled="enabling">Aktivieren</PrimaryButton>
                     </ConfirmsPassword>
-                </div>
+                </template>
 
-                <div v-else>
+                <template v-else>
                     <ConfirmsPassword @confirmed="confirmTwoFactorAuthentication">
-                        <PrimaryButton
-                            v-if="confirming"
-                            type="button"
-                            class="me-3"
-                            :class="{ 'opacity-25': enabling }"
-                            :disabled="enabling"
-                        >
-                            Confirm
-                        </PrimaryButton>
+                        <PrimaryButton v-if="confirming" type="button" :disabled="enabling">Bestätigen</PrimaryButton>
                     </ConfirmsPassword>
 
                     <ConfirmsPassword @confirmed="regenerateRecoveryCodes">
-                        <SecondaryButton
-                            v-if="recoveryCodes.length > 0 && ! confirming"
-                            class="me-3"
-                        >
-                            Regenerate Recovery Codes
-                        </SecondaryButton>
+                        <SecondaryButton v-if="recoveryCodes.length > 0 && ! confirming">Neue Wiederherstellungscodes</SecondaryButton>
                     </ConfirmsPassword>
 
                     <ConfirmsPassword @confirmed="showRecoveryCodes">
-                        <SecondaryButton
-                            v-if="recoveryCodes.length === 0 && ! confirming"
-                            class="me-3"
-                        >
-                            Show Recovery Codes
-                        </SecondaryButton>
+                        <SecondaryButton v-if="recoveryCodes.length === 0 && ! confirming">Wiederherstellungscodes anzeigen</SecondaryButton>
                     </ConfirmsPassword>
 
                     <ConfirmsPassword @confirmed="disableTwoFactorAuthentication">
-                        <SecondaryButton
-                            v-if="confirming"
-                            :class="{ 'opacity-25': disabling }"
-                            :disabled="disabling"
-                        >
-                            Cancel
-                        </SecondaryButton>
+                        <SecondaryButton v-if="confirming" :disabled="disabling">Abbrechen</SecondaryButton>
                     </ConfirmsPassword>
 
                     <ConfirmsPassword @confirmed="disableTwoFactorAuthentication">
-                        <DangerButton
-                            v-if="! confirming"
-                            :class="{ 'opacity-25': disabling }"
-                            :disabled="disabling"
-                        >
-                            Disable
-                        </DangerButton>
+                        <DangerButton v-if="! confirming" :disabled="disabling">Deaktivieren</DangerButton>
                     </ConfirmsPassword>
-                </div>
+                </template>
             </div>
         </template>
     </ActionSection>

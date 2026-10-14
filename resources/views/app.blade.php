@@ -29,7 +29,7 @@
                 if (!favicon) return;
                 
                 const darkModeActive = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                favicon.href = darkModeActive ? "/images/logo/logo-512x512-dark.png" : "/images/logo/logo-512x512.png";
+                favicon.href = darkModeActive ? "/images/logo/logo-512x512-dark.png?v=2" : "/images/logo/logo-512x512.png?v=2";
             }
 
             updateFavicon();

@@ -1,4 +1,5 @@
 <script setup>
+import { ComputerDesktopIcon, DevicePhoneMobileIcon, GlobeEuropeAfricaIcon } from '@heroicons/vue/24/outline';
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import ActionMessage from '@/JetstreamComponents/ActionMessage.vue';
@@ -45,84 +46,58 @@ const closeModal = () => {
 
 <template>
     <ActionSection>
-
         <template #header>
-            <h1 class="text-lg font-medium text-gray-900 dark:text-gray-100">Browser Sessions</h1>
-            <p class="mt-1 mb-5 text-sm text-gray-600 dark:text-gray-300">Manage and log out your active sessions on other browsers and devices.</p>
+            <h2 class="card-title"><GlobeEuropeAfricaIcon class="h-5 w-5 text-primary-500" />Browser-Sitzungen</h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Verwalte deine aktiven Sitzungen auf anderen Browsern und Geräten.</p>
         </template>
 
         <template #content>
-            <div class="max-w-xl text-sm text-gray-600 dark:text-gray-300">
-                If necessary, you may log out of all of your other browser sessions across all of your devices. Some of your recent sessions are listed below; however, this list may not be exhaustive. If you feel your account has been compromised, you should also update your password.
-            </div>
+            <p class="mt-4 max-w-2xl text-sm text-gray-600 dark:text-gray-400">
+                Bei Bedarf kannst du dich auf allen anderen Geräten abmelden. Falls du glaubst, dass jemand Zugriff auf dein Konto hat, ändere zusätzlich dein Passwort.
+            </p>
 
-            <!-- Other Browser Sessions -->
-            <div v-if="sessions.length > 0" class="mt-5 space-y-6">
-                <div v-for="(session, i) in sessions" :key="i" class="flex items-center">
-                    <div>
-                        <svg v-if="session.agent.is_desktop" class="size-8 text-gray-500 dark:text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
-                        </svg>
-
-                        <svg v-else class="size-8 text-gray-500 dark:text-gray-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
-                        </svg>
+            <ul v-if="sessions.length > 0" class="mt-5 divide-y divide-gray-100 rounded-xl border border-gray-200 dark:divide-white/[0.06] dark:border-white/10">
+                <li v-for="(session, i) in sessions" :key="i" class="flex items-center gap-3 px-4 py-3">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1"
+                        :class="session.is_current_device ? 'bg-primary-500/10 text-primary-500 ring-primary-500/30' : 'bg-gray-500/10 text-gray-500 ring-gray-500/20'">
+                        <ComputerDesktopIcon v-if="session.agent.is_desktop" class="h-5 w-5" />
+                        <DevicePhoneMobileIcon v-else class="h-5 w-5" />
                     </div>
 
-                    <div class="ms-3">
-                        <div class="text-sm text-gray-600 dark:text-gray-300">
-                            {{ session.agent.platform ? session.agent.platform : 'Unknown' }} - {{ session.agent.browser ? session.agent.browser : 'Unknown' }}
+                    <div class="min-w-0 flex-1">
+                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {{ session.agent.platform || 'Unbekannt' }} · {{ session.agent.browser || 'Unbekannt' }}
                         </div>
-
-                        <div>
-                            <div class="text-xs text-gray-500 dark:text-gray-300">
-                                {{ session.ip_address }},
-
-                                <span v-if="session.is_current_device" class="text-primary-500 font-semibold">This device</span>
-                                <span v-else>Last active {{ session.last_active }}</span>
-                            </div>
+                        <div class="text-xs text-gray-500">
+                            {{ session.ip_address }} ·
+                            <span v-if="session.is_current_device" class="font-semibold text-primary-600 dark:text-primary-300">Dieses Gerät</span>
+                            <span v-else>Zuletzt aktiv {{ session.last_active }}</span>
                         </div>
                     </div>
-                </div>
+                </li>
+            </ul>
+
+            <div class="mt-5 flex items-center gap-3">
+                <SecondaryButton @click="confirmLogout">Andere Sitzungen abmelden</SecondaryButton>
+
+                <ActionMessage :on="form.recentlySuccessful">Erledigt.</ActionMessage>
             </div>
 
-            <div class="flex items-center mt-5">
-                <PrimaryButton @click="confirmLogout">
-                    Log Out Other Browser Sessions
-                </PrimaryButton>
-
-                <ActionMessage :on="form.recentlySuccessful" class="ms-3">
-                    Done.
-                </ActionMessage>
-            </div>
-
-            <!-- Log Out Other Devices Confirmation Modal -->
             <DialogModal :show="confirmingLogout" @close="closeModal">
-                <template #title>
-                    Log Out Other Browser Sessions
-                </template>
+                <template #title>Andere Sitzungen abmelden</template>
 
                 <template #content>
-                    Please enter your password to confirm you would like to log out of your other browser sessions across all of your devices.
+                    Bitte gib dein Passwort ein, um dich auf allen anderen Browsern und Geräten abzumelden.
 
                     <div class="mt-4">
-                        <VInput class="mt-1 w-3/4" ref="passwordInput" v-model="form.password" type="password" :error="form.errors.password"/>
+                        <VInput class="mt-1 sm:w-3/4" ref="passwordInput" v-model="form.password" type="password" placeholder="Passwort" :error="form.errors.password" />
                     </div>
                 </template>
 
                 <template #footer>
-                    <SecondaryButton @click="closeModal">
-                        Cancel
-                    </SecondaryButton>
+                    <SecondaryButton @click="closeModal">Abbrechen</SecondaryButton>
 
-                    <PrimaryButton
-                        class="ms-3"
-                        :class="{ 'opacity-25': form.processing }"
-                        :disabled="form.processing"
-                        @click="logoutOtherBrowserSessions"
-                    >
-                        Log Out Other Browser Sessions
-                    </PrimaryButton>
+                    <PrimaryButton :disabled="form.processing" @click="logoutOtherBrowserSessions">Abmelden</PrimaryButton>
                 </template>
             </DialogModal>
         </template>

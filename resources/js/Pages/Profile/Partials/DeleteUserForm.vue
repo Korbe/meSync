@@ -1,7 +1,7 @@
 <script setup>
+import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import ActionSection from '@/JetstreamComponents/ActionSection.vue';
 import DangerButton from '@/JetstreamComponents/DangerButton.vue';
 import DialogModal from '@/JetstreamComponents/DialogModal.vue';
 import InputError from '@/JetstreamComponents/InputError.vue';
@@ -39,53 +39,36 @@ const closeModal = () => {
 </script>
 
 <template>
-    <ActionSection>
+    <section class="card relative overflow-hidden border-red-500/30 p-6 dark:border-red-500/25">
+        <div class="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-red-500/15 blur-[80px]" aria-hidden="true"></div>
 
-        <template #header>
-            <h1 class="text-lg font-medium text-gray-900 dark:text-gray-100">Delete Account</h1>
-            <p class="mt-1 mb-5 text-sm text-gray-600 dark:text-gray-300">Permanently delete your account.</p>
-        </template>
-
-        <template #content>
-            <div class="max-w-xl text-sm text-gray-600 dark:text-gray-300">
-                Once your account is deleted, all of its resources and data will be permanently deleted. Before deleting your account, please download any data or information that you wish to retain.
+        <div class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 class="card-title"><ExclamationTriangleIcon class="h-5 w-5 text-red-500" />Konto löschen</h2>
+                <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+                    Dein Konto und alle Daten (Kunden, Wartungsverträge, Rechnungsverlauf) werden endgültig gelöscht. Das kann nicht rückgängig gemacht werden.
+                </p>
             </div>
 
-            <div class="mt-5">
-                <DangerButton @click="confirmUserDeletion">
-                    Delete Account
-                </DangerButton>
-            </div>
+            <DangerButton class="shrink-0" @click="confirmUserDeletion">Konto löschen</DangerButton>
+        </div>
 
-            <!-- Delete Account Confirmation Modal -->
-            <DialogModal :show="confirmingUserDeletion" @close="closeModal">
-                <template #title>
-                    Delete Account
-                </template>
+        <DialogModal :show="confirmingUserDeletion" @close="closeModal">
+            <template #title>Konto wirklich löschen?</template>
 
-                <template #content>
-                    Are you sure you want to delete your account? Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.
+            <template #content>
+                Alle Daten deines Kontos werden endgültig gelöscht. Bitte gib zur Bestätigung dein Passwort ein.
 
-                    <div class="mt-4">
-                        <VInput class="mt-1 w-3/4" ref="passwordInput" v-model="form.password" type="password" :error="form.errors.password"/>
-                    </div>
-                </template>
+                <div class="mt-4">
+                    <VInput class="mt-1 sm:w-3/4" ref="passwordInput" v-model="form.password" type="password" placeholder="Passwort" :error="form.errors.password" />
+                </div>
+            </template>
 
-                <template #footer>
-                    <SecondaryButton @click="closeModal">
-                        Cancel
-                    </SecondaryButton>
+            <template #footer>
+                <SecondaryButton @click="closeModal">Abbrechen</SecondaryButton>
 
-                    <DangerButton
-                        class="ms-3"
-                        :class="{ 'opacity-25': form.processing }"
-                        :disabled="form.processing"
-                        @click="deleteUser"
-                    >
-                        Delete Account
-                    </DangerButton>
-                </template>
-            </DialogModal>
-        </template>
-    </ActionSection>
+                <DangerButton :disabled="form.processing" @click="deleteUser">Endgültig löschen</DangerButton>
+            </template>
+        </DialogModal>
+    </section>
 </template>

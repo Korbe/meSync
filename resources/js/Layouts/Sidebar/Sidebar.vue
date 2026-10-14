@@ -34,7 +34,7 @@
         </button>
         <!-- Logo -->
         <Link class="group flex items-center gap-3" href="/">
-          <img src="/images/logo/logo-144x144-dark.png" alt="meSync" class="h-9 w-9 shrink-0 drop-shadow-[0_0_14px_rgba(31,173,174,0.45)] transition-transform duration-300 group-hover:scale-105" />
+          <img src="/images/logo/logo-144x144-dark.png?v=2" alt="meSync" class="h-9 w-9 shrink-0 drop-shadow-[0_0_14px_rgba(31,173,174,0.45)] transition-transform duration-300 group-hover:scale-105" />
           <span class="font-display text-xl font-bold tracking-tight text-white lg:hidden lg:sidebar-expanded:block 2xl:block">me<span class="text-primary-400">Sync</span></span>
         </Link>
       </div>

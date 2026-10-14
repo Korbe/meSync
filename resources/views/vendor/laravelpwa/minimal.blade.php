@@ -210,8 +210,8 @@
         <div class="max-w-xl mx-auto sm:px-6 lg:px-8 flex items-center flex-col">
             <div class="mb-5">
                 <a class="block" href="/">
-                    <img src="/images/logo/logo-144x144.png" class="logo-light h-16" alt="Logo Light" />
-                    <img src="/images/logo/logo-144x144-dark.png" class="logo-dark h-16" alt="Logo Dark" />
+                    <img src="/images/logo/logo-144x144.png?v=2" class="logo-light h-16" alt="Logo Light" />
+                    <img src="/images/logo/logo-144x144-dark.png?v=2" class="logo-dark h-16" alt="Logo Dark" />
                 </a>
             </div>
             <div class="flex items-center pt-8 sm:justify-start sm:pt-0 mt-2">

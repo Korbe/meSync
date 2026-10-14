@@ -7,24 +7,19 @@ const hasActions = computed(() => !! useSlots().actions);
 </script>
 
 <template>
-    <div class="md:grid md:grid-cols-2 md:gap-6">
+    <section class="card overflow-hidden">
+        <form @submit.prevent="$emit('submitted')">
+            <div class="p-6">
+                <slot name="header" />
 
-        <div class="mt-5 md:mt-0 md:col-span-2 rounded-lg bg-white dark:bg-gray-800">
-            <form @submit.prevent="$emit('submitted')" class="">
-                <div
-                    class="px-4 py-5 sm:p-6"
-                >
-                    <slot name="header" />
-
-                    <div class="grid grid-cols-6 gap-6">
-                        <slot name="form" />
-                    </div>
+                <div class="grid grid-cols-6 gap-5">
+                    <slot name="form" />
                 </div>
+            </div>
 
-                <div v-if="hasActions" class="rounded-lg flex items-center px-4 py-3 shadow">
-                    <slot name="actions" />
-                </div>
-            </form>
-        </div>
-    </div>
+            <div v-if="hasActions" class="flex items-center justify-end gap-3 border-t border-gray-200 bg-gray-50/60 px-6 py-4 dark:border-white/[0.06] dark:bg-white/[0.02]">
+                <slot name="actions" />
+            </div>
+        </form>
+    </section>
 </template>
