@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
-import { CheckBadgeIcon, ExclamationCircleIcon, CalendarDaysIcon } from '@heroicons/vue/24/outline';
+import { CheckBadgeIcon, ExclamationCircleIcon, CalendarDaysIcon, LockClosedIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import DeleteUserForm from '@/Pages/Profile/Partials/DeleteUserForm.vue';
 import LogoutOtherBrowserSessionsForm from '@/Pages/Profile/Partials/LogoutOtherBrowserSessionsForm.vue';
@@ -18,6 +18,7 @@ defineProps({
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+const isDemo = computed(() => page.props.isDemo);
 
 const initials = computed(() => user.value.name.split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase());
 
@@ -63,6 +64,16 @@ const memberSince = computed(() => new Date(user.value.created_at).toLocaleDateS
                 </div>
             </section>
 
+            <!-- Demo account: everything below is read only (the server blocks changes too) -->
+            <div v-if="isDemo" class="flex items-start gap-3 rounded-2xl bg-accent/[0.08] px-5 py-4 ring-1 ring-accent/30 ring-inset">
+                <LockClosedIcon class="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+                <div class="text-sm">
+                    <div class="font-semibold text-gray-900 dark:text-white">Demo-Modus – Profil ist schreibgeschützt</div>
+                    <p class="mt-0.5 text-gray-600 dark:text-gray-400">Name, E-Mail, Passwort, Firmendaten und Logo kannst du ansehen, aber nicht ändern. Kunden, Rechnungen, Finanzen und alles andere darfst du gerne ausprobieren.</p>
+                </div>
+            </div>
+
+            <fieldset :disabled="isDemo" class="space-y-6" :class="isDemo && 'pointer-events-none opacity-60 select-none'">
             <!-- Profile + password side by side -->
             <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
                 <UpdateProfileInformationForm v-if="$page.props.jetstream.canUpdateProfileInformation" :user="user" />
@@ -81,6 +92,7 @@ const memberSince = computed(() => new Date(user.value.created_at).toLocaleDateS
             <LogoutOtherBrowserSessionsForm :sessions="sessions" />
 
             <DeleteUserForm v-if="$page.props.jetstream.hasAccountDeletionFeatures" />
+            </fieldset>
         </div>
     </Layout>
 </template>

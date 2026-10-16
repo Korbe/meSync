@@ -55,6 +55,8 @@ class HandleInertiaRequests extends Middleware
                 ->billable()
                 ->where('next_invoice_date', '<=', today()->addDays(MaintenanceContract::DUE_SOON_DAYS))
                 ->count() ?? 0,
+            // Shared demo account: profile is read only (see ProtectDemoProfile)
+            'isDemo' => fn () => (bool) $request->user()?->isDemo(),
             // Red dot on "Monitoring" in the sidebar
             'sitesDownCount' => fn () => $request->user()?->maintenanceContracts()
                 ->monitored()
