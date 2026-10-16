@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import { DocumentTextIcon, ListBulletIcon, ChatBubbleBottomCenterTextIcon, PlusIcon, TrashIcon, ExclamationTriangleIcon, WrenchScrewdriverIcon } from '@heroicons/vue/24/outline';
+import { DocumentTextIcon, ListBulletIcon, ChatBubbleBottomCenterTextIcon, PlusIcon, TrashIcon, ExclamationTriangleIcon, WrenchScrewdriverIcon, DocumentArrowUpIcon } from '@heroicons/vue/24/outline';
 import VInput from '@/components/VInput.vue';
 import VSelect from '@/components/VSelect.vue';
 import VButton from '@/components/VButton.vue';
@@ -177,9 +177,24 @@ const recipient = computed(() => props.customers.find(c => String(c.value) === S
 
 const itemError = (index, field) => form.errors[`items.${index}.${field}`];
 
+// New invoice from an existing PDF (written elsewhere): the PDF is kept instead of generating one
+const original = ref(null);
+const originalInput = ref(null);
+const selectOriginal = (file) => {
+    if (!file) return;
+    original.value = file;
+    form.clearErrors('original');
+};
+const clearOriginal = () => {
+    original.value = null;
+    if (originalInput.value) originalInput.value.value = null;
+};
+
 const submit = () => {
     if (props.isEdit)
         form.put(route('invoices.update', props.invoice.id), { preserveScroll: true });
+    else if (original.value)
+        form.transform(data => ({ ...data, original: original.value })).post(route('invoices.store'), { forceFormData: true });
     else
         form.post(route('invoices.store'));
 };
@@ -321,6 +336,27 @@ const submit = () => {
             </label>
 
             <!-- Anmerkung -->
+            <!-- Existing invoice as PDF (create only; on the edit page there is its own card) -->
+            <section v-if="!isEdit" class="card p-6 xl:col-span-3">
+                <h2 class="card-title"><DocumentArrowUpIcon class="h-5 w-5 text-primary-500" />Bestehende Rechnung (optional)</h2>
+                <p class="mt-1 text-sm text-gray-500">
+                    Schon woanders geschrieben? Häng das PDF an – meSync verwendet dann dein Original statt ein eigenes PDF zu erzeugen.
+                    Trag Nummer, Datum und Beträge trotzdem ein, damit Zahlungen, Export und Finanzen stimmen.
+                </p>
+                <div v-if="original" class="mt-4 flex items-center gap-3 rounded-xl bg-primary-500/[0.06] p-3 ring-1 ring-primary-500/30">
+                    <DocumentArrowUpIcon class="h-6 w-6 shrink-0 text-primary-500" />
+                    <span class="min-w-0 flex-1 truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ original.name }}</span>
+                    <button type="button" class="cursor-pointer text-xs text-gray-500 underline hover:text-red-500" @click="clearOriginal">Entfernen</button>
+                </div>
+                <label v-else class="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 p-4 text-sm text-gray-600 transition hover:border-primary-400 dark:border-white/10 dark:text-gray-400"
+                    @dragover.prevent @drop.prevent="selectOriginal($event.dataTransfer.files[0])">
+                    <input ref="originalInput" type="file" accept="application/pdf,.pdf" class="sr-only" @change="selectOriginal($event.target.files[0])" />
+                    <DocumentArrowUpIcon class="h-6 w-6 shrink-0 text-gray-400" />
+                    PDF hierher ziehen oder klicken · privat gespeichert, max. 10 MB
+                </label>
+                <div v-if="form.errors.original" class="mt-1 text-xs text-red-500">{{ form.errors.original }}</div>
+            </section>
+
             <section class="card p-6 xl:col-span-3">
                 <h2 class="card-title"><ChatBubbleBottomCenterTextIcon class="h-5 w-5 text-primary-500" />Anmerkung</h2>
                 <p class="mt-1 text-sm text-gray-500">Wird unter den Summen auf der Rechnung gedruckt, z. B. Zahlungshinweis oder Steuerbefreiung.</p>

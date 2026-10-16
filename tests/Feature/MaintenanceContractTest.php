@@ -213,4 +213,28 @@ class MaintenanceContractTest extends TestCase
 
         $this->actingAs(User::factory()->create())->get(route('contracts.pdf', $contract))->assertForbidden();
     }
+
+    public function test_only_the_domain_needs_to_be_typed_in(): void
+    {
+        $user = User::factory()->create();
+        $customer = Customer::factory()->for($user)->create();
+        $payload = fn ($url) => [
+            'customer_id' => $customer->id, 'type' => 'website', 'name' => 'Seite', 'url' => $url,
+            'monthly_price' => 39, 'start_date' => '2026-10-01', 'next_invoice_date' => '2026-10-01', 'monitor_enabled' => true,
+        ];
+
+        foreach ([
+            'musterfirma.at' => 'https://musterfirma.at',
+            '  www.musterfirma.at/shop/ ' => 'https://www.musterfirma.at/shop',
+            'http://alt.musterfirma.at' => 'http://alt.musterfirma.at',
+            'https://musterfirma.at/' => 'https://musterfirma.at',
+        ] as $input => $expected) {
+            $this->actingAs($user)->post(route('contracts.store'), $payload($input))->assertSessionHasNoErrors();
+            $this->assertSame($expected, $user->maintenanceContracts()->latest('id')->first()->url, $input);
+        }
+
+        $this->actingAs($user)->post(route('contracts.store'), $payload('ftp://musterfirma.at'))->assertSessionHasErrors('url');
+        $this->actingAs($user)->post(route('contracts.store'), $payload(''))->assertSessionHasNoErrors();
+        $this->assertNull($user->maintenanceContracts()->latest('id')->first()->url);
+    }
 }

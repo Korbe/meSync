@@ -22,6 +22,7 @@ class InvoiceController extends Controller
     {
         $invoices = $request->user()->invoices()
             ->with(['items', 'payments', 'cancels:id,number', 'cancellation:id,number,cancels_invoice_id'])
+            ->withExists(['media as has_original' => fn ($query) => $query->where('collection_name', 'original')])
             ->latest('invoice_date')
             ->latest('id')
             ->get();
@@ -110,6 +111,10 @@ class InvoiceController extends Controller
             return $invoice;
         });
 
+        if ($request->hasFile('original')) {
+            $invoice->addMediaFromRequest('original')->toMediaCollection('original');
+        }
+
         return to_route('invoices.edit', $invoice)->with('success', "Rechnung {$invoice->number} wurde erstellt.");
     }
 
@@ -121,6 +126,7 @@ class InvoiceController extends Controller
             ...$this->formOptions($request),
             'paymentMethods' => PaymentMethod::options(),
             'invoice' => $invoice->load(['items', 'payments', 'maintenanceContract', 'cancels:id,number,invoice_date', 'cancellation:id,number,cancels_invoice_id']),
+            'original' => ($media = $invoice->getFirstMedia('original')) ? ['name' => $media->file_name, 'size' => $media->size] : null,
             'locked' => $invoice->isLocked(),
             'canCancel' => Gate::allows('cancel', $invoice),
             'canDelete' => Gate::allows('delete', $invoice),
@@ -197,6 +203,37 @@ class InvoiceController extends Controller
 
         return $pdf->download($invoice);
     }
+
+    /**
+     * Attach an existing invoice as PDF: it replaces the generated one from now on.
+     */
+    public function attachOriginal(Request $request, Invoice $invoice): RedirectResponse
+    {
+        Gate::authorize('view', $invoice);
+
+        $request->validate(self::ORIGINAL_RULES, self::ORIGINAL_MESSAGES);
+
+        $invoice->addMediaFromRequest('original')->toMediaCollection('original');
+
+        return back()->with('success', 'Original-PDF wurde angehängt und ersetzt ab jetzt das erzeugte PDF.');
+    }
+
+    public function removeOriginal(Invoice $invoice): RedirectResponse
+    {
+        Gate::authorize('view', $invoice);
+
+        $invoice->clearMediaCollection('original');
+
+        return back()->with('success', 'Original-PDF wurde entfernt – meSync erzeugt das PDF wieder selbst.');
+    }
+
+    private const ORIGINAL_RULES = ['original' => 'required|file|mimes:pdf|max:10240'];
+
+    private const ORIGINAL_MESSAGES = [
+        'original.required' => 'Bitte wähle ein PDF aus.',
+        'original.mimes' => 'Die Rechnung muss ein PDF sein.',
+        'original.max' => 'Das PDF darf maximal 10 MB groß sein.',
+    ];
 
     /**
      * @return array<string, mixed>

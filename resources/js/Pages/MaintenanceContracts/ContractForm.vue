@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { GlobeAltIcon, CommandLineIcon, CalendarDaysIcon, ChatBubbleBottomCenterTextIcon, DocumentTextIcon } from '@heroicons/vue/24/outline';
+import VUrlInput from '@/components/VUrlInput.vue';
 import VInput from '@/components/VInput.vue';
 import VSelect from '@/components/VSelect.vue';
 import VTextarea from '@/components/VTextarea.vue';
@@ -39,7 +40,16 @@ const form = useForm({
     end_date: props.contract?.end_date ?? '',
     notes: props.contract?.notes ?? '',
     monitor_enabled: props.contract?.monitor_enabled ?? true,
+    monitor_auth: props.contract?.monitor_auth ?? 'none',
+    monitor_auth_user: props.contract?.monitor_auth_user ?? '',
+    monitor_auth_password: '',   // never sent to the browser; empty = keep the stored one
 });
+
+// Password protected website (htpasswd)
+const protectedSite = ref(form.monitor_auth !== 'none');
+watch(protectedSite, (value) => form.monitor_auth = value ? (form.monitor_auth === 'none' ? 'basic' : form.monitor_auth) : 'none');
+const hasStoredPassword = computed(() => !!props.contract?.has_monitor_password && props.contract?.monitor_auth === 'basic');
+const plainHttp = computed(() => String(form.url).startsWith('http://'));
 
 // Switching the type switches the standard price, unless a custom price was entered
 const parsePrice = (value) => Number(String(value ?? '').replace(',', '.'));
@@ -117,7 +127,7 @@ const submit = () => {
 
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <VInput id="name" label="Projekt" placeholder="z. B. Musterfirma Website" v-model="form.name" :error="form.errors.name" />
-                        <VInput id="url" type="url" label="URL" placeholder="https://musterfirma.at" v-model="form.url" :error="form.errors.url" />
+                        <VUrlInput id="url" label="Website" placeholder="musterfirma.at" v-model="form.url" :error="form.errors.url" />
                     </div>
 
                     <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-3.5 dark:border-white/10">
@@ -127,6 +137,40 @@ const submit = () => {
                             <span class="block text-xs text-gray-500">Alle 5 Minuten prüfen, ob die URL erreichbar ist. Bei einem Ausfall bekommst du eine Mail.</span>
                         </span>
                     </label>
+
+                    <!-- htpasswd / HTTP Basic Auth -->
+                    <div v-if="form.monitor_enabled && form.url" class="rounded-xl border border-gray-200 p-3.5 dark:border-white/10">
+                        <label class="flex cursor-pointer items-start gap-3">
+                            <input type="checkbox" v-model="protectedSite" class="form-checkbox mt-0.5 rounded border-gray-300 text-primary-500 focus:ring-primary-500 dark:border-white/20 dark:bg-white/5">
+                            <span>
+                                <span class="block text-sm font-medium text-gray-900 dark:text-gray-100">Seite ist passwortgeschützt (htpasswd)</span>
+                                <span class="block text-xs text-gray-500">Der Browser fragt beim Öffnen nach Benutzer und Passwort.</span>
+                            </span>
+                        </label>
+
+                        <div v-if="protectedSite" class="mt-3 space-y-3 pl-7">
+                            <label v-for="option in [
+                                { value: 'basic', title: 'Zugangsdaten mitsenden', text: 'Der Monitor meldet sich an und prüft die echte Seite. Am zuverlässigsten.' },
+                                { value: 'accept_401', title: 'Ohne Zugangsdaten prüfen', text: 'Die Passwortabfrage zählt als erreichbar. Nichts wird gespeichert, aber ein Fehler hinter dem Schutz fällt nicht auf.' },
+                            ]" :key="option.value" class="flex cursor-pointer items-start gap-2.5">
+                                <input type="radio" :value="option.value" v-model="form.monitor_auth" class="form-radio mt-0.5 text-primary-500 focus:ring-primary-500 dark:border-white/20 dark:bg-white/5">
+                                <span>
+                                    <span class="block text-sm font-medium text-gray-800 dark:text-gray-200">{{ option.title }}</span>
+                                    <span class="block text-xs text-gray-500">{{ option.text }}</span>
+                                </span>
+                            </label>
+
+                            <div v-if="form.monitor_auth === 'basic'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <VInput id="monitor_auth_user" label="Benutzer" autocomplete="off" v-model="form.monitor_auth_user" :error="form.errors.monitor_auth_user" />
+                                <VInput id="monitor_auth_password" type="password" label="Passwort" autocomplete="new-password"
+                                    :placeholder="hasStoredPassword ? '•••••••• (gespeichert)' : ''" v-model="form.monitor_auth_password" :error="form.errors.monitor_auth_password" />
+                                <p class="text-xs text-gray-500 sm:col-span-2">
+                                    Das Passwort wird verschlüsselt gespeichert und nie wieder angezeigt.<template v-if="hasStoredPassword"> Leer lassen, um das gespeicherte zu behalten.</template>
+                                </p>
+                                <p v-if="plainHttp" class="text-xs font-medium text-red-500 sm:col-span-2">Achtung: Über http:// werden die Zugangsdaten unverschlüsselt übertragen.</p>
+                            </div>
+                        </div>
+                    </div>
 
                     <div>
                         <VInput id="monthly_price" label="Preis pro Monat" suffix="€"

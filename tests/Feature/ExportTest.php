@@ -95,6 +95,25 @@ class ExportTest extends TestCase
         $zip->close();
     }
 
+    public function test_zip_works_with_cancellation_invoices(): void
+    {
+        $user = User::factory()->create();
+        $original = $this->invoice($user, '2026-010', '2026-10-05', 100);
+        $cancellation = $original->load('items')->cancel();
+
+        $response = $this->actingAs($user)->get(route('export.zip', ['from' => '2026-10-01', 'to' => '2026-10-31']));
+        $response->assertOk();
+
+        $zip = new ZipArchive();
+        $zip->open($response->getFile()->getPathname());
+
+        // Both PDFs, the cancellation one refers to the original with its date
+        $this->assertNotFalse($zip->locateName('Rechnungen/2026-010-Max Muster.pdf'));
+        $this->assertStringStartsWith('%PDF', $zip->getFromName("Rechnungen/{$cancellation->number}-Max Muster.pdf"));
+
+        $zip->close();
+    }
+
     public function test_period_must_be_valid(): void
     {
         $this->actingAs(User::factory()->create())

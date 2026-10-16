@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { MagnifyingGlassIcon, DocumentTextIcon, BanknotesIcon, ReceiptPercentIcon, ArrowDownTrayIcon, PencilSquareIcon, TrashIcon, WrenchScrewdriverIcon, ClockIcon } from '@heroicons/vue/24/outline';
+import { MagnifyingGlassIcon, DocumentTextIcon, BanknotesIcon, ReceiptPercentIcon, ArrowDownTrayIcon, PencilSquareIcon, TrashIcon, WrenchScrewdriverIcon, ClockIcon, PaperClipIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import PaymentStatusBadge from './PaymentStatusBadge.vue';
@@ -141,6 +141,7 @@ const edit = (invoice) => router.visit(route('invoices.edit', invoice.id));
                                     <span v-if="invoice.maintenance_contract_id" class="inline-flex items-center gap-1 rounded-full bg-primary-500/10 px-2 py-0.5 font-sans text-[10px] font-medium text-primary-700 ring-1 ring-inset ring-primary-500/25 dark:text-primary-300" title="Aus einem Wartungsvertrag erstellt">
                                         <WrenchScrewdriverIcon class="h-3 w-3" />Wartung
                                     </span>
+                                    <PaperClipIcon v-if="invoice.has_original" class="h-3.5 w-3.5 text-gray-400" title="Original-PDF angehängt" />
                                 </div>
                                 <span v-if="invoice.cancellation" class="mt-1 inline-flex rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-600 ring-1 ring-inset ring-red-500/30 dark:text-red-400">
                                     Storniert · {{ invoice.cancellation.number }}

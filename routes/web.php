@@ -40,12 +40,16 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/contracts/{contract}/check', [MaintenanceContractController::class, 'check'])->name('contracts.check');
     Route::patch('/contracts/{contract}/monitor', [MonitoringController::class, 'toggle'])->name('contracts.monitor');
     Route::get('/monitoring', [MonitoringController::class, 'index'])->name('monitoring.index');
+    Route::put('/monitoring/order', [MonitoringController::class, 'order'])->name('monitoring.order');
+    Route::delete('/monitoring/order', [MonitoringController::class, 'resetOrder'])->name('monitoring.order.reset');
     Route::resource('contracts', MaintenanceContractController::class)->except('show');
     Route::post('/contracts/{contract}/invoices', [MaintenanceInvoiceController::class, 'store'])->name('contracts.invoices.store');
     Route::delete('/contracts/{contract}/invoices/{invoice}', [MaintenanceInvoiceController::class, 'destroy'])->name('contracts.invoices.destroy');
 
     Route::get('/invoices/{invoice}/delete', [InvoiceController::class, 'delete'])->name('invoices.delete');
     Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'download'])->name('invoices.download');
+    Route::post('/invoices/{invoice}/original', [InvoiceController::class, 'attachOriginal'])->name('invoices.original.store');
+    Route::delete('/invoices/{invoice}/original', [InvoiceController::class, 'removeOriginal'])->name('invoices.original.destroy');
     Route::post('/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel'])->name('invoices.cancel');
     Route::post('/invoices/{invoice}/payments', [InvoicePaymentController::class, 'store'])->name('invoices.payments.store');
     Route::delete('/invoices/{invoice}/payments/{payment}', [InvoicePaymentController::class, 'destroy'])->name('invoices.payments.destroy');

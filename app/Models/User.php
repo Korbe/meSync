@@ -35,6 +35,7 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
         // media library removes the receipt files on each model's delete.
         static::deleting(function (User $user) {
             $user->inventoryItems()->with('media')->get()->each->delete();
+            $user->invoices()->whereHas('media')->with('media')->get()->each(fn (Invoice $invoice) => $invoice->clearMediaCollection('original'));
         });
     }
 

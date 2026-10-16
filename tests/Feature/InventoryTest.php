@@ -147,6 +147,25 @@ class InventoryTest extends TestCase
         $this->actingAs($user)->get(route('inventory.delete', $item))->assertOk();
     }
 
+    public function test_receipts_are_stored_privately(): void
+    {
+        Storage::fake('local');
+        $user = User::factory()->create();
+        $item = $this->item($user);
+        $media = $item->addMedia(UploadedFile::fake()->createWithContent('beleg.pdf', self::PDF))->toMediaCollection('receipt');
+
+        // Private disk, not the public one that is linked into public/storage
+        $this->assertSame('local', $media->disk);
+        Storage::disk('local')->assertExists($media->getPathRelativeToRoot());
+        $this->assertFalse(config('filesystems.disks.local.serve'));
+        $this->assertFalse(app('router')->has('storage.local'));
+
+        // Only through the app, only for the owner
+        $this->get(route('inventory.receipt', $item))->assertRedirect(route('login'));
+        $this->actingAs(User::factory()->create())->get(route('inventory.receipt', $item))->assertForbidden();
+        $this->actingAs($user)->get(route('inventory.receipt', $item))->assertOk();
+    }
+
     public function test_items_of_other_users_are_protected(): void
     {
         $item = $this->item(User::factory()->create());

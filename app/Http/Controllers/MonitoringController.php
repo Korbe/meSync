@@ -7,6 +7,7 @@ use App\Services\MonitoringReport;
 use App\Services\SiteMonitor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -23,6 +24,37 @@ class MonitoringController extends Controller
             'interval' => 5,
             'failuresBeforeDown' => SiteMonitor::FAILURES_BEFORE_DOWN,
         ]);
+    }
+
+    /**
+     * Save the own order of the websites (ids top to bottom).
+     */
+    public function order(Request $request): RedirectResponse
+    {
+        $ids = $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'integer',
+        ])['ids'];
+
+        $contracts = $request->user()->maintenanceContracts()->whereIn('id', $ids)->get()->keyBy('id');
+
+        DB::transaction(function () use ($ids, $contracts) {
+            foreach (array_values(array_unique($ids)) as $position => $id) {
+                $contracts->get($id)?->forceFill(['monitor_position' => $position])->save();
+            }
+        });
+
+        return back();
+    }
+
+    /**
+     * Back to the order of creation.
+     */
+    public function resetOrder(Request $request): RedirectResponse
+    {
+        $request->user()->maintenanceContracts()->update(['monitor_position' => null]);
+
+        return back()->with('success', 'Reihenfolge zurückgesetzt – sortiert nach Erstellung.');
     }
 
     /**

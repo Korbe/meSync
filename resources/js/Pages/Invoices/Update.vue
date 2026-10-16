@@ -7,10 +7,12 @@ import VButton from '@/components/VButton.vue';
 import VModal from '@/components/VModal.vue';
 import InvoiceForm from './InvoiceForm.vue';
 import PaymentsPanel from './PaymentsPanel.vue';
+import OriginalPdfCard from './OriginalPdfCard.vue';
 import { formatDate, formatMoney } from '@/utils/format';
 
 const props = defineProps({
     invoice: Object,
+    original: Object,
     customers: Array,
     catalog: Array,
     paymentTermsDays: Number,
@@ -35,7 +37,7 @@ const cancelInvoice = () => {
         <template v-slot:actions>
             <!-- Plain link: the PDF is a file download, not an Inertia page -->
             <a :href="route('invoices.download', invoice.id)" class="btn cursor-pointer bg-primary-500 text-white hover:bg-primary-600 hover:shadow-[0_8px_24px_-8px_rgba(31,173,174,0.8)]">
-                <ArrowDownTrayIcon class="mr-2 h-5 w-5" />PDF herunterladen
+                <ArrowDownTrayIcon class="mr-2 h-5 w-5" />{{ original ? 'Original-PDF' : 'PDF herunterladen' }}
             </a>
             <VButton v-if="canCancel" variant="secondary" @click="confirmingCancel = true">
                 <span class="inline-flex items-center"><ArrowUturnLeftIcon class="mr-2 h-5 w-5" />Stornieren</span>
@@ -65,6 +67,9 @@ const cancelInvoice = () => {
                 storniert und kann nicht mehr bearbeitet werden.
             </span>
         </div>
+
+        <!-- Own PDF instead of the generated one -->
+        <OriginalPdfCard :invoice="invoice" :original="original" />
 
         <!-- Payments: not for cancelled invoices or cancellation invoices -->
         <PaymentsPanel v-if="invoice.payment_status !== 'cancelled'" :invoice="invoice" />

@@ -8,9 +8,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Invoice extends Model
+class Invoice extends Model implements HasMedia
 {
+    use InteractsWithMedia;
+
     /**
      * The attributes that are mass assignable.
      *
@@ -148,6 +152,18 @@ class Invoice extends Model
         }
 
         return $cancellation;
+    }
+
+    /**
+     * An existing invoice (e.g. written before meSync) as PDF. When attached it replaces the
+     * generated PDF everywhere. Stored privately and only served through the app.
+     */
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('original')
+            ->singleFile()
+            ->useDisk('local')
+            ->acceptsMimeTypes(['application/pdf']);
     }
 
     public function payments(): HasMany

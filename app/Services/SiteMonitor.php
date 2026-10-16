@@ -26,7 +26,7 @@ class SiteMonitor
         // The demo account's websites are made up: simulate, never request real domains
         [$up, $responseMs, $error] = $contract->user->isDemo()
             ? [true, random_int(90, 420), null]
-            : $this->probe($contract->url);
+            : $this->probe($contract);
 
         $contract->monitor_checked_at = now();
         $contract->monitor_response_ms = $responseMs;
@@ -55,21 +55,33 @@ class SiteMonitor
     /**
      * @return array{bool, int|null, string|null}
      */
-    protected function probe(string $url): array
+    protected function probe(MaintenanceContract $contract): array
     {
         $started = microtime(true);
 
         try {
-            $response = Http::timeout(10)
+            $request = Http::timeout(10)
                 ->connectTimeout(10)
-                ->withUserAgent('meSync-Monitor/1.0 (+https://korbitsch.at)')
-                ->get($url);
+                ->withUserAgent('meSync-Monitor/1.0 (+https://korbitsch.at)');
 
+            // Password protected website (htpasswd): log in with the stored credentials
+            if ($contract->monitor_auth === 'basic' && $contract->monitor_auth_user) {
+                $request = $request->withBasicAuth($contract->monitor_auth_user, (string) $contract->monitorPassword());
+            }
+
+            $response = $request->get($contract->url);
             $ms = (int) round((microtime(true) - $started) * 1000);
+
+            // Without credentials the password prompt itself shows the server is up
+            if ($response->status() === 401 && $contract->monitor_auth === 'accept_401') {
+                return [true, $ms, null];
+            }
 
             return $response->status() < 400
                 ? [true, $ms, null]
-                : [false, $ms, "HTTP {$response->status()}"];
+                : [false, $ms, $response->status() === 401
+                    ? 'HTTP 401 – Passwortschutz: Zugangsdaten im Vertrag hinterlegen'
+                    : "HTTP {$response->status()}"];
         } catch (Throwable $e) {
             return [false, null, mb_substr($e->getMessage(), 0, 250)];
         }

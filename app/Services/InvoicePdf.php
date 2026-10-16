@@ -18,7 +18,16 @@ class InvoicePdf
 {
     public function render(Invoice $invoice): string
     {
-        $invoice->loadMissing(['items', 'payments', 'cancels', 'cancellation', 'user.businessProfile']);
+        // An attached original replaces the generated PDF
+        if ($original = $invoice->getFirstMedia('original')) {
+            return file_get_contents($original->getPath());
+        }
+
+        $invoice->loadMissing(['items', 'payments', 'user.businessProfile']);
+
+        // Always complete: callers like the export load these with only a few columns,
+        // the PDF also needs e.g. the date of the cancelled invoice
+        $invoice->load(['cancels', 'cancellation']);
         $issuer = $invoice->issuer;
 
         // Invoices created before the color setting existed use the current profile color

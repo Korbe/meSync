@@ -1,7 +1,8 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { moveArrayElement, useSortable } from '@vueuse/integrations/useSortable';
 import { router, useForm } from '@inertiajs/vue3';
-import { ArrowPathIcon, BoltIcon, CheckBadgeIcon, ExclamationTriangleIcon, GlobeAltIcon, LockClosedIcon, ShieldCheckIcon, SignalIcon, SignalSlashIcon } from '@heroicons/vue/24/outline';
+import { ArrowPathIcon, BoltIcon, CheckBadgeIcon, ExclamationTriangleIcon, GlobeAltIcon, LockClosedIcon, ShieldCheckIcon, SignalIcon, SignalSlashIcon, ChevronUpIcon, ChevronDownIcon, ArrowsUpDownIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import SiteStatusDot from '@/Pages/MaintenanceContracts/SiteStatusDot.vue';
 import MonitorToggle from '@/Pages/MaintenanceContracts/MonitorToggle.vue';
@@ -21,6 +22,7 @@ const refreshedAt = ref(Date.now());
 const now = ref(Date.now());
 const refreshing = ref(false);
 const refresh = () => {
+    if (dragging.value) return;   // don't re-render while a card is being dragged
     refreshing.value = true;
     router.reload({ only: ['sites', 'unmonitored', 'incidents', 'summary'], onFinish: () => { refreshing.value = false; refreshedAt.value = Date.now(); } });
 };
@@ -42,6 +44,70 @@ const checkNow = (site) => {
     checking.value = site.id;
     checkForm.post(route('contracts.check', site.id), { preserveScroll: true, onFinish: () => checking.value = null });
 };
+
+// Order: own order (by creation until changed), or sorted by name, problems or uptime.
+// The chosen view is remembered in this browser.
+const sortOptions = [
+    { value: 'custom', label: 'Eigene Reihenfolge' },
+    { value: 'name', label: 'Name A–Z' },
+    { value: 'problems', label: 'Probleme zuerst' },
+    { value: 'uptime', label: 'Niedrigste Verfügbarkeit' },
+];
+const storedSort = (() => { try { return localStorage.getItem('monitoring-sort'); } catch { return null; } })();
+const sortMode = ref(sortOptions.some(option => option.value === storedSort) ? storedSort : 'custom');
+watch(sortMode, (mode) => { try { localStorage.setItem('monitoring-sort', mode); } catch { /* private mode */ } });
+
+// Own order as list of ids
+const order = ref(props.sites.map(site => site.id));
+watch(() => props.sites, (sites) => order.value = sites.map(site => site.id));
+
+const severity = (site) => site.status === 'down' ? 0 : site.failures > 0 ? 1 : site.ssl_days !== null && site.ssl_days <= 14 ? 2 : site.status === null ? 3 : 4;
+
+const orderedSites = computed(() => {
+    const sites = [...props.sites];
+    switch (sortMode.value) {
+        case 'name': return sites.sort((a, b) => a.name.localeCompare(b.name, 'de'));
+        case 'problems': return sites.sort((a, b) => severity(a) - severity(b) || (a.uptime['30d'] ?? 101) - (b.uptime['30d'] ?? 101));
+        case 'uptime': return sites.sort((a, b) => (a.uptime['30d'] ?? 101) - (b.uptime['30d'] ?? 101));
+        default: return sites.sort((a, b) => order.value.indexOf(a.id) - order.value.indexOf(b.id));
+    }
+});
+
+const saveOrder = () => router.put(route('monitoring.order'), { ids: order.value }, { preserveScroll: true, preserveState: true });
+
+const move = (site, step) => {
+    const from = order.value.indexOf(site.id);
+    const to = from + step;
+    if (to < 0 || to >= order.value.length) return;
+    moveArrayElement(order, from, to);
+    saveOrder();
+};
+
+// Drag & drop with SortableJS: only at the handle, works with mouse and touch
+const grid = ref(null);
+const dragging = ref(false);
+const sortable = useSortable(grid, order, {
+    handle: '.drag-handle',
+    animation: 200,
+    forceFallback: true,
+    fallbackTolerance: 4,
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    dragClass: 'sortable-drag',
+    onStart: () => dragging.value = true,
+    onEnd: () => dragging.value = false,
+    onUpdate: (event) => {
+        moveArrayElement(order, event.oldIndex, event.newIndex, event);
+        nextTick(saveOrder);
+    },
+});
+watch(sortMode, (mode) => sortable.option('disabled', mode !== 'custom'), { immediate: true });
+onMounted(() => sortable.option('disabled', sortMode.value !== 'custom'));
+
+const resetOrder = () => router.delete(route('monitoring.order.reset'), {
+    preserveScroll: true,
+    onSuccess: () => order.value = props.sites.map(site => site.id),
+});
 
 const hero = computed(() => {
     if (props.summary.total === 0) return { tone: 'idle', title: 'Noch keine Website überwacht', text: 'Schalte bei einem Wartungsvertrag mit URL die Überwachung ein.' };
@@ -128,14 +194,36 @@ const duration = (minutes) => {
             </div>
         </div>
 
+        <!-- Sort -->
+        <div v-if="sites.length > 1" class="mb-4 flex flex-wrap items-center gap-3">
+            <ArrowsUpDownIcon class="h-4 w-4 text-gray-400" />
+            <select v-model="sortMode" class="form-select py-1.5 text-sm">
+                <option v-for="option in sortOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+            </select>
+            <span v-if="sortMode === 'custom'" class="text-xs text-gray-500">Zum Verschieben eine Karte am Griff <span class="font-semibold">⠿</span> ziehen oder die Pfeile nutzen.</span>
+            <button v-if="sortMode === 'custom'" type="button" class="ml-auto cursor-pointer text-xs text-gray-500 underline hover:text-primary-500" @click="resetOrder">
+                Nach Erstellung sortieren
+            </button>
+        </div>
+
         <!-- Sites -->
-        <div class="mb-6 grid grid-cols-1 gap-6 2xl:grid-cols-2">
-            <section v-for="site in sites" :key="site.id" class="card relative overflow-hidden p-5"
+        <div ref="grid" class="mb-6 grid grid-cols-1 gap-6 2xl:grid-cols-2" :class="dragging && 'select-none'">
+            <section v-for="site in orderedSites" :key="site.id" class="card relative overflow-hidden p-5"
                 :class="site.status === 'down' && 'border-red-500/40! dark:border-red-500/40!'">
                 <div v-if="site.status === 'down'" class="pointer-events-none absolute -top-16 -right-16 h-44 w-44 rounded-full bg-red-500/20 blur-[70px]" aria-hidden="true"></div>
 
                 <div class="relative">
                     <div class="flex items-start gap-3">
+                        <!-- Drag handle + arrows (own order only) -->
+                        <div v-if="sortMode === 'custom' && sites.length > 1" class="-ml-1 flex flex-col items-center text-gray-300 dark:text-gray-600">
+                            <button type="button" class="cursor-pointer rounded p-0.5 hover:text-primary-500 disabled:invisible" title="Nach oben"
+                                :disabled="order.indexOf(site.id) === 0" @click="move(site, -1)"><ChevronUpIcon class="h-3.5 w-3.5" /></button>
+                            <span class="drag-handle flex h-6 w-5 cursor-grab touch-none items-center justify-center rounded text-gray-400 hover:bg-primary-500/10 hover:text-primary-500 active:cursor-grabbing" title="Ziehen zum Verschieben">
+                                <svg class="h-4 w-4" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3" r="1.4" /><circle cx="11" cy="3" r="1.4" /><circle cx="5" cy="8" r="1.4" /><circle cx="11" cy="8" r="1.4" /><circle cx="5" cy="13" r="1.4" /><circle cx="11" cy="13" r="1.4" /></svg>
+                            </span>
+                            <button type="button" class="cursor-pointer rounded p-0.5 hover:text-primary-500 disabled:invisible" title="Nach unten"
+                                :disabled="order.indexOf(site.id) === order.length - 1" @click="move(site, 1)"><ChevronDownIcon class="h-3.5 w-3.5" /></button>
+                        </div>
                         <SiteStatusDot :contract="{ url: site.url, monitor_enabled: true, monitor_status: site.status }" class="mt-1.5" />
                         <div class="min-w-0 flex-1">
                             <Link :href="route('contracts.edit', site.id)" class="block truncate font-display text-lg font-semibold text-gray-900 hover:text-primary-600 dark:text-white dark:hover:text-primary-300">{{ site.name }}</Link>
@@ -264,3 +352,19 @@ const duration = (minutes) => {
         </section>
     </Layout>
 </template>
+
+<style scoped>
+/* Placeholder where the card will land */
+:deep(.sortable-ghost) {
+    opacity: 0.35;
+    outline: 2px dashed rgb(31 173 174 / 0.6);
+    outline-offset: -2px;
+}
+
+/* The card under the cursor */
+:deep(.sortable-drag) {
+    opacity: 0.95 !important;
+    transform: rotate(1deg);
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(31 173 174 / 0.5);
+}
+</style>

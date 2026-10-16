@@ -26,7 +26,10 @@ class MonitoringReport
             ->with('customer')
             ->whereNotNull('url')
             ->where('url', '!=', '')
-            ->orderBy('name')
+            // Own order first, then by creation (new websites are added at the end)
+            ->orderByRaw('CASE WHEN monitor_position IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('monitor_position')
+            ->orderBy('id')
             ->get();
 
         $monitored = $contracts->filter(fn (MaintenanceContract $contract) => $contract->monitor_enabled && $contract->isBillable());
@@ -86,6 +89,7 @@ class MonitoringReport
             'id' => $contract->id,
             'name' => $contract->name,
             'url' => $contract->url,
+            'created_at' => $contract->created_at?->toIso8601String(),
             'customer' => $contract->customer?->display_name,
             'monitor_enabled' => $contract->monitor_enabled,
             'ended' => ! $contract->isBillable(),

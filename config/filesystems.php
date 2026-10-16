@@ -33,7 +33,9 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // No /storage/{path} route for private files (receipts): they are only served
+            // through the app after an ownership check (InventoryItemController@receipt)
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

@@ -10,6 +10,7 @@ use App\Services\SiteMonitor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -39,7 +40,7 @@ class MaintenanceContractController extends Controller
 
     public function store(MaintenanceContractRequest $request): RedirectResponse
     {
-        $request->user()->maintenanceContracts()->create($request->validated());
+        $request->user()->maintenanceContracts()->create($this->attributes($request));
 
         return to_route('contracts.index')->with('success', 'Wartungsvertrag wurde angelegt.');
     }
@@ -58,7 +59,7 @@ class MaintenanceContractController extends Controller
     {
         Gate::authorize('update', $contract);
 
-        $contract->update($request->validated());
+        $contract->update($this->attributes($request, $contract));
 
         return to_route('contracts.edit', $contract)->with('success', 'Wartungsvertrag wurde gespeichert.');
     }
@@ -114,6 +115,32 @@ class MaintenanceContractController extends Controller
     /**
      * @return array<string, mixed>
      */
+    /**
+     * Validated data with the website protection settled: an empty password field keeps
+     * the stored one, without "basic" no credentials are kept at all.
+     *
+     * @return array<string, mixed>
+     */
+    private function attributes(MaintenanceContractRequest $request, ?MaintenanceContract $contract = null): array
+    {
+        $data = $request->validated();
+        $data['monitor_auth'] ??= 'none';
+
+        if ($data['monitor_auth'] !== 'basic') {
+            return [...$data, 'monitor_auth_user' => null, 'monitor_auth_password' => null];
+        }
+
+        if (blank($data['monitor_auth_password'] ?? null)) {
+            unset($data['monitor_auth_password']);
+
+            if (! $contract?->has_monitor_password) {
+                throw ValidationException::withMessages(['monitor_auth_password' => 'Bitte gib das Passwort für den Passwortschutz an.']);
+            }
+        }
+
+        return $data;
+    }
+
     private function formOptions(Request $request): array
     {
         return [

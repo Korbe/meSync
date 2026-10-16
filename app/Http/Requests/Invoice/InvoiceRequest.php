@@ -53,6 +53,8 @@ class InvoiceRequest extends FormRequest
             'paid_amount' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:5000',
             'paid_in_cash' => 'boolean',
+            // Existing invoice as PDF, replaces the generated one
+            'original' => 'nullable|file|mimes:pdf|max:10240',
             'items' => 'required|array|min:1',
             'items.*.description' => 'required|string|max:2000',
             'items.*.quantity' => 'required|numeric|min:0.01|max:999999',
@@ -67,6 +69,8 @@ class InvoiceRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'original.mimes' => 'Die Rechnung muss ein PDF sein.',
+            'original.max' => 'Das PDF darf maximal 10 MB groß sein.',
             'customer_id.required' => 'Bitte wähle einen Kunden aus.',
             'customer_id.exists' => 'Bitte wähle einen Kunden aus.',
             'number.required' => 'Bitte gib eine Rechnungsnummer an.',

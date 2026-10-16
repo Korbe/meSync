@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\MaintenanceContractType;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -36,6 +37,18 @@ class MaintenanceContract extends Model
         'end_date',
         'notes',
         'monitor_enabled',
+        'monitor_auth',
+        'monitor_auth_user',
+        'monitor_auth_password',
+    ];
+
+    /**
+     * The password for protected websites never leaves the server.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'monitor_auth_password',
     ];
 
     /**
@@ -47,6 +60,7 @@ class MaintenanceContract extends Model
         'type_label',
         'annual_price',
         'status',
+        'has_monitor_password',
     ];
 
     protected static function booted(): void
@@ -73,6 +87,7 @@ class MaintenanceContract extends Model
             'next_invoice_date' => 'date:Y-m-d',
             'end_date' => 'date:Y-m-d',
             'monitor_enabled' => 'boolean',
+            'monitor_auth_password' => 'encrypted',
             'monitor_status_since' => 'datetime',
             'monitor_checked_at' => 'datetime',
             'ssl_expires_at' => 'datetime',
@@ -122,6 +137,25 @@ class MaintenanceContract extends Model
     public function isBillable(): bool
     {
         return $this->end_date === null || $this->next_invoice_date->lte($this->end_date);
+    }
+
+    /**
+     * Password for HTTP Basic Auth, or null when none is stored or it can't be decrypted
+     * (e.g. a backup restored on a server with a different APP_KEY).
+     */
+    public function monitorPassword(): ?string
+    {
+        try {
+            return $this->monitor_auth_password;
+        } catch (DecryptException) {
+            return null;
+        }
+    }
+
+    protected function hasMonitorPassword(): Attribute
+    {
+        // Raw value: tells whether a password is stored without decrypting it
+        return Attribute::get(fn () => filled($this->attributes['monitor_auth_password'] ?? null));
     }
 
     protected function typeLabel(): Attribute

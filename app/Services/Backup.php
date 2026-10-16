@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\InventoryItem;
+use App\Models\Invoice;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -55,6 +56,16 @@ class Backup
                 'mime_type' => $logo->mime_type,
                 'content' => base64_encode(file_get_contents($logo->getPath())),
             ] : null,
+            'invoice_originals' => $user->invoices()->whereHas('media')->with('media')->get()
+                ->map(fn (Invoice $invoice) => [$invoice, $invoice->getFirstMedia('original')])
+                ->filter(fn ($pair) => $pair[1] && is_file($pair[1]->getPath()))
+                ->map(fn ($pair) => [
+                    'invoice_id' => $pair[0]->id,
+                    'file_name' => $pair[1]->file_name,
+                    'content' => base64_encode(file_get_contents($pair[1]->getPath())),
+                ])
+                ->values()
+                ->all(),
             'receipts' => $user->inventoryItems()->with('media')->get()
                 ->map(fn (InventoryItem $item) => [$item, $item->getFirstMedia('receipt')])
                 ->filter(fn ($pair) => $pair[1] && is_file($pair[1]->getPath()))
@@ -93,8 +104,9 @@ class Backup
         $skippedInvoices = [];
 
         $inventory = [];
+        $restoredInvoices = [];
 
-        DB::transaction(function () use ($user, $data, $replace, &$imported, &$skippedInvoices, &$inventory) {
+        DB::transaction(function () use ($user, $data, $replace, &$imported, &$skippedInvoices, &$inventory, &$restoredInvoices) {
             if ($replace) {
                 $this->wipe($user);
             }
@@ -178,6 +190,8 @@ class Backup
                 $imported['invoices']++;
             }
 
+            $restoredInvoices = $newInvoices;
+
             // Cancellation links, once all invoices exist
             foreach ($data['invoices'] as $row) {
                 $cancels = $invoices[$row['cancels_invoice_id'] ?? null] ?? null;
@@ -210,6 +224,7 @@ class Backup
 
         $this->restoreLogo($user, $backup['logo'] ?? null, $replace);
         $this->restoreReceipts($backup['receipts'] ?? [], $inventory);
+        $this->restoreInvoiceOriginals($backup['invoice_originals'] ?? [], $restoredInvoices);
 
         return ['imported' => $imported, 'skipped_invoices' => $skippedInvoices];
     }
@@ -239,6 +254,9 @@ class Backup
      */
     private function wipe(User $user): void
     {
+        // Files first: deleting the rows below would leave them behind
+        $user->invoices()->whereHas('media')->with('media')->get()->each(fn (Invoice $invoice) => $invoice->clearMediaCollection('original'));
+
         DB::table('invoices')->where('user_id', $user->id)->update(['cancels_invoice_id' => null]);
         DB::table('invoices')->where('user_id', $user->id)->delete();
         DB::table('maintenance_contracts')->where('user_id', $user->id)->delete();
@@ -301,6 +319,29 @@ class Backup
                 $item->addMediaFromBase64($receipt['content'])
                     ->usingFileName(basename($receipt['file_name'] ?? 'beleg.pdf'))
                     ->toMediaCollection('receipt');
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $originals
+     * @param  array<int, int>  $invoices  old ID => new ID (only newly created invoices)
+     */
+    private function restoreInvoiceOriginals(array $originals, array $invoices): void
+    {
+        foreach ($originals as $original) {
+            $invoice = Invoice::find($invoices[$original['invoice_id'] ?? null] ?? null);
+
+            if (! $invoice) {
+                continue;
+            }
+
+            try {
+                $invoice->addMediaFromBase64($original['content'])
+                    ->usingFileName(basename($original['file_name'] ?? 'rechnung.pdf'))
+                    ->toMediaCollection('original');
             } catch (\Throwable $e) {
                 report($e);
             }
