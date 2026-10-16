@@ -29,7 +29,7 @@ class CustomerController extends Controller
             ->when($interest, fn ($query) => $query->whereJsonContains('interests', $interest->value))
             ->orderBy('last_name')
             ->orderBy('company_name')
-            ->paginate(15)
+            ->paginate($this->perPage($request, 'customers'))
             ->withQueryString();
 
         return Inertia::render('Customers/Index', [

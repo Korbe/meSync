@@ -4,7 +4,7 @@ import { router } from '@inertiajs/vue3';
 import { MagnifyingGlassIcon, PencilSquareIcon, TrashIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, UsersIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
-import PaginationNumeric from '@/components/pagination/PaginationNumeric.vue';
+import VPagination from '@/components/VPagination.vue';
 
 const props = defineProps({
     customers: Object,
@@ -186,7 +186,7 @@ const show = (customer) => router.visit(route('customers.show', customer.id));
                 </Link>
             </div>
 
-            <PaginationNumeric v-if="customers.last_page > 1" :pagination="customers" />
+            <VPagination :paginator="customers" label="Kunden" />
         </template>
     </Layout>
 </template>

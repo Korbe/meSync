@@ -87,7 +87,7 @@ class InvoiceOriginalTest extends TestCase
         $invoice = $user->invoices()->first();
         $this->assertTrue($invoice->hasMedia('original'));
 
-        $this->actingAs($user)->get(route('invoices.index'))->assertInertia(fn (Assert $page) => $page->where('invoices.0.has_original', true));
+        $this->actingAs($user)->get(route('invoices.index'))->assertInertia(fn (Assert $page) => $page->where('invoices.data.0.has_original', fn ($value) => (bool) $value));
         $this->actingAs($user)->get(route('invoices.edit', $invoice))->assertInertia(fn (Assert $page) => $page->where('original.name', fn ($name) => str_starts_with($name, '2026-013')));
     }
 

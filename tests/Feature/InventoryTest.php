@@ -123,14 +123,23 @@ class InventoryTest extends TestCase
         $this->item($user, ['price' => 800, 'status' => 'disposed', 'retired_at' => '2026-05-01', 'purchased_at' => '2023-01-01']);
         $this->item(User::factory()->create());
 
+        // Default view: items in use; totals always over all of them
         $this->actingAs($user)->get(route('inventory.index'))
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Inventory/Index')
-                ->has('items', 3)
+                ->has('items.data', 2)
                 ->where('totals.count', 2)
                 ->where('totals.price', 3500)
                 ->where('totals.book_value', 1000)
                 ->where('totals.bought_this_year', 500));
+
+        // Filters and search on the server
+        $this->actingAs($user)->get(route('inventory.index', ['status' => 'retired']))
+            ->assertInertia(fn (Assert $page) => $page->has('items.data', 1)->where('totals.count', 2));
+        $this->actingAs($user)->get(route('inventory.index', ['status' => 'all']))
+            ->assertInertia(fn (Assert $page) => $page->has('items.data', 3));
+        $this->actingAs($user)->get(route('inventory.index', ['status' => 'all', 'search' => 'nichtvorhanden']))
+            ->assertInertia(fn (Assert $page) => $page->has('items.data', 0)->where('hasItems', true));
     }
 
     public function test_form_pages_render(): void

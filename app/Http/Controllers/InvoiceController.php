@@ -18,17 +18,69 @@ use Inertia\Response;
 
 class InvoiceController extends Controller
 {
+    /**
+     * Invoices of one year (default: the current one) or all years, paginated, filtered and
+     * summed in the database. "Offen"/"Überfällig" also contain unpaid invoices of earlier
+     * years, so they don't get lost at the turn of the year.
+     */
     public function index(Request $request): Response
     {
-        $invoices = $request->user()->invoices()
+        $user = $request->user();
+        $years = $user->invoices()->pluck('invoice_date')->map(fn ($date) => (int) substr((string) $date, 0, 4))
+            ->push(today()->year)->unique()->sortDesc()->values();
+
+        $year = $request->query('year') === 'all' ? 'all' : (int) $request->query('year', today()->year);
+        if ($year !== 'all' && ($year < 2000 || $year > 2100)) {
+            $year = today()->year;
+        }
+
+        $tab = in_array($request->query('tab'), ['all', 'unpaid', 'overdue', 'paid'], true) ? $request->query('tab') : 'all';
+        $search = trim((string) $request->query('search', ''));
+
+        // Year view: invoices of that year; open tabs: also unpaid ones of earlier years
+        $inYear = fn ($query) => $query->when($year !== 'all', fn ($query) => $query->whereYear('invoice_date', $year));
+        $untilYear = fn ($query) => $query->when($year !== 'all', fn ($query) => $query->whereYear('invoice_date', '<=', $year));
+        $forTab = fn ($query, string $tab) => in_array($tab, ['unpaid', 'overdue'], true)
+            ? $untilYear($query)->whereStatus($tab)
+            : $inYear($query)->when($tab === 'paid', fn ($query) => $query->whereStatus('paid'));
+
+        $invoices = $forTab($user->invoices(), $tab)
             ->with(['items', 'payments', 'cancels:id,number', 'cancellation:id,number,cancels_invoice_id'])
             ->withExists(['media as has_original' => fn ($query) => $query->where('collection_name', 'original')])
+            ->when($search !== '', fn ($query) => $query->where(fn ($query) => $query
+                ->where('number', 'like', "%{$search}%")
+                ->orWhere('recipient->name', 'like', "%{$search}%")))
             ->latest('invoice_date')
             ->latest('id')
-            ->get();
+            ->paginate($this->perPage($request, 'invoices'))
+            ->withQueryString();
+
+        // first(): value('total') would replace the raw select with a plain "total" column
+        $sum = fn ($query, string $expression) => (float) ($query->toBase()->selectRaw("COALESCE(SUM({$expression}), 0) as total")->first()->total ?? 0);
+        $outstanding = fn ($query) => ['count' => (clone $query)->count(), 'sum' => round($sum(clone $query, Invoice::sqlOutstanding()), 2)];
 
         return Inertia::render('Invoices/Index', [
             'invoices' => $invoices,
+            'year' => $year,
+            'years' => $years,
+            'tab' => $tab,
+            'search' => $search,
+            'stats' => [
+                'net' => round($sum($inYear($user->invoices()), Invoice::sqlSubtotal()), 2),
+                'tax' => round($sum($inYear($user->invoices()), Invoice::sqlTax()), 2),
+                'count' => $inYear($user->invoices())->count(),
+                'unpaid' => $outstanding($forTab($user->invoices(), 'unpaid')),
+                'overdue' => $outstanding($forTab($user->invoices(), 'overdue')),
+                'carried' => $year === 'all'
+                    ? ['count' => 0, 'sum' => 0]
+                    : $outstanding($user->invoices()->whereYear('invoice_date', '<', $year)->whereStatus('unpaid')),
+            ],
+            'counts' => [
+                'all' => $inYear($user->invoices())->count(),
+                'unpaid' => $forTab($user->invoices(), 'unpaid')->count(),
+                'overdue' => $forTab($user->invoices(), 'overdue')->count(),
+                'paid' => $forTab($user->invoices(), 'paid')->count(),
+            ],
         ]);
     }
 

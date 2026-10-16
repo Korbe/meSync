@@ -1,37 +1,39 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { ArchiveBoxIcon, ArrowDownTrayIcon, MagnifyingGlassIcon, PaperClipIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
+import VPagination from '@/components/VPagination.vue';
 import { formatDate, formatMoney } from '@/utils/format';
 
 const props = defineProps({
-    items: Array,
-    categories: Array,
+    items: Object,       // paginator
+    filters: Object,     // status, category, search
+    hasItems: Boolean,
+    categories: Array,   // only the ones in use
     totals: Object,
 });
 
-const search = ref('');
-const status = ref('active');
-const category = ref('');
+const search = ref(props.filters.search ?? '');
+
+// Filters and search run on the server; the page starts at 1 again
+const load = (params = {}) => {
+    const query = { status: props.filters.status, category: props.filters.category || undefined, search: search.value || undefined, ...params };
+    if (query.status === 'active') delete query.status;
+    router.get(route('inventory.index'), query, { preserveState: true, preserveScroll: true, replace: true });
+};
+let timeout = null;
+watch(search, () => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => load(), 300);
+});
 
 const statusFilters = [
     { value: 'active', label: 'In Verwendung' },
     { value: 'retired', label: 'Verkauft / ausgeschieden' },
-    { value: '', label: 'Alle' },
+    { value: 'all', label: 'Alle' },
 ];
-
-const filtered = computed(() => {
-    const term = search.value.trim().toLowerCase();
-
-    return props.items.filter(item =>
-        (status.value === '' || (status.value === 'active' ? item.status === 'active' : item.status !== 'active'))
-        && (category.value === '' || item.category === category.value)
-        && (!term || [item.name, item.serial_number, item.supplier, item.notes].some(value => value?.toLowerCase().includes(term))));
-});
-
-const usedCategories = computed(() => props.categories.filter(option => props.items.some(item => item.category === option.value)));
 
 const statusLabel = { sold: 'Verkauft', disposed: 'Ausgeschieden' };
 const currentYear = new Date().getFullYear();
@@ -53,7 +55,7 @@ const edit = (item) => router.visit(route('inventory.edit', item.id));
                 <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input v-model="search" type="search" placeholder="Gegenstand suchen …" class="form-input w-full pl-9 sm:w-64" />
             </div>
-            <a v-if="items.length" :href="route('inventory.csv')" class="btn cursor-pointer border-gray-200! bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10! dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10" title="Anlagenverzeichnis als CSV">
+            <a v-if="hasItems" :href="route('inventory.csv')" class="btn cursor-pointer border-gray-200! bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10! dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10" title="Anlagenverzeichnis als CSV">
                 <ArrowDownTrayIcon class="h-5 w-5 sm:mr-2" /><span class="hidden sm:inline">CSV</span>
             </a>
             <VButton :href="route('inventory.create')" icon="PlusIcon">Neuer Gegenstand</VButton>
@@ -62,7 +64,7 @@ const edit = (item) => router.visit(route('inventory.edit', item.id));
         <p class="-mt-4 mb-6 max-w-2xl text-gray-500">Geräte und Gegenstände, die du fürs Geschäft gekauft hast – mit Wert, Beleg und Abschreibung.</p>
 
         <!-- Totals -->
-        <div v-if="items.length" class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div v-if="hasItems" class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
             <div v-for="stat in stats" :key="stat.label" class="card relative overflow-hidden p-5">
                 <div v-if="stat.highlight" class="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-primary-500/20 blur-[70px]" aria-hidden="true"></div>
                 <div class="relative">
@@ -75,29 +77,29 @@ const edit = (item) => router.visit(route('inventory.edit', item.id));
         </div>
 
         <!-- Filters -->
-        <div v-if="items.length" class="mb-4 flex flex-wrap items-center gap-2">
+        <div v-if="hasItems" class="mb-4 flex flex-wrap items-center gap-2">
             <button v-for="filter in statusFilters" :key="filter.value" type="button"
                 class="cursor-pointer rounded-full px-3.5 py-1.5 text-sm font-medium ring-1 ring-inset transition"
-                :class="status === filter.value
+                :class="filters.status === filter.value
                     ? 'bg-primary-500 text-white ring-primary-500'
                     : 'text-gray-600 ring-gray-200 hover:text-primary-600 hover:ring-primary-400 dark:text-gray-400 dark:ring-white/10 dark:hover:text-primary-300'"
-                @click="status = filter.value">
+                @click="load({ status: filter.value })">
                 {{ filter.label }}
             </button>
-            <select v-if="usedCategories.length > 1" v-model="category" class="form-select ml-auto py-1.5 text-sm">
+            <select v-if="categories.length > 1" :value="filters.category" class="form-select ml-auto py-1.5 text-sm" @change="load({ category: $event.target.value || undefined })">
                 <option value="">Alle Kategorien</option>
-                <option v-for="option in usedCategories" :key="option.value" :value="option.value">{{ option.label }}</option>
+                <option v-for="option in categories" :key="option.value" :value="option.value">{{ option.label }}</option>
             </select>
         </div>
 
         <!-- Empty state -->
-        <div v-if="filtered.length === 0" class="card relative overflow-hidden px-6 py-16 text-center">
+        <div v-if="items.data.length === 0" class="card relative overflow-hidden px-6 py-16 text-center">
             <div class="pointer-events-none absolute -top-24 left-1/2 h-48 w-96 -translate-x-1/2 rounded-full bg-primary-500/20 blur-[90px]" aria-hidden="true"></div>
             <div class="relative">
                 <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary-500/10 ring-1 ring-primary-500/30">
                     <ArchiveBoxIcon class="h-7 w-7 text-primary-500" />
                 </div>
-                <template v-if="items.length === 0">
+                <template v-if="!hasItems">
                     <h2 class="mt-5 font-display text-xl font-semibold text-gray-900 dark:text-white">Noch nichts im Inventar</h2>
                     <p class="mt-2 text-sm text-gray-500">Trag deinen Laptop, Werkzeug oder Messgeräte mit Kaufpreis und Beleg ein.</p>
                     <div class="mt-6">
@@ -124,7 +126,7 @@ const edit = (item) => router.visit(route('inventory.edit', item.id));
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-white/[0.06]">
-                    <tr v-for="item in filtered" :key="item.id" class="group cursor-pointer transition hover:bg-primary-500/[0.04]" @click="edit(item)">
+                    <tr v-for="item in items.data" :key="item.id" class="group cursor-pointer transition hover:bg-primary-500/[0.04]" @click="edit(item)">
                         <td class="px-5 py-3.5">
                             <div class="flex items-center gap-2">
                                 <span class="font-medium text-gray-900 dark:text-gray-100" :class="item.status !== 'active' && 'line-through decoration-gray-400/60'">{{ item.name }}</span>
@@ -154,5 +156,6 @@ const edit = (item) => router.visit(route('inventory.edit', item.id));
                 </tbody>
             </table>
         </div>
+        <VPagination v-if="items.data.length" :paginator="items" label="Gegenständen" />
     </Layout>
 </template>

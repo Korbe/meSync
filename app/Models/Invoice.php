@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -164,6 +165,49 @@ class Invoice extends Model implements HasMedia
             ->singleFile()
             ->useDisk('local')
             ->acceptsMimeTypes(['application/pdf']);
+    }
+
+    /*
+     * Amounts and payment status as SQL, for filtering and sums in the database (paginated
+     * lists). Same rounding as the subtotal/tax/outstanding attributes below.
+     */
+
+    public static function sqlSubtotal(): string
+    {
+        return '(SELECT COALESCE(SUM(ROUND(ii.quantity * ii.unit_price, 2)), 0) FROM invoice_items ii WHERE ii.invoice_id = invoices.id)';
+    }
+
+    public static function sqlTax(): string
+    {
+        return 'ROUND('.self::sqlSubtotal().' * invoices.tax_rate / 100, 2)';
+    }
+
+    public static function sqlOutstanding(): string
+    {
+        return '('.self::sqlSubtotal().' + '.self::sqlTax().' - invoices.paid_amount'
+            .' - (SELECT COALESCE(SUM(ip.amount), 0) FROM invoice_payments ip WHERE ip.invoice_id = invoices.id))';
+    }
+
+    public static function sqlCancelled(): string
+    {
+        return '(invoices.cancels_invoice_id IS NOT NULL OR EXISTS (SELECT 1 FROM invoices ci WHERE ci.cancels_invoice_id = invoices.id))';
+    }
+
+    /**
+     * Filter by payment status: paid | unpaid (open, partial, overdue) | overdue | cancelled.
+     */
+    public function scopeWhereStatus(Builder $query, string $status): void
+    {
+        $notCancelled = 'NOT '.self::sqlCancelled();
+        $due = self::sqlOutstanding().' > 0.004';
+
+        match ($status) {
+            'cancelled' => $query->whereRaw(self::sqlCancelled()),
+            'paid' => $query->whereRaw("{$notCancelled} AND ".self::sqlOutstanding().' <= 0.004'),
+            'unpaid' => $query->whereRaw("{$notCancelled} AND {$due}"),
+            'overdue' => $query->whereRaw("{$notCancelled} AND {$due}")->where('due_date', '<', today()->toDateString()),
+            default => null,
+        };
     }
 
     public function payments(): HasMany

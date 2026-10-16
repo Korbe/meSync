@@ -1,28 +1,45 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { MagnifyingGlassIcon, DocumentTextIcon, BanknotesIcon, ReceiptPercentIcon, ArrowDownTrayIcon, PencilSquareIcon, TrashIcon, WrenchScrewdriverIcon, ClockIcon, PaperClipIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import PaymentStatusBadge from './PaymentStatusBadge.vue';
+import VPagination from '@/components/VPagination.vue';
 import { formatDate, formatMoney } from '@/utils/format';
 
 const props = defineProps({
-    invoices: Array,
+    invoices: Object,     // paginator
+    year: [Number, String],
+    years: Array,
+    tab: String,
+    search: String,
+    stats: Object,
+    counts: Object,
 });
 
-const year = new Date().getFullYear();
-const thisYear = computed(() => props.invoices.filter(i => i.invoice_date.startsWith(String(year))));
-const sum = (invoices, field) => invoices.reduce((total, i) => total + Number(i[field]), 0);
+const yearLabel = computed(() => props.year === 'all' ? 'gesamt' : props.year);
 
-const unpaid = computed(() => props.invoices.filter(i => ['open', 'partial', 'overdue'].includes(i.payment_status)));
-const overdue = computed(() => props.invoices.filter(i => i.payment_status === 'overdue'));
+// Year, tab and search are filtered on the server; the page starts at 1 again
+const search = ref(props.search ?? '');
+const load = (params = {}) => {
+    const query = { year: props.year, tab: props.tab, search: search.value || undefined, ...params };
+    if (query.tab === 'all') delete query.tab;
+    router.get(route('invoices.index'), query, { preserveState: true, preserveScroll: true, replace: true });
+};
+let timeout = null;
+watch(search, () => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => load(), 300);
+});
+const changeYear = (year) => load({ year });
+const setTab = (tab) => load({ tab });
 
 const stats = computed(() => [
-    { label: `Umsatz netto ${year}`, value: formatMoney(sum(thisYear.value, 'subtotal')), hint: `${thisYear.value.length} Rechnungen`, icon: BanknotesIcon, tone: 'primary' },
-    { label: `USt. ${year}`, value: formatMoney(sum(thisYear.value, 'tax_amount')), hint: 'für die Voranmeldung', icon: ReceiptPercentIcon, tone: 'primary' },
-    { label: 'Offen', value: formatMoney(sum(unpaid.value, 'outstanding')), hint: `${unpaid.value.length} Rechnungen`, icon: ClockIcon, tone: unpaid.value.length ? 'amber' : 'primary' },
-    { label: 'Überfällig', value: formatMoney(sum(overdue.value, 'outstanding')), hint: overdue.value.length ? `${overdue.value.length} Rechnungen` : 'Alles im grünen Bereich', icon: DocumentTextIcon, tone: overdue.value.length ? 'red' : 'primary' },
+    { label: `Umsatz netto ${yearLabel.value}`, value: formatMoney(props.stats.net), hint: `${props.stats.count} Rechnungen`, icon: BanknotesIcon, tone: 'primary' },
+    { label: `USt. ${yearLabel.value}`, value: formatMoney(props.stats.tax), hint: 'für die Voranmeldung', icon: ReceiptPercentIcon, tone: 'primary' },
+    { label: 'Offen', value: formatMoney(props.stats.unpaid.sum), hint: `${props.stats.unpaid.count} Rechnungen`, icon: ClockIcon, tone: props.stats.unpaid.count ? 'amber' : 'primary' },
+    { label: 'Überfällig', value: formatMoney(props.stats.overdue.sum), hint: props.stats.overdue.count ? `${props.stats.overdue.count} Rechnungen` : 'Alles im grünen Bereich', icon: DocumentTextIcon, tone: props.stats.overdue.count ? 'red' : 'primary' },
 ]);
 
 const toneClasses = {
@@ -31,28 +48,15 @@ const toneClasses = {
     red: { icon: 'bg-red-500/10 text-red-500 ring-red-500/30', glow: 'bg-red-500/25' },
 };
 
-// Filters
 const tabs = computed(() => [
-    { key: 'all', label: 'Alle', count: props.invoices.length },
-    { key: 'unpaid', label: 'Offen', count: unpaid.value.length },
-    { key: 'overdue', label: 'Überfällig', count: overdue.value.length },
-    { key: 'paid', label: 'Bezahlt', count: props.invoices.filter(i => i.payment_status === 'paid').length },
+    { key: 'all', label: 'Alle', count: props.counts.all },
+    { key: 'unpaid', label: 'Offen', count: props.counts.unpaid },
+    { key: 'overdue', label: 'Überfällig', count: props.counts.overdue },
+    { key: 'paid', label: 'Bezahlt', count: props.counts.paid },
 ]);
-const activeTab = ref('all');
 
-const search = ref('');
-const filtered = computed(() => {
-    const term = search.value.trim().toLowerCase();
-
-    return props.invoices
-        .filter(i => ({
-            all: true,
-            unpaid: ['open', 'partial', 'overdue'].includes(i.payment_status),
-            overdue: i.payment_status === 'overdue',
-            paid: i.payment_status === 'paid',
-        })[activeTab.value])
-        .filter(i => !term || [i.number, i.recipient?.name].some(value => value?.toLowerCase().includes(term)));
-});
+// Unpaid invoice of an earlier year, shown in the open tabs
+const isCarried = (invoice) => props.year !== 'all' && Number(invoice.invoice_date.substring(0, 4)) < Number(props.year);
 
 const edit = (invoice) => router.visit(route('invoices.edit', invoice.id));
 </script>
@@ -64,8 +68,24 @@ const edit = (invoice) => router.visit(route('invoices.edit', invoice.id));
                 <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input v-model="search" type="search" placeholder="Nummer oder Kunde …" class="form-input w-full pl-9 sm:w-64" />
             </div>
+            <select :value="year" class="form-select" title="Jahr" @change="changeYear($event.target.value)">
+                <option v-for="option in years" :key="option" :value="option">{{ option }}</option>
+                <option value="all">Alle Jahre</option>
+            </select>
             <VButton :href="route('invoices.create')" icon="PlusIcon">Neue Rechnung</VButton>
         </template>
+
+        <!-- Unpaid invoices of earlier years don't disappear at the turn of the year -->
+        <button v-if="stats.carried.count && !['unpaid', 'overdue'].includes(tab)" type="button"
+            class="mb-6 flex w-full cursor-pointer items-center gap-3 rounded-2xl bg-accent/[0.08] px-4 py-3 text-left text-sm ring-1 ring-accent/30 ring-inset transition hover:bg-accent/[0.12]"
+            @click="setTab('unpaid')">
+            <ClockIcon class="h-5 w-5 shrink-0 text-accent" />
+            <span class="text-gray-700 dark:text-gray-300">
+                <strong>{{ stats.carried.count }} {{ stats.carried.count === 1 ? 'Rechnung' : 'Rechnungen' }} aus Vorjahren noch offen</strong>
+                ({{ formatMoney(stats.carried.sum) }}) – sie stehen bei „Offen“ mit dabei.
+            </span>
+            <span class="ml-auto text-xs font-medium text-accent">Anzeigen →</span>
+        </button>
 
         <!-- Stats -->
         <div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -86,27 +106,33 @@ const edit = (invoice) => router.visit(route('invoices.edit', invoice.id));
 
         <!-- Filter tabs -->
         <div class="mb-4 flex flex-wrap gap-1 self-start rounded-xl border border-gray-200 bg-white/60 p-1 dark:border-white/10 dark:bg-white/[0.03]" style="width: fit-content;">
-            <button v-for="tab in tabs" :key="tab.key" type="button"
+            <button v-for="item in tabs" :key="item.key" type="button"
                 class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition"
-                :class="activeTab === tab.key
+                :class="tab === item.key
                     ? 'bg-primary-500 text-white shadow-[0_8px_20px_-8px_rgba(31,173,174,0.8)]'
                     : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'"
-                @click="activeTab = tab.key">
-                {{ tab.label }}
-                <span class="rounded-full px-1.5 text-xs" :class="activeTab === tab.key ? 'bg-white/20' : 'bg-gray-100 dark:bg-white/10'">{{ tab.count }}</span>
+                @click="setTab(item.key)">
+                {{ item.label }}
+                <span class="rounded-full px-1.5 text-xs" :class="tab === item.key ? 'bg-white/20' : 'bg-gray-100 dark:bg-white/10'">{{ item.count }}</span>
             </button>
         </div>
 
         <!-- Empty state -->
-        <div v-if="filtered.length === 0" class="card relative overflow-hidden px-6 py-16 text-center">
+        <div v-if="invoices.data.length === 0" class="card relative overflow-hidden px-6 py-16 text-center">
             <div class="pointer-events-none absolute -top-24 left-1/2 h-48 w-96 -translate-x-1/2 rounded-full bg-primary-500/20 blur-[90px]" aria-hidden="true"></div>
             <div class="relative">
                 <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary-500/10 ring-1 ring-primary-500/30">
                     <DocumentTextIcon class="h-7 w-7 text-primary-500" />
                 </div>
-                <template v-if="invoices.length === 0">
-                    <h2 class="mt-5 font-display text-xl font-semibold text-gray-900 dark:text-white">Noch keine Rechnungen</h2>
-                    <p class="mt-2 text-sm text-gray-500">Erstelle deine erste Rechnung, sie wird als PDF erzeugt, sobald du sie herunterlädst.</p>
+                <template v-if="counts.all === 0 && !search && tab === 'all'">
+                    <template v-if="year !== 'all' && years.length > 1">
+                        <h2 class="mt-5 font-display text-xl font-semibold text-gray-900 dark:text-white">Noch keine Rechnungen in {{ year }}</h2>
+                        <p class="mt-2 text-sm text-gray-500">Frühere Rechnungen findest du über die Jahresauswahl oben.</p>
+                    </template>
+                    <template v-else>
+                        <h2 class="mt-5 font-display text-xl font-semibold text-gray-900 dark:text-white">Noch keine Rechnungen</h2>
+                        <p class="mt-2 text-sm text-gray-500">Erstelle deine erste Rechnung, sie wird als PDF erzeugt, sobald du sie herunterlädst.</p>
+                    </template>
                     <div class="mt-6">
                         <VButton :href="route('invoices.create')" icon="PlusIcon">Neue Rechnung</VButton>
                     </div>
@@ -134,7 +160,7 @@ const edit = (invoice) => router.visit(route('invoices.edit', invoice.id));
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/[0.06]">
-                        <tr v-for="invoice in filtered" :key="invoice.id" class="group cursor-pointer transition hover:bg-primary-500/[0.04]" :class="invoice.cancellation && 'opacity-55'" @click="edit(invoice)">
+                        <tr v-for="invoice in invoices.data" :key="invoice.id" class="group cursor-pointer transition hover:bg-primary-500/[0.04]" :class="invoice.cancellation && 'opacity-55'" @click="edit(invoice)">
                             <td class="px-5 py-3.5">
                                 <div class="flex items-center gap-2 font-mono font-medium text-gray-900 dark:text-gray-100">
                                     {{ invoice.number }}
@@ -142,6 +168,7 @@ const edit = (invoice) => router.visit(route('invoices.edit', invoice.id));
                                         <WrenchScrewdriverIcon class="h-3 w-3" />Wartung
                                     </span>
                                     <PaperClipIcon v-if="invoice.has_original" class="h-3.5 w-3.5 text-gray-400" title="Original-PDF angehängt" />
+                                    <span v-if="isCarried(invoice)" class="rounded-full bg-accent/15 px-2 py-0.5 font-sans text-[10px] font-semibold text-accent ring-1 ring-inset ring-accent/40" title="Offen aus einem Vorjahr">{{ invoice.invoice_date.substring(0, 4) }}</span>
                                 </div>
                                 <span v-if="invoice.cancellation" class="mt-1 inline-flex rounded-full bg-red-500/10 px-2 py-0.5 text-[11px] font-medium text-red-600 ring-1 ring-inset ring-red-500/30 dark:text-red-400">
                                     Storniert · {{ invoice.cancellation.number }}
@@ -179,7 +206,7 @@ const edit = (invoice) => router.visit(route('invoices.edit', invoice.id));
 
             <!-- Mobile: cards -->
             <div class="space-y-3 md:hidden">
-                <div v-for="invoice in filtered" :key="invoice.id" class="card flex items-center gap-3 p-4">
+                <div v-for="invoice in invoices.data" :key="invoice.id" class="card flex items-center gap-3 p-4">
                     <Link :href="route('invoices.edit', invoice.id)" class="min-w-0 flex-1">
                         <div class="font-mono font-medium text-gray-900 dark:text-gray-100">{{ invoice.number }}</div>
                         <div class="truncate text-xs text-gray-500">{{ invoice.recipient.name }} · {{ formatDate(invoice.invoice_date) }}</div>
@@ -192,6 +219,8 @@ const edit = (invoice) => router.visit(route('invoices.edit', invoice.id));
                     </a>
                 </div>
             </div>
+
+            <VPagination :paginator="invoices" label="Rechnungen" />
         </template>
     </Layout>
 </template>

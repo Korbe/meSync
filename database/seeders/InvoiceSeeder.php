@@ -57,6 +57,43 @@ class InvoiceSeeder extends Seeder
         }
 
         $this->cancelSome(2);
+        $this->keepSomeOpenFromLastYear(3);
+    }
+
+    /**
+     * A few invoices of last year still unpaid (one of them partly), so the turn of the
+     * year can be tried out: they stay visible under "Offen" in the current year.
+     */
+    private function keepSomeOpenFromLastYear(int $count): void
+    {
+        $lastYear = today()->year - 1;
+        $missing = $count - $this->user->invoices()->whereYear('invoice_date', $lastYear)->whereStatus('unpaid')->count();
+
+        if ($missing <= 0) {
+            return;
+        }
+
+        $this->user->invoices()
+            ->whereYear('invoice_date', $lastYear)
+            ->whereNull('maintenance_contract_id')
+            ->where('paid_in_cash', false)
+            ->whereStatus('paid')
+            ->latest('invoice_date')
+            ->take($missing)
+            ->get()
+            ->each(function (Invoice $invoice, int $index) {
+                $invoice->payments()->delete();
+
+                if ($index === 0) {
+                    $invoice->load('items', 'payments');
+                    $invoice->payments()->create([
+                        'paid_at' => $invoice->invoice_date->copy()->addDays(10),
+                        'amount' => round($invoice->outstanding / 2, 2),
+                        'method' => PaymentMethod::Transfer,
+                        'note' => 'Anzahlung',
+                    ]);
+                }
+            });
     }
 
     private function contractInvoice(MaintenanceContract $contract, Carbon $date): Invoice

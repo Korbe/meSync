@@ -13,22 +13,47 @@ use Inertia\Response;
 
 class InventoryItemController extends Controller
 {
+    /**
+     * Paginated list, filtered by status, category and search in the database. The totals
+     * cover all items (the book value comes from the depreciation, so it's summed in PHP
+     * from a lean query without files).
+     */
     public function index(Request $request): Response
     {
-        $items = $request->user()->inventoryItems()->with('media')->latest('purchased_at')->latest('id')->get();
-        $active = $items->filter->isActive();
+        $user = $request->user();
+        $status = in_array($request->query('status'), ['active', 'retired', 'all'], true) ? $request->query('status') : 'active';
+        $category = InventoryCategory::tryFrom((string) $request->query('category'));
+        $search = trim((string) $request->query('search', ''));
+
+        $items = $user->inventoryItems()
+            ->withExists(['media as has_receipt' => fn ($query) => $query->where('collection_name', 'receipt')])
+            ->when($status === 'active', fn ($query) => $query->where('status', 'active'))
+            ->when($status === 'retired', fn ($query) => $query->where('status', '!=', 'active'))
+            ->when($category, fn ($query) => $query->where('category', $category->value))
+            ->when($search !== '', fn ($query) => $query->where(fn ($query) => $query
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('serial_number', 'like', "%{$search}%")
+                ->orWhere('supplier', 'like', "%{$search}%")
+                ->orWhere('notes', 'like', "%{$search}%")))
+            ->latest('purchased_at')
+            ->latest('id')
+            ->paginate($this->perPage($request, 'inventory'))
+            ->withQueryString();
+
+        $all = $user->inventoryItems()->get(['id', 'price', 'tax_rate', 'purchased_at', 'useful_life_years', 'status', 'retired_at', 'category']);
+        $active = $all->filter->isActive();
+        $used = $all->pluck('category')->map(fn ($category) => $category->value)->unique();
 
         return Inertia::render('Inventory/Index', [
-            'items' => $items->map(fn (InventoryItem $item) => [
-                ...$item->toArray(),
-                'has_receipt' => $item->hasMedia('receipt'),
-            ]),
-            'categories' => InventoryCategory::options(),
+            'items' => $items,
+            'filters' => ['status' => $status, 'category' => $category?->value ?? '', 'search' => $search],
+            'hasItems' => $all->isNotEmpty(),
+            'categories' => collect(InventoryCategory::options())->whereIn('value', $used)->values(),
             'totals' => [
                 'count' => $active->count(),
                 'price' => round($active->sum(fn ($item) => (float) $item->price), 2),
                 'book_value' => round($active->sum('book_value'), 2),
-                'bought_this_year' => round($items->filter(fn ($item) => $item->purchased_at->isCurrentYear())->sum(fn ($item) => (float) $item->price), 2),
+                'bought_this_year' => round($all->filter(fn ($item) => $item->purchased_at->isCurrentYear())->sum(fn ($item) => (float) $item->price), 2),
             ],
         ]);
     }

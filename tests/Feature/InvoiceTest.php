@@ -336,4 +336,51 @@ class InvoiceTest extends TestCase
         $this->assertSame('paid', $invoice->payment_status);
         $this->assertFalse($invoice->paid_in_cash);
     }
+
+    public function test_invoice_list_shows_one_year_and_keeps_unpaid_ones_of_earlier_years(): void
+    {
+        \Illuminate\Support\Carbon::setTestNow('2027-01-05');
+        $user = User::factory()->create();
+        $customer = \App\Models\Customer::factory()->for($user)->create();
+        $make = function (string $number, string $date, bool $paid) use ($user, $customer) {
+            $invoice = $user->invoices()->create([
+                'customer_id' => $customer->id, 'number' => $number, 'invoice_date' => $date, 'due_date' => $date,
+                'tax_rate' => 20, 'paid_amount' => 0, 'recipient' => [], 'issuer' => [],
+            ]);
+            $invoice->items()->create(['position' => 1, 'description' => 'X', 'quantity' => 1, 'unit_price' => 100]);
+            if ($paid) {
+                $invoice->payments()->create(['paid_at' => $date, 'amount' => 120, 'method' => 'transfer']);
+            }
+        };
+        $make('2026-001', '2026-03-01', true);
+        $make('2026-002', '2026-12-20', false);   // still open at the turn of the year
+        $make('2027-001', '2027-01-03', false);
+
+        $assert = fn (array $query, callable $check) => $this->actingAs($user)->get(route('invoices.index', $query))
+            ->assertInertia(fn (\Inertia\Testing\AssertableInertia $page) => $check($page));
+
+        // Current year: only its invoices, but the open one of last year is counted and announced
+        $assert([], fn ($page) => $page
+            ->where('year', 2027)
+            ->where('years', [2027, 2026])
+            ->has('invoices.data', 1)
+            ->where('invoices.data.0.number', '2027-001')
+            ->where('stats.net', 100)
+            ->where('stats.carried.count', 1)
+            ->where('stats.unpaid.count', 2)
+            ->where('counts.unpaid', 2));
+
+        // "Offen" contains the unpaid invoice of the previous year
+        $assert(['tab' => 'unpaid'], fn ($page) => $page->has('invoices.data', 2));
+        $assert(['tab' => 'paid', 'year' => 2026], fn ($page) => $page->has('invoices.data', 1)->where('invoices.data.0.number', '2026-001'));
+
+        $assert(['year' => 2026], fn ($page) => $page->has('invoices.data', 2)->where('stats.carried.count', 0));
+        $assert(['year' => 'all'], fn ($page) => $page->has('invoices.data', 3));
+
+        // Search on the server, pagination with remembered page size
+        $assert(['year' => 'all', 'search' => '2026-002'], fn ($page) => $page->has('invoices.data', 1));
+        $assert(['year' => 'all', 'per_page' => 10], fn ($page) => $page->where('invoices.per_page', 10));
+        $assert(['year' => 'all'], fn ($page) => $page->where('invoices.per_page', 10));
+        $assert(['year' => 'all', 'per_page' => 7], fn ($page) => $page->where('invoices.per_page', 10));   // not allowed, keeps the choice
+    }
 }
