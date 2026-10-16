@@ -1,11 +1,13 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { MagnifyingGlassIcon, DocumentTextIcon, BanknotesIcon, ReceiptPercentIcon, ArrowDownTrayIcon, PencilSquareIcon, TrashIcon, WrenchScrewdriverIcon, ClockIcon, PaperClipIcon } from '@heroicons/vue/24/outline';
+import { DocumentTextIcon, BanknotesIcon, ReceiptPercentIcon, ArrowDownTrayIcon, PencilSquareIcon, TrashIcon, WrenchScrewdriverIcon, ClockIcon, PaperClipIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import PaymentStatusBadge from './PaymentStatusBadge.vue';
 import VPagination from '@/components/VPagination.vue';
+import VSearchInput from '@/components/VSearchInput.vue';
+import { useListLoading } from '@/composables/useListLoading';
 import { formatDate, formatMoney } from '@/utils/format';
 
 const props = defineProps({
@@ -27,8 +29,10 @@ const load = (params = {}) => {
     if (query.tab === 'all') delete query.tab;
     router.get(route('invoices.index'), query, { preserveState: true, preserveScroll: true, replace: true });
 };
+const { loading, typing } = useListLoading();
 let timeout = null;
 watch(search, () => {
+    typing();
     clearTimeout(timeout);
     timeout = setTimeout(() => load(), 300);
 });
@@ -64,10 +68,7 @@ const edit = (invoice) => router.visit(route('invoices.edit', invoice.id));
 <template>
     <Layout title="Rechnungen">
         <template v-slot:actions>
-            <div class="relative">
-                <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input v-model="search" type="search" placeholder="Nummer oder Kunde …" class="form-input w-full pl-9 sm:w-64" />
-            </div>
+            <VSearchInput v-model="search" placeholder="Nummer oder Kunde …" :loading="loading" />
             <select :value="year" class="form-select" title="Jahr" @change="changeYear($event.target.value)">
                 <option v-for="option in years" :key="option" :value="option">{{ option }}</option>
                 <option value="all">Alle Jahre</option>
@@ -144,7 +145,7 @@ const edit = (invoice) => router.visit(route('invoices.edit', invoice.id));
             </div>
         </div>
 
-        <template v-else>
+        <div v-else class="transition-opacity duration-200" :class="loading && 'pointer-events-none opacity-50'">
             <!-- Desktop: table -->
             <div class="card hidden overflow-hidden md:block">
                 <table class="w-full text-left text-sm">
@@ -221,6 +222,6 @@ const edit = (invoice) => router.visit(route('invoices.edit', invoice.id));
             </div>
 
             <VPagination :paginator="invoices" label="Rechnungen" />
-        </template>
+        </div>
     </Layout>
 </template>

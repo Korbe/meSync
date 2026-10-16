@@ -1,10 +1,12 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { MagnifyingGlassIcon, PencilSquareIcon, TrashIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, UsersIcon } from '@heroicons/vue/24/outline';
+import { PencilSquareIcon, TrashIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, UsersIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import VPagination from '@/components/VPagination.vue';
+import VSearchInput from '@/components/VSearchInput.vue';
+import { useListLoading } from '@/composables/useListLoading';
 
 const props = defineProps({
     customers: Object,
@@ -30,9 +32,11 @@ const reload = () => {
     });
 };
 
-// Debounced server-side search
+// Debounced server-side search, with a loading indicator from the first keystroke
+const { loading, typing } = useListLoading();
 let timeout = null;
 watch(search, () => {
+    typing();
     clearTimeout(timeout);
     timeout = setTimeout(reload, 300);
 });
@@ -59,15 +63,7 @@ const show = (customer) => router.visit(route('customers.show', customer.id));
     <Layout title="Kunden">
         <template v-slot:actions>
             <!-- Search -->
-            <div class="relative">
-                <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input
-                    v-model="search"
-                    type="search"
-                    placeholder="Kunden suchen …"
-                    class="form-input w-full pl-9 sm:w-64"
-                />
-            </div>
+            <VSearchInput v-model="search" placeholder="Kunden suchen …" :loading="loading" />
             <VButton :href="route('customers.create')" icon="PlusIcon">Neuer Kunde</VButton>
         </template>
 
@@ -109,7 +105,7 @@ const show = (customer) => router.visit(route('customers.show', customer.id));
             </div>
         </div>
 
-        <template v-else>
+        <div v-else class="transition-opacity duration-200" :class="loading && 'pointer-events-none opacity-50'">
             <!-- Desktop: table -->
             <div class="card hidden overflow-hidden md:block">
                 <table class="w-full text-left text-sm">
@@ -187,6 +183,6 @@ const show = (customer) => router.visit(route('customers.show', customer.id));
             </div>
 
             <VPagination :paginator="customers" label="Kunden" />
-        </template>
+        </div>
     </Layout>
 </template>

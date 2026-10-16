@@ -11,6 +11,7 @@ createInertiaApp({
         app.use(ZiggyVue).component('Link', Link);
     },
     progress: {
-        color: '#4B5563',
+        color: '#1fadae',
+        delay: 150,
     },
 });

@@ -1,10 +1,12 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { ArchiveBoxIcon, ArrowDownTrayIcon, MagnifyingGlassIcon, PaperClipIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { ArchiveBoxIcon, ArrowDownTrayIcon, PaperClipIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import VPagination from '@/components/VPagination.vue';
+import VSearchInput from '@/components/VSearchInput.vue';
+import { useListLoading } from '@/composables/useListLoading';
 import { formatDate, formatMoney } from '@/utils/format';
 
 const props = defineProps({
@@ -23,8 +25,10 @@ const load = (params = {}) => {
     if (query.status === 'active') delete query.status;
     router.get(route('inventory.index'), query, { preserveState: true, preserveScroll: true, replace: true });
 };
+const { loading, typing } = useListLoading();
 let timeout = null;
 watch(search, () => {
+    typing();
     clearTimeout(timeout);
     timeout = setTimeout(() => load(), 300);
 });
@@ -51,10 +55,7 @@ const edit = (item) => router.visit(route('inventory.edit', item.id));
 <template>
     <Layout title="Inventar">
         <template v-slot:actions>
-            <div class="relative">
-                <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                <input v-model="search" type="search" placeholder="Gegenstand suchen …" class="form-input w-full pl-9 sm:w-64" />
-            </div>
+            <VSearchInput v-model="search" placeholder="Gegenstand suchen …" :loading="loading" />
             <a v-if="hasItems" :href="route('inventory.csv')" class="btn cursor-pointer border-gray-200! bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10! dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10" title="Anlagenverzeichnis als CSV">
                 <ArrowDownTrayIcon class="h-5 w-5 sm:mr-2" /><span class="hidden sm:inline">CSV</span>
             </a>
@@ -113,7 +114,7 @@ const edit = (item) => router.visit(route('inventory.edit', item.id));
             </div>
         </div>
 
-        <div v-else class="card overflow-hidden">
+        <div v-else class="card overflow-hidden transition-opacity duration-200" :class="loading && 'pointer-events-none opacity-50'">
             <table class="w-full text-left text-sm">
                 <thead class="border-b border-gray-200 font-mono text-[11px] uppercase tracking-[0.18em] text-gray-500 dark:border-white/[0.08]">
                     <tr>
