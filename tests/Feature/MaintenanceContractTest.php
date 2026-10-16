@@ -162,4 +162,55 @@ class MaintenanceContractTest extends TestCase
 
         $this->assertModelMissing($contract);
     }
+
+    public function test_contract_information_pdf_can_be_downloaded(): void
+    {
+        $user = User::factory()->create();
+        $user->businessProfile()->create(['name' => 'Korbitsch IT', 'default_tax_rate' => 20]);
+        $contract = $this->contractFor($user, [
+            'type' => 'website', 'name' => 'gasthof-seeblick.at', 'monthly_price' => 39,
+            'start_date' => '2025-03-01', 'next_invoice_date' => '2026-03-01',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('contracts.pdf', $contract))->assertOk();
+
+        $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+        $this->assertStringContainsString('Wartungsvertrag-gasthof-seeblick.at.pdf', $response->headers->get('Content-Disposition'));
+    }
+
+    public function test_contract_pdf_shows_period_price_and_parties(): void
+    {
+        $user = User::factory()->create();
+        $user->businessProfile()->create(['name' => 'Korbitsch IT', 'default_tax_rate' => 20]);
+        $customer = Customer::factory()->for($user)->create(['title_prefix' => null, 'title_suffix' => null, 'first_name' => 'Maria', 'last_name' => 'Huber', 'company_name' => null]);
+        $contract = $this->contractFor($user, [
+            'customer_id' => $customer->id, 'type' => 'webapp', 'name' => 'Buchungssystem', 'monthly_price' => 59,
+            'start_date' => '2025-03-01', 'next_invoice_date' => '2026-03-01', 'end_date' => '2027-02-28',
+        ]);
+
+        $html = view('pdf.contract', [
+            'contract' => $contract->load(['customer', 'invoices']),
+            'issuer' => $user->businessProfile->toIssuer(),
+            'recipient' => $customer->toRecipient(),
+            'logo' => null,
+            'services' => $contract->type->services(),
+            'period' => null,
+            'prices' => ['monthly' => 59.0, 'annual' => 708.0, 'tax_rate' => 20.0, 'tax' => 141.6, 'annual_gross' => 849.6],
+        ])->render();
+
+        $this->assertStringContainsString('01.03.2025', $html);
+        $this->assertStringContainsString('bis 28.02.2027', $html);
+        $this->assertStringContainsString('€ 849,60', $html);
+        $this->assertStringContainsString('Maria Huber', $html);
+        $this->assertStringContainsString('Korbitsch IT', $html);
+        $this->assertStringContainsString('Webanwendung', $html);
+    }
+
+    public function test_contract_pdf_of_other_users_is_forbidden(): void
+    {
+        $contract = $this->contractFor(User::factory()->create());
+
+        $this->actingAs(User::factory()->create())->get(route('contracts.pdf', $contract))->assertForbidden();
+    }
 }

@@ -2,7 +2,7 @@
 import { confirm } from '@/composables/useConfirm';
 import { computed, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { MagnifyingGlassIcon, ExclamationTriangleIcon, BellAlertIcon, CheckBadgeIcon, ArrowTrendingUpIcon, GlobeAltIcon, CommandLineIcon, WrenchScrewdriverIcon, CheckIcon, DocumentTextIcon } from '@heroicons/vue/24/outline';
+import { MagnifyingGlassIcon, ExclamationTriangleIcon, BellAlertIcon, CheckBadgeIcon, ArrowTrendingUpIcon, GlobeAltIcon, CommandLineIcon, WrenchScrewdriverIcon, CheckIcon, DocumentTextIcon, DocumentArrowDownIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import StatusBadge from './StatusBadge.vue';
@@ -228,6 +228,10 @@ const edit = (contract) => router.visit(route('contracts.edit', contract.id));
                                     @click.stop="markInvoiced(contract)">
                                     <CheckIcon class="h-4 w-4" />Verrechnet
                                 </button>
+                                <a :href="route('contracts.pdf', contract.id)" class="ml-1 inline-flex rounded-lg p-2 align-middle text-gray-500 transition hover:bg-primary-500/10 hover:text-primary-600 dark:hover:text-primary-300"
+                                    title="Vertragsinformation als PDF" @click.stop>
+                                    <DocumentArrowDownIcon class="h-4 w-4" />
+                                </a>
                             </td>
                         </tr>
                     </tbody>

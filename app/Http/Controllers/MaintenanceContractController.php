@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\MaintenanceContractType;
 use App\Http\Requests\MaintenanceContract\MaintenanceContractRequest;
 use App\Models\MaintenanceContract;
+use App\Services\ContractPdf;
 use App\Services\SiteMonitor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -65,6 +66,16 @@ class MaintenanceContractController extends Controller
     /**
      * Check the website right now (instead of waiting for the scheduler).
      */
+    /**
+     * Information sheet for the customer: who, what, how long, how much.
+     */
+    public function pdf(MaintenanceContract $contract, ContractPdf $pdf)
+    {
+        Gate::authorize('update', $contract);
+
+        return $pdf->download($contract);
+    }
+
     public function check(MaintenanceContract $contract, SiteMonitor $monitor): RedirectResponse
     {
         Gate::authorize('update', $contract);

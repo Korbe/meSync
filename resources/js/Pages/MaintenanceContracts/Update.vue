@@ -2,7 +2,7 @@
 import { confirm } from '@/composables/useConfirm';
 import { computed } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
-import { BanknotesIcon, ClockIcon, ArrowUturnLeftIcon, CheckCircleIcon } from '@heroicons/vue/24/outline';
+import { BanknotesIcon, ClockIcon, ArrowUturnLeftIcon, CheckCircleIcon, DocumentArrowDownIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import VInput from '@/components/VInput.vue';
@@ -56,6 +56,9 @@ const dueClass = computed(() => ({
 <template>
     <Layout :title="contract.name" :backTo="route('contracts.index')">
         <template v-slot:actions>
+            <a :href="route('contracts.pdf', contract.id)" class="btn cursor-pointer border-gray-200! bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10! dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10" title="Vertragsinformation für den Kunden als PDF">
+                <DocumentArrowDownIcon class="mr-2 h-5 w-5" />Vertrags-PDF
+            </a>
             <VButton :href="route('contracts.delete', contract.id)" variant="secondary" icon="TrashIcon">Löschen</VButton>
         </template>
 

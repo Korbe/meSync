@@ -28,6 +28,16 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
      */
     public const DEMO_EMAIL = 'demo@mesync.test';
 
+    protected static function booted(): void
+    {
+        // All business data goes with the user through the database foreign keys. Files
+        // attached to that data don't, so delete those models one by one first: the
+        // media library removes the receipt files on each model's delete.
+        static::deleting(function (User $user) {
+            $user->inventoryItems()->with('media')->get()->each->delete();
+        });
+    }
+
     /**
      * The attributes that are mass assignable.
      *
