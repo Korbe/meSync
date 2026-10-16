@@ -27,6 +27,7 @@ class BackupController extends Controller
                 'invoices' => $user->invoices()->count(),
                 'catalog_items' => $user->catalogItems()->count(),
                 'inventory_items' => $user->inventoryItems()->count(),
+                'finance' => $user->recurringExpenses()->count() + $user->financeEntries()->count(),
             ],
         ]);
     }
@@ -67,7 +68,7 @@ class BackupController extends Controller
 
         $imported = $result['imported'];
         $message = $request->input('mode') === 'replace' ? 'Backup wurde wiederhergestellt' : 'Backup wurde angehängt';
-        $message .= ": {$imported['customers']} Kunden, {$imported['maintenance_contracts']} Verträge, {$imported['invoices']} Rechnungen, {$imported['catalog_items']} Katalogartikel, {$imported['inventory_items']} Inventargegenstände.";
+        $message .= ": {$imported['customers']} Kunden, {$imported['maintenance_contracts']} Verträge, {$imported['invoices']} Rechnungen, {$imported['catalog_items']} Katalogartikel, {$imported['inventory_items']} Inventargegenstände, ".($imported['recurring_expenses'] + $imported['finance_entries']).' Finanzeinträge.';
 
         if ($skipped = count($result['skipped_invoices'])) {
             $message .= " {$skipped} Rechnung(en) mit bereits vorhandener Nummer übersprungen.";

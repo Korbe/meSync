@@ -46,6 +46,9 @@ class Backup
                 'invoice_items' => $this->rows('invoice_items', 'invoice_id', $invoiceIds),
                 'invoice_payments' => $this->rows('invoice_payments', 'invoice_id', $invoiceIds),
                 'inventory_items' => $this->rows('inventory_items', 'user_id', [$user->id]),
+                'recurring_expenses' => $this->rows('recurring_expenses', 'user_id', [$user->id]),
+                'recurring_payments' => $this->rows('recurring_payments', 'recurring_expense_id', DB::table('recurring_expenses')->where('user_id', $user->id)->pluck('id')),
+                'finance_entries' => $this->rows('finance_entries', 'user_id', [$user->id]),
             ],
             'logo' => $logo && is_file($logo->getPath()) ? [
                 'file_name' => $logo->file_name,
@@ -84,8 +87,8 @@ class Backup
     {
         $this->validate($backup);
 
-        // Older backups don't know the inventory yet
-        $data = $backup['data'] + ['inventory_items' => []];
+        // Older backups don't know the inventory and finances yet
+        $data = $backup['data'] + ['inventory_items' => [], 'recurring_expenses' => [], 'recurring_payments' => [], 'finance_entries' => []];
         $imported = array_fill_keys(array_keys($data), 0);
         $skippedInvoices = [];
 
@@ -107,6 +110,25 @@ class Backup
             foreach ($data['inventory_items'] as $row) {
                 $inventory[$row['id']] = $this->insert('inventory_items', $row, ['user_id' => $user->id]);
                 $imported['inventory_items']++;
+            }
+
+            // Finances: contracts with their confirmed payments, and the bookings
+            $recurring = [];
+            foreach ($data['recurring_expenses'] as $row) {
+                $recurring[$row['id']] = $this->insert('recurring_expenses', $row, ['user_id' => $user->id]);
+                $imported['recurring_expenses']++;
+            }
+
+            foreach ($data['recurring_payments'] as $row) {
+                if (isset($recurring[$row['recurring_expense_id']])) {
+                    $this->insert('recurring_payments', $row, ['recurring_expense_id' => $recurring[$row['recurring_expense_id']]]);
+                    $imported['recurring_payments']++;
+                }
+            }
+
+            foreach ($data['finance_entries'] as $row) {
+                $this->insert('finance_entries', $row, ['user_id' => $user->id]);
+                $imported['finance_entries']++;
             }
 
             foreach ($data['catalog_items'] as $row) {
@@ -222,6 +244,8 @@ class Backup
         DB::table('maintenance_contracts')->where('user_id', $user->id)->delete();
         DB::table('customers')->where('user_id', $user->id)->delete();
         DB::table('catalog_items')->where('user_id', $user->id)->delete();
+        DB::table('recurring_expenses')->where('user_id', $user->id)->delete();
+        DB::table('finance_entries')->where('user_id', $user->id)->delete();
 
         // Through the models, so the receipt files are deleted too
         $user->inventoryItems()->get()->each->delete();

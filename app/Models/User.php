@@ -133,6 +133,16 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
         return $this->hasMany(InventoryItem::class);
     }
 
+    public function recurringExpenses()
+    {
+        return $this->hasMany(RecurringExpense::class);
+    }
+
+    public function financeEntries()
+    {
+        return $this->hasMany(FinanceEntry::class);
+    }
+
     public function isDemo(): bool
     {
         return $this->email === self::DEMO_EMAIL;
