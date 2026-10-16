@@ -41,13 +41,18 @@ const form = useForm({
     monitor_enabled: props.contract?.monitor_enabled ?? true,
 });
 
-// Follow the type's standard price / the start date until the user changes the field by hand
-const priceTouched = ref(!!props.contract);
-const nextInvoiceTouched = ref(!!props.contract);
+// Switching the type switches the standard price, unless a custom price was entered
+const parsePrice = (value) => Number(String(value ?? '').replace(',', '.'));
 
-watch(() => form.type, (type) => {
-    if (!priceTouched.value) form.monthly_price = defaultPrice(type);
+watch(() => form.type, (type, previous) => {
+    const price = String(form.monthly_price).trim();
+    if (price === '' || parsePrice(price) === parsePrice(defaultPrice(previous))) {
+        form.monthly_price = defaultPrice(type);
+    }
 });
+
+// Follow the start date until the user changes the next invoice date by hand
+const nextInvoiceTouched = ref(!!props.contract);
 
 watch(() => form.start_date, (start) => {
     if (!nextInvoiceTouched.value) form.next_invoice_date = nextAnniversary(start);
@@ -125,7 +130,7 @@ const submit = () => {
 
                     <div>
                         <VInput id="monthly_price" label="Preis pro Monat" suffix="€"
-                            v-model="form.monthly_price" @input="priceTouched = true" :error="form.errors.monthly_price" />
+                            v-model="form.monthly_price" :error="form.errors.monthly_price" />
                         <p class="mt-1 text-xs text-gray-500">
                             Jährlich verrechnet: <span class="font-semibold text-gray-700 dark:text-gray-300">{{ formatMoney(annualPrice) }}</span>
                         </p>
