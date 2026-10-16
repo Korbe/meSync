@@ -289,4 +289,30 @@ class FinanceTest extends TestCase
 
         $this->assertSame('21.50', $user->recurringExpenses()->first()->payments()->first()->amount);
     }
+
+    public function test_the_running_month_is_not_listed_as_forgotten(): void
+    {
+        $user = User::factory()->create();
+        $this->contract($user, ['start_date' => '2026-09-01']);
+
+        // September is over and open, October (today) is still running
+        $this->actingAs($user)->get(route('finance.entries.index', ['month' => '2026-05']))
+            ->assertInertia(fn (Assert $page) => $page->has('openMonths', 1)->where('openMonths.0.month', '2026-09'));
+    }
+
+    public function test_actual_totals_only_count_confirmed_contracts_and_real_bookings(): void
+    {
+        $user = User::factory()->create();
+        $salary = $this->contract($user, ['name' => 'Gehalt', 'type' => 'income', 'category' => 'salary', 'amount' => 2000]);
+        $phone = $this->contract($user, ['amount' => 20]);
+        $salary->payments()->create(['period' => '2026-09-01', 'amount' => 2100, 'confirmed_at' => now()]);
+        $phone->payments()->create(['period' => '2026-09-01', 'amount' => 20, 'confirmed_at' => now()]);
+        $this->entry($user, ['amount' => 30]);
+
+        $summary = app(FinanceOverview::class)->year($user, 2026)['summary'];
+
+        $this->assertSame(['income' => 2100.0, 'fixed' => 20.0, 'variable' => 30.0, 'expenses' => 50.0, 'surplus' => 2050.0], $summary['actual']);
+        $this->assertSame(2000.0 * 11 + 2100, $summary['totals']['income']);   // incl. open and coming months
+        $this->assertSame(240.0, $summary['totals']['fixed']);
+    }
 }

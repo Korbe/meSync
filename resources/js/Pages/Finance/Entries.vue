@@ -88,7 +88,7 @@ const remove = async (entry) => {
         <!-- Earlier months with contracts not checked against the bank statement yet -->
         <div v-if="openMonths.length" class="mb-6 flex flex-wrap items-center gap-2 rounded-2xl bg-accent/[0.08] px-4 py-3 text-sm ring-1 ring-accent/30 ring-inset">
             <ExclamationCircleIcon class="h-5 w-5 shrink-0 text-accent" />
-            <span class="text-gray-700 dark:text-gray-300">Noch nicht mit dem Kontoauszug abgeglichen:</span>
+            <span class="text-gray-700 dark:text-gray-300">Vergangene Monate mit noch nicht abgehakten Verträgen:</span>
             <button v-for="open in openMonths" :key="open.month" type="button"
                 class="cursor-pointer rounded-full bg-white/70 px-2.5 py-0.5 text-xs font-medium text-gray-800 ring-1 ring-accent/40 transition hover:bg-accent hover:text-gray-950 dark:bg-white/5 dark:text-gray-200"
                 @click="goTo(open.month)">

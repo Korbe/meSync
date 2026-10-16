@@ -54,8 +54,8 @@ class FinanceEntryController extends Controller
             ])
             ->values();
 
-        // Past months of the last year with contracts not confirmed yet
-        $openMonths = collect(range(12, 0))
+        // Finished months of the last year with contracts not confirmed yet (the current month is still running)
+        $openMonths = collect(range(12, 1))
             ->map(fn ($back) => today()->startOfMonth()->subMonths($back))
             ->map(fn (Carbon $date) => [
                 'month' => $date->format('Y-m'),

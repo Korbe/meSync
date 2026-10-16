@@ -62,6 +62,14 @@ class FinanceOverview
                 'variable' => $groups[2]['totals'],
                 'expenses' => $expenses,
                 'surplus' => $surplus,
+                // Only what was really booked (confirmed contracts, bookings, invoices, inventory)
+                'actual' => [
+                    'income' => $groups[0]['actual'],
+                    'fixed' => $groups[1]['actual'],
+                    'variable' => $groups[2]['actual'],
+                    'expenses' => round($groups[1]['actual'] + $groups[2]['actual'], 2),
+                    'surplus' => round($groups[0]['actual'] - $groups[1]['actual'] - $groups[2]['actual'], 2),
+                ],
                 'totals' => [
                     'income' => round(array_sum($income), 2),
                     'fixed' => round(array_sum($groups[1]['totals']), 2),
@@ -103,8 +111,11 @@ class FinanceOverview
                     };
                 }
 
+                $actual = round(array_sum(array_map(fn ($value, $state) => $state === 'confirmed' ? $value : 0.0, $values, $status)), 2);
+
                 return [
                     ...$this->line($contract->type === 'income' ? 'income' : 'fixed', $contract->category, $contract->name, $values, 'contract', $contract->scope),
+                    'actual' => $actual,
                     'id' => $contract->id,
                     'status' => $status,
                     'open' => count(array_keys($status, 'open', true)),
@@ -189,6 +200,7 @@ class FinanceOverview
                     'label' => FinanceCategory::from($category)->label(),
                     'values' => $values,
                     'total' => round(array_sum($values), 2),
+                    'actual' => round($lines->sum('actual'), 2),
                     'open' => $lines->sum(fn ($line) => $line['open'] ?? 0),
                     'lines' => $lines->sortByDesc('total')->values()->all(),
                 ];
@@ -206,6 +218,7 @@ class FinanceOverview
             'categories' => $categories->all(),
             'totals' => $totals,
             'total' => round(array_sum($totals), 2),
+            'actual' => round($categories->sum('actual'), 2),
         ];
     }
 
@@ -223,6 +236,8 @@ class FinanceOverview
             'label' => $label,
             'values' => $values,
             'total' => round(array_sum($values), 2),
+            // Really booked: bookings, invoice payments and inventory always; contracts only when confirmed
+            'actual' => round(array_sum($values), 2),
             'source' => $source,
             'scope' => $scope,
             'count' => $count,

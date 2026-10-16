@@ -5,6 +5,7 @@ import { ArrowTrendingDownIcon, ArrowTrendingUpIcon, BanknotesIcon, ChevronRight
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import FinanceHeader from './FinanceHeader.vue';
+import TotalCell from './TotalCell.vue';
 import { formatMoney } from '@/utils/format';
 
 const props = defineProps({
@@ -24,13 +25,15 @@ const openTotal = computed(() => props.overview.open.reduce((sum, count) => sum 
 const monthClass = (index) => [index === currentMonth && 'bg-primary-500/[0.04]', isFuture(index) && 'opacity-45'];
 
 const summary = computed(() => props.overview.summary);
-const savingsRate = computed(() => summary.value.totals.income > 0 ? Math.round(summary.value.totals.surplus / summary.value.totals.income * 100) : null);
+const actual = computed(() => summary.value.actual);
+const savingsRate = computed(() => actual.value.income > 0 ? Math.round(actual.value.surplus / actual.value.income * 100) : null);
+const planHint = (key) => Math.abs(summary.value.totals[key] - actual.value[key]) >= 0.005 ? `inkl. kommender Monate ${formatMoney(summary.value.totals[key])}` : null;
 
 const cards = computed(() => [
-    { label: 'Einnahmen', value: summary.value.totals.income, icon: ArrowTrendingUpIcon, tone: 'text-primary-600 dark:text-primary-300' },
-    { label: 'Fixkosten', value: summary.value.totals.fixed, icon: BanknotesIcon, tone: 'text-gray-900 dark:text-white', warning: openTotal.value ? `${openTotal.value} Abbuchungen noch nicht bestätigt` : null },
-    { label: 'Variable Ausgaben', value: summary.value.totals.variable, icon: ArrowTrendingDownIcon, tone: 'text-gray-900 dark:text-white' },
-    { label: 'Überschuss', value: summary.value.totals.surplus, icon: ScaleIcon, tone: summary.value.totals.surplus >= 0 ? 'text-primary-600 dark:text-primary-300' : 'text-red-500', hint: savingsRate.value !== null ? `${savingsRate.value} % der Einnahmen` : null },
+    { label: 'Einnahmen', value: actual.value.income, icon: ArrowTrendingUpIcon, tone: 'text-primary-600 dark:text-primary-300', plan: planHint('income') },
+    { label: 'Fixkosten', value: actual.value.fixed, icon: BanknotesIcon, tone: 'text-gray-900 dark:text-white', plan: planHint('fixed'), warning: openTotal.value ? `${openTotal.value} Abbuchungen noch nicht bestätigt` : null },
+    { label: 'Variable Ausgaben', value: actual.value.variable, icon: ArrowTrendingDownIcon, tone: 'text-gray-900 dark:text-white', plan: planHint('variable') },
+    { label: 'Überschuss', value: actual.value.surplus, icon: ScaleIcon, tone: actual.value.surplus >= 0 ? 'text-primary-600 dark:text-primary-300' : 'text-red-500', hint: savingsRate.value !== null ? `${savingsRate.value} % der Einnahmen` : null, plan: planHint('surplus') },
 ]);
 
 // Bar chart: income vs. expenses per month
@@ -83,11 +86,12 @@ const changeYear = (year) => router.get(route('finance.index'), { year, ...(prop
         <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
             <div v-for="card in cards" :key="card.label" class="card p-5">
                 <div class="flex items-center justify-between">
-                    <span class="font-mono text-[11px] uppercase tracking-[0.18em] text-gray-500">{{ card.label }} {{ overview.year }}</span>
+                    <span class="font-mono text-[11px] uppercase tracking-[0.18em] text-gray-500">{{ card.label }} {{ overview.year }} · verrechnet</span>
                     <component :is="card.icon" class="h-5 w-5 text-gray-400" />
                 </div>
                 <div class="mt-1.5 font-display text-2xl font-semibold tracking-tight" :class="card.tone">{{ formatMoney(card.value) }}</div>
                 <div v-if="card.hint" class="mt-0.5 text-xs text-gray-500">{{ card.hint }}</div>
+                <div v-if="card.plan" class="mt-0.5 text-xs text-gray-400">{{ card.plan }}</div>
                 <div v-if="card.warning" class="mt-0.5 text-xs font-medium text-accent">{{ card.warning }}</div>
             </div>
         </div>
@@ -130,7 +134,7 @@ const changeYear = (year) => router.get(route('finance.index'), { year, ...(prop
                                     {{ overview.open[index] }} offen
                                 </Link>
                             </th>
-                            <th class="px-4 py-3 font-medium">Gesamt</th>
+                            <th class="px-4 py-3 font-medium">Gesamt<span class="block text-[9px] normal-case tracking-normal">verrechnet</span></th>
                         </tr>
                     </thead>
 
@@ -150,7 +154,7 @@ const changeYear = (year) => router.get(route('finance.index'), { year, ...(prop
                                     <span class="ml-1 text-xs font-normal text-gray-400">({{ category.lines.length }})</span>
                                 </td>
                                 <td v-for="(value, index) in category.values" :key="index" class="px-2 py-2 font-medium text-gray-800 dark:text-gray-200" :class="monthClass(index)">{{ cell(value) }}</td>
-                                <td class="px-4 py-2 font-semibold text-gray-900 dark:text-white">{{ cell(category.total) }}</td>
+                                <td class="px-4 py-2"><TotalCell :actual="category.actual" :total="category.total" strong /></td>
                             </tr>
                             <template v-if="expanded.has(`${group.key}:${category.category}`)">
                                 <tr v-for="line in category.lines" :key="`${line.source}:${line.label}:${line.scope}`" class="text-gray-500 dark:text-gray-400">
@@ -164,7 +168,7 @@ const changeYear = (year) => router.get(route('finance.index'), { year, ...(prop
                                         <span v-if="line.status?.[index] === 'open'" class="cursor-help text-accent underline decoration-accent/50 decoration-dotted underline-offset-2" title="Noch nicht mit dem Kontoauszug bestätigt – gerechnet mit dem geplanten Betrag">{{ cell(value) }}</span>
                                         <template v-else>{{ cell(value) }}</template>
                                     </td>
-                                    <td class="px-4 py-1.5">{{ cell(line.total) }}</td>
+                                    <td class="px-4 py-1.5"><TotalCell :actual="line.actual" :total="line.total" /></td>
                                 </tr>
                             </template>
                         </template>
@@ -172,12 +176,12 @@ const changeYear = (year) => router.get(route('finance.index'), { year, ...(prop
                         <tr v-if="group.categories.length" class="border-t border-gray-100 font-semibold text-gray-900 dark:border-white/[0.06] dark:text-white">
                             <td class="sticky left-0 z-10 bg-white px-4 py-2.5 text-left dark:bg-[#121212]">Summe {{ group.label }}</td>
                             <td v-for="(value, index) in group.totals" :key="index" class="px-2 py-2.5" :class="monthClass(index)">{{ cell(value) }}</td>
-                            <td class="px-4 py-2.5">{{ cell(group.total) }}</td>
+                            <td class="px-4 py-2.5"><TotalCell :actual="group.actual" :total="group.total" strong /></td>
                         </tr>
                         <tr v-if="group.key !== 'income' && group.categories.length" class="text-xs text-gray-400">
                             <td class="sticky left-0 z-10 bg-white px-4 pb-3 text-left dark:bg-[#121212]">% der Einnahmen</td>
                             <td v-for="(value, index) in percentOfIncome(group.totals)" :key="index" class="px-2 pb-3">{{ value }}</td>
-                            <td class="px-4 pb-3">{{ summary.totals.income > 0 ? `${Math.round(group.total / summary.totals.income * 100)} %` : '' }}</td>
+                            <td class="px-4 pb-3">{{ actual.income > 0 ? `${Math.round(group.actual / actual.income * 100)} %` : '' }}</td>
                         </tr>
                     </tbody>
 
@@ -185,12 +189,12 @@ const changeYear = (year) => router.get(route('finance.index'), { year, ...(prop
                         <tr class="text-gray-900 dark:text-white">
                             <td class="sticky left-0 z-10 bg-white px-4 pt-4 pb-1.5 text-left dark:bg-[#121212]">Ausgaben gesamt</td>
                             <td v-for="(value, index) in summary.expenses" :key="index" class="px-2 pt-4 pb-1.5">{{ cell(value) }}</td>
-                            <td class="px-4 pt-4 pb-1.5">{{ cell(summary.totals.expenses) }}</td>
+                            <td class="px-4 pt-4 pb-1.5"><TotalCell :actual="actual.expenses" :total="summary.totals.expenses" strong /></td>
                         </tr>
                         <tr class="bg-primary-500/[0.06]">
                             <td class="sticky left-0 z-10 bg-white px-4 py-3 text-left text-primary-700 dark:bg-[#121212] dark:text-primary-300">Monatlicher Überschuss</td>
                             <td v-for="(value, index) in summary.surplus" :key="index" class="px-2 py-3" :class="value < 0 ? 'text-red-500' : 'text-primary-700 dark:text-primary-300'">{{ cell(value) }}</td>
-                            <td class="px-4 py-3" :class="summary.totals.surplus < 0 ? 'text-red-500' : 'text-primary-700 dark:text-primary-300'">{{ cell(summary.totals.surplus) }}</td>
+                            <td class="px-4 py-3"><TotalCell :actual="actual.surplus" :total="summary.totals.surplus" strong /></td>
                         </tr>
                     </tfoot>
                 </table>
