@@ -4,6 +4,7 @@ import Sidebar from './Sidebar/Sidebar.vue';
 import Header from './Header/Header.vue';
 import { Head } from '@inertiajs/vue3';
 import Banner from '@/components/Banner.vue';
+import VConfirmDialog from '@/components/VConfirmDialog.vue';
 import { ChevronLeftIcon } from '@heroicons/vue/24/solid';
 
 const sidebarOpen = ref(false);
@@ -70,4 +71,6 @@ defineProps({
     </div>
 
   </div>
+
+  <VConfirmDialog />
 </template>

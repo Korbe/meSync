@@ -24,6 +24,11 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
     use TwoFactorAuthenticatable;
 
     /**
+     * Login-free demo account with random data (see DatabaseSeeder).
+     */
+    public const DEMO_EMAIL = 'demo@mesync.test';
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -96,5 +101,38 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
     public function maintenanceContracts()
     {
         return $this->hasMany(MaintenanceContract::class);
+    }
+
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function businessProfile()
+    {
+        return $this->hasOne(BusinessProfile::class);
+    }
+
+    public function catalogItems()
+    {
+        return $this->hasMany(CatalogItem::class);
+    }
+
+    public function inventoryItems()
+    {
+        return $this->hasMany(InventoryItem::class);
+    }
+
+    public function isDemo(): bool
+    {
+        return $this->email === self::DEMO_EMAIL;
+    }
+
+    /**
+     * The demo address doesn't exist: no mails to the demo user (reminders, monitoring, ...).
+     */
+    public function routeNotificationForMail(): ?string
+    {
+        return $this->isDemo() ? null : $this->email;
     }
 }

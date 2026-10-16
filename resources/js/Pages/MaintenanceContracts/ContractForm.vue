@@ -38,6 +38,7 @@ const form = useForm({
     next_invoice_date: props.contract?.next_invoice_date ?? today(),
     end_date: props.contract?.end_date ?? '',
     notes: props.contract?.notes ?? '',
+    monitor_enabled: props.contract?.monitor_enabled ?? true,
 });
 
 // Follow the type's standard price / the start date until the user changes the field by hand
@@ -113,6 +114,14 @@ const submit = () => {
                         <VInput id="name" label="Projekt" placeholder="z. B. Musterfirma Website" v-model="form.name" :error="form.errors.name" />
                         <VInput id="url" type="url" label="URL" placeholder="https://musterfirma.at" v-model="form.url" :error="form.errors.url" />
                     </div>
+
+                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-3.5 dark:border-white/10">
+                        <input type="checkbox" v-model="form.monitor_enabled" class="form-checkbox mt-0.5 rounded border-gray-300 text-primary-500 focus:ring-primary-500 dark:border-white/20 dark:bg-white/5">
+                        <span>
+                            <span class="block text-sm font-medium text-gray-900 dark:text-gray-100">Website überwachen</span>
+                            <span class="block text-xs text-gray-500">Alle 5 Minuten prüfen, ob die URL erreichbar ist. Bei einem Ausfall bekommst du eine Mail.</span>
+                        </span>
+                    </label>
 
                     <div>
                         <VInput id="monthly_price" label="Preis pro Monat" suffix="€"

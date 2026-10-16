@@ -16,7 +16,7 @@ const destroy = () => {
 </script>
 
 <template>
-    <Layout title="Kunde löschen" :backTo="route('customers.edit', customer.id)">
+    <Layout title="Kunde löschen" :backTo="route('customers.show', customer.id)">
         <div class="mx-auto max-w-xl">
             <div class="card relative overflow-hidden border-red-500/30 p-8 text-center dark:border-red-500/30">
                 <!-- Red glow -->
@@ -58,7 +58,7 @@ const destroy = () => {
                     </dl>
 
                     <div class="mt-8 flex justify-center gap-3">
-                        <VButton :href="route('customers.edit', customer.id)" variant="secondary">Abbrechen</VButton>
+                        <VButton :href="route('customers.show', customer.id)" variant="secondary">Abbrechen</VButton>
                         <VButton variant="danger" icon="TrashIcon" :loading="form.processing" :disabled="form.processing" @click="destroy">
                             Endgültig löschen
                         </VButton>

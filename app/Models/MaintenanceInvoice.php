@@ -18,6 +18,7 @@ class MaintenanceInvoice extends Model
         'period_end',
         'amount',
         'invoice_number',
+        'invoice_id',
     ];
 
     protected function casts(): array
@@ -28,6 +29,11 @@ class MaintenanceInvoice extends Model
             'period_end' => 'date:Y-m-d',
             'amount' => 'decimal:2',
         ];
+    }
+
+    public function invoice(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class);
     }
 
     public function contract(): BelongsTo

@@ -33,6 +33,7 @@ class CustomerFactory extends Factory
             'phone' => fake()->numerify('+43 664 #######'),
             'uid_number' => fake()->optional(0.5)->numerify('ATU########'),
             'notes' => fake()->optional(0.3)->sentence(),
+            'interests' => fake()->randomElements(['pc_help', 'website', 'webapp', 'pc_build'], fake()->numberBetween(0, 2)),
         ];
     }
 }

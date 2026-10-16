@@ -104,7 +104,7 @@ class CustomerTest extends TestCase
 
         $this->actingAs($user)
             ->put(route('customers.update', $customer), ['last_name' => 'Neu', 'city' => 'Graz'])
-            ->assertRedirect(route('customers.index'));
+            ->assertRedirect(route('customers.show', $customer));
 
         $this->assertSame('Graz', $customer->fresh()->city);
     }
@@ -136,5 +136,63 @@ class CustomerTest extends TestCase
         $this->actingAs($user)->delete(route('customers.destroy', $customer))->assertForbidden();
 
         $this->assertModelExists($customer);
+    }
+
+    public function test_customer_interests_can_be_saved(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('customers.store'), ['last_name' => 'Mustermann', 'interests' => ['website', 'pc_help']])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(['website', 'pc_help'], $user->customers()->sole()->interests);
+    }
+
+    public function test_unknown_interests_are_rejected(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post(route('customers.store'), ['last_name' => 'Mustermann', 'interests' => ['website', 'kochkurs']])
+            ->assertSessionHasErrors('interests.1');
+    }
+
+    public function test_index_can_be_filtered_by_interest(): void
+    {
+        $user = User::factory()->create();
+        Customer::factory()->for($user)->create(['last_name' => 'Web', 'interests' => ['website', 'webapp']]);
+        Customer::factory()->for($user)->create(['last_name' => 'Gamer', 'interests' => ['pc_build']]);
+        Customer::factory()->for($user)->create(['last_name' => 'Ohne', 'interests' => []]);
+
+        $this->actingAs($user)
+            ->get(route('customers.index', ['interest' => 'pc_build']))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('interest', 'pc_build')
+                ->has('customers.data', 1)
+                ->where('customers.data.0.last_name', 'Gamer'));
+    }
+
+    public function test_customer_file_shows_contracts_invoices_and_revenue(): void
+    {
+        $user = User::factory()->create();
+        $customer = Customer::factory()->for($user)->create();
+        \App\Models\MaintenanceContract::factory()->create(['user_id' => $user->id, 'customer_id' => $customer->id]);
+
+        $invoice = $user->invoices()->create([
+            'customer_id' => $customer->id, 'number' => '2026-001', 'invoice_date' => '2026-10-01', 'due_date' => '2099-01-01',
+            'tax_rate' => 20, 'paid_amount' => 0, 'recipient' => $customer->toRecipient(), 'issuer' => [],
+        ]);
+        $invoice->items()->create(['position' => 1, 'description' => 'Website', 'quantity' => 1, 'unit' => 'Stück', 'unit_price' => 1000]);
+
+        $this->actingAs($user)->get(route('customers.show', $customer))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Customers/Show')
+                ->has('contracts', 1)
+                ->has('invoices', 1)
+                ->where('stats.revenue', 1000)
+                ->where('stats.outstanding', 1200));
+
+        $this->actingAs(User::factory()->create())->get(route('customers.show', $customer))->assertForbidden();
     }
 }

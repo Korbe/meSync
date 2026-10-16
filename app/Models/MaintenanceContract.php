@@ -35,6 +35,7 @@ class MaintenanceContract extends Model
         'next_invoice_date',
         'end_date',
         'notes',
+        'monitor_enabled',
     ];
 
     /**
@@ -56,6 +57,12 @@ class MaintenanceContract extends Model
             'start_date' => 'date:Y-m-d',
             'next_invoice_date' => 'date:Y-m-d',
             'end_date' => 'date:Y-m-d',
+            'monitor_enabled' => 'boolean',
+            'monitor_status_since' => 'datetime',
+            'monitor_checked_at' => 'datetime',
+            'ssl_expires_at' => 'datetime',
+            'ssl_warning_sent_for' => 'date:Y-m-d',
+            'reminder_sent_for' => 'date:Y-m-d',
         ];
     }
 
@@ -77,6 +84,14 @@ class MaintenanceContract extends Model
     /**
      * Contracts that still have invoices to send (not ended before the next due date).
      */
+    /**
+     * Contracts whose website should be checked: monitoring on, URL set, not ended.
+     */
+    public function scopeMonitored(Builder $query): void
+    {
+        $query->where('monitor_enabled', true)->whereNotNull('url')->where('url', '!=', '')->billable();
+    }
+
     public function scopeBillable(Builder $query): void
     {
         $query->where(function (Builder $query) {

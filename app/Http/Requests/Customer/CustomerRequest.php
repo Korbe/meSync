@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Customer;
 
+use App\Enums\CustomerInterest;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class CustomerRequest extends FormRequest
 {
@@ -49,6 +51,8 @@ class CustomerRequest extends FormRequest
             // EU VAT ID: two-letter country code + 2-13 characters, e.g. ATU12345678
             'uid_number' => ['nullable', 'string', 'max:20', 'regex:/^[A-Z]{2}[0-9A-Z]{2,13}$/'],
             'notes' => 'nullable|string|max:5000',
+            'interests' => 'nullable|array',
+            'interests.*' => ['distinct', Rule::enum(CustomerInterest::class)],
         ];
     }
 

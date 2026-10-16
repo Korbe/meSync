@@ -143,3 +143,19 @@
     background-size: 64px 64px;
     mask-image: radial-gradient(85% 75% at 50% 45%, #000 20%, transparent 100%);
 }
+
+/* Native controls (select dropdowns, date pickers, scrollbars) follow the app theme */
+:root {
+    color-scheme: light;
+}
+
+.dark {
+    color-scheme: dark;
+}
+
+/* Windows/Chrome ignores color-scheme for <option>, so color them explicitly */
+.dark select option,
+.dark select optgroup {
+    background-color: var(--color-gray-900);
+    color: var(--color-gray-100);
+}

@@ -1,0 +1,241 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
+
+class Invoice extends Model
+{
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'customer_id',
+        'maintenance_contract_id',
+        'cancels_invoice_id',
+        'number',
+        'invoice_date',
+        'due_date',
+        'tax_rate',
+        'paid_amount',
+        'paid_in_cash',
+        'notes',
+        'recipient',
+        'issuer',
+    ];
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'subtotal',
+        'tax_amount',
+        'total',
+        'amount_due',
+        'received',
+        'outstanding',
+        'payment_status',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'invoice_date' => 'date:Y-m-d',
+            'due_date' => 'date:Y-m-d',
+            'tax_rate' => 'decimal:2',
+            'paid_amount' => 'decimal:2',
+            'paid_in_cash' => 'boolean',
+            'recipient' => 'array',
+            'issuer' => 'array',
+        ];
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function maintenanceContract(): BelongsTo
+    {
+        return $this->belongsTo(MaintenanceContract::class);
+    }
+
+    /**
+     * The maintenance billing entry this invoice was created for (if any).
+     */
+    public function maintenanceInvoice(): HasOne
+    {
+        return $this->hasOne(MaintenanceInvoice::class);
+    }
+
+    /**
+     * For a cancellation invoice (Stornorechnung): the invoice it cancels.
+     */
+    public function cancels(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class, 'cancels_invoice_id');
+    }
+
+    /**
+     * The cancellation invoice that cancelled this invoice, if any.
+     */
+    public function cancellation(): HasOne
+    {
+        return $this->hasOne(Invoice::class, 'cancels_invoice_id');
+    }
+
+    public function isCancellation(): bool
+    {
+        return $this->cancels_invoice_id !== null;
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->cancellation()->exists();
+    }
+
+    /**
+     * Cancelled invoices and cancellation invoices must not be changed anymore.
+     */
+    public function isLocked(): bool
+    {
+        return $this->isCancellation() || $this->isCancelled();
+    }
+
+    /**
+     * Create the cancellation invoice: same recipient/issuer snapshot and
+     * items with negated prices, so both invoices add up to zero.
+     */
+    public function cancel(): Invoice
+    {
+        $today = today();
+
+        $cancellation = $this->user->invoices()->create([
+            'customer_id' => $this->customer_id,
+            'cancels_invoice_id' => $this->id,
+            'number' => self::nextNumberFor($this->user, $today->year),
+            'invoice_date' => $today,
+            'due_date' => $today,
+            'tax_rate' => $this->tax_rate,
+            'paid_amount' => 0,
+            'notes' => null, // the PDF and the app show the reference to the original invoice
+            'recipient' => $this->recipient,
+            'issuer' => $this->issuer,
+        ]);
+
+        foreach ($this->items as $item) {
+            $cancellation->items()->create([
+                'position' => $item->position,
+                'description' => $item->description,
+                'quantity' => $item->quantity,
+                'unit' => $item->unit,
+                'unit_price' => -1 * (float) $item->unit_price,
+            ]);
+        }
+
+        return $cancellation;
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(InvoicePayment::class)->orderBy('paid_at');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(InvoiceItem::class)->orderBy('position');
+    }
+
+    /**
+     * Next number in the "YYYY-NNN" sequence of the given user and year.
+     */
+    public static function nextNumberFor(User $user, int $year): string
+    {
+        $highest = $user->invoices()
+            ->where('number', 'like', "{$year}-%")
+            ->pluck('number')
+            ->map(fn (string $number) => (int) Str::afterLast($number, '-'))
+            ->max() ?? 0;
+
+        return sprintf('%d-%03d', $year, $highest + 1);
+    }
+
+    protected function subtotal(): Attribute
+    {
+        return Attribute::get(fn () => round($this->items->sum(fn (InvoiceItem $item) => $item->line_total), 2));
+    }
+
+    protected function taxAmount(): Attribute
+    {
+        return Attribute::get(fn () => round($this->subtotal * (float) $this->tax_rate / 100, 2));
+    }
+
+    protected function total(): Attribute
+    {
+        return Attribute::get(fn () => round($this->subtotal + $this->tax_amount, 2));
+    }
+
+    protected function amountDue(): Attribute
+    {
+        return Attribute::get(fn () => round($this->total - (float) $this->paid_amount, 2));
+    }
+
+    /**
+     * Sum of payments received after the invoice was sent.
+     */
+    protected function received(): Attribute
+    {
+        return Attribute::get(fn () => round((float) $this->payments->sum('amount'), 2));
+    }
+
+    protected function outstanding(): Attribute
+    {
+        return Attribute::get(fn () => max(0, round($this->amount_due - $this->received, 2)));
+    }
+
+    /**
+     * cancelled | paid | overdue | partial | open
+     */
+    protected function paymentStatus(): Attribute
+    {
+        return Attribute::get(function () {
+            if ($this->isCancellation() || $this->cancellation) {
+                return 'cancelled';
+            }
+
+            if ($this->outstanding <= 0) {
+                return 'paid';
+            }
+
+            if ($this->due_date->lt(today())) {
+                return 'overdue';
+            }
+
+            return $this->received > 0 ? 'partial' : 'open';
+        });
+    }
+
+    /**
+     * File name like "2026-013-Musterfirma GmbH.pdf".
+     */
+    public function fileName(): string
+    {
+        $name = preg_replace('/[^\pL\pN \-_.&]+/u', '', $this->recipient['name'] ?? '');
+
+        return trim($this->number.'-'.$name, '-').'.pdf';
+    }
+}

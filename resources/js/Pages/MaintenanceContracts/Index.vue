@@ -1,10 +1,12 @@
 <script setup>
+import { confirm } from '@/composables/useConfirm';
 import { computed, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { MagnifyingGlassIcon, ExclamationTriangleIcon, BellAlertIcon, CheckBadgeIcon, ArrowTrendingUpIcon, GlobeAltIcon, CommandLineIcon, WrenchScrewdriverIcon, CheckIcon } from '@heroicons/vue/24/outline';
+import { MagnifyingGlassIcon, ExclamationTriangleIcon, BellAlertIcon, CheckBadgeIcon, ArrowTrendingUpIcon, GlobeAltIcon, CommandLineIcon, WrenchScrewdriverIcon, CheckIcon, DocumentTextIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import StatusBadge from './StatusBadge.vue';
+import SiteStatusDot from './SiteStatusDot.vue';
 import { formatDate, formatMoney, relativeDays } from '@/utils/format';
 
 const props = defineProps({
@@ -91,8 +93,12 @@ const dueTextClass = (contract) => ({
 
 const marking = ref(null);
 
-const markInvoiced = (contract) => {
-    if (!confirm(`Jahresrechnung über ${formatMoney(contract.annual_price)} für ${contract.name} als heute gesendet markieren?`)) return;
+const markInvoiced = async (contract) => {
+    if (!(await confirm({
+        title: 'Als verrechnet markieren?',
+        message: `Die Jahresrechnung über ${formatMoney(contract.annual_price)} für ${contract.name} wird als heute gesendet eingetragen.`,
+        confirmText: 'Als verrechnet markieren',
+    }))) return;
 
     marking.value = contract.id;
     router.post(route('contracts.invoices.store', contract.id), {}, {
@@ -190,7 +196,10 @@ const edit = (contract) => router.visit(route('contracts.edit', contract.id));
                                         <component :is="typeIcons[contract.type]" class="h-5 w-5" />
                                     </div>
                                     <div class="min-w-0">
-                                        <div class="truncate font-medium text-gray-900 dark:text-gray-100">{{ contract.name }}</div>
+                                        <div class="flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100">
+                                            <span class="truncate">{{ contract.name }}</span>
+                                            <SiteStatusDot :contract="contract" />
+                                        </div>
                                         <div class="truncate text-xs text-gray-500">{{ contract.customer.display_name }} · {{ contract.type_label }}</div>
                                     </div>
                                 </div>
@@ -207,7 +216,12 @@ const edit = (contract) => router.visit(route('contracts.edit', contract.id));
                                 <div v-else class="text-xs text-gray-500">beendet {{ formatDate(contract.end_date) }}</div>
                             </td>
                             <td class="px-5 py-3.5"><StatusBadge :status="contract.status" /></td>
-                            <td class="px-5 py-3.5 text-right">
+                            <td class="px-5 py-3.5 text-right whitespace-nowrap">
+                                <Link v-if="['overdue', 'due_soon'].includes(contract.status)" :href="route('invoices.create', { contract: contract.id })"
+                                    class="mr-2 inline-flex items-center gap-1.5 rounded-lg bg-primary-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-primary-600 hover:shadow-[0_8px_20px_-8px_rgba(31,173,174,0.8)]"
+                                    @click.stop>
+                                    <DocumentTextIcon class="h-4 w-4" />Rechnung
+                                </Link>
                                 <button v-if="['overdue', 'due_soon'].includes(contract.status)" type="button"
                                     class="inline-flex items-center gap-1.5 rounded-lg border border-primary-500/40 bg-primary-500/10 px-3 py-1.5 text-xs font-semibold text-primary-700 transition hover:bg-primary-500 hover:text-white disabled:opacity-50 dark:text-primary-300"
                                     :disabled="marking === contract.id"

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\CustomerInterest;
 use App\Http\Requests\Customer\CustomerRequest;
 use App\Models\Customer;
 use Illuminate\Http\RedirectResponse;
@@ -15,6 +16,7 @@ class CustomerController extends Controller
     public function index(Request $request): Response
     {
         $search = trim((string) $request->query('search', ''));
+        $interest = CustomerInterest::tryFrom((string) $request->query('interest'));
 
         $customers = $request->user()->customers()
             ->when($search !== '', function ($query) use ($search) {
@@ -24,6 +26,7 @@ class CustomerController extends Controller
                     }
                 });
             })
+            ->when($interest, fn ($query) => $query->whereJsonContains('interests', $interest->value))
             ->orderBy('last_name')
             ->orderBy('company_name')
             ->paginate(15)
@@ -32,12 +35,16 @@ class CustomerController extends Controller
         return Inertia::render('Customers/Index', [
             'customers' => $customers,
             'search' => $search,
+            'interest' => $interest?->value,
+            'interests' => CustomerInterest::options(),
         ]);
     }
 
     public function create(): Response
     {
-        return Inertia::render('Customers/Create');
+        return Inertia::render('Customers/Create', [
+            'interests' => CustomerInterest::options(),
+        ]);
     }
 
     public function store(CustomerRequest $request): RedirectResponse
@@ -47,12 +54,40 @@ class CustomerController extends Controller
         return to_route('customers.index')->with('success', 'Kunde wurde angelegt.');
     }
 
+    /**
+     * Customer file: contact details, contracts, invoices and revenue at a glance.
+     */
+    public function show(Customer $customer): Response
+    {
+        Gate::authorize('update', $customer);
+
+        $invoices = $customer->invoices()
+            ->with(['items', 'payments', 'cancels:id,number', 'cancellation:id,number,cancels_invoice_id'])
+            ->latest('invoice_date')
+            ->latest('id')
+            ->get();
+
+        return Inertia::render('Customers/Show', [
+            'customer' => $customer,
+            'contracts' => $customer->maintenanceContracts()->orderBy('next_invoice_date')->get(),
+            'invoices' => $invoices,
+            'interests' => CustomerInterest::options(),
+            'stats' => [
+                // Cancellations are negative, so cancelled invoices cancel out automatically
+                'revenue' => round($invoices->sum('subtotal'), 2),
+                'outstanding' => round($invoices->sum('outstanding'), 2),
+                'overdue' => $invoices->where('payment_status', 'overdue')->count(),
+            ],
+        ]);
+    }
+
     public function edit(Customer $customer): Response
     {
         Gate::authorize('update', $customer);
 
         return Inertia::render('Customers/Update', [
             'customer' => $customer,
+            'interests' => CustomerInterest::options(),
         ]);
     }
 
@@ -62,7 +97,7 @@ class CustomerController extends Controller
 
         $customer->update($request->validated());
 
-        return to_route('customers.index')->with('success', 'Kunde wurde gespeichert.');
+        return to_route('customers.show', $customer)->with('success', 'Kunde wurde gespeichert.');
     }
 
     /**

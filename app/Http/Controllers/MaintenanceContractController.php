@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\MaintenanceContractType;
 use App\Http\Requests\MaintenanceContract\MaintenanceContractRequest;
 use App\Models\MaintenanceContract;
+use App\Services\SiteMonitor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -59,6 +60,23 @@ class MaintenanceContractController extends Controller
         $contract->update($request->validated());
 
         return to_route('contracts.edit', $contract)->with('success', 'Wartungsvertrag wurde gespeichert.');
+    }
+
+    /**
+     * Check the website right now (instead of waiting for the scheduler).
+     */
+    public function check(MaintenanceContract $contract, SiteMonitor $monitor): RedirectResponse
+    {
+        Gate::authorize('update', $contract);
+
+        abort_if(blank($contract->url), 422, 'Für diesen Vertrag ist keine URL hinterlegt.');
+
+        $monitor->check($contract->load(['user', 'customer']));
+
+        return back()->with(
+            $contract->monitor_status === 'down' || $contract->monitor_error ? 'error' : 'success',
+            $contract->monitor_error ? "Website nicht erreichbar: {$contract->monitor_error}" : 'Website ist erreichbar.',
+        );
     }
 
     /**

@@ -1,5 +1,6 @@
 <script setup>
-import { Link, useForm } from '@inertiajs/vue3';
+import { Link, router, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import AuthLayout from '@/Layouts/AuthLayout.vue';
 import VButton from '@/components/VButton.vue';
 import VCheckbox from '@/components/VCheckbox.vue';
@@ -15,6 +16,13 @@ const form = useForm({
     password: '',
     remember: false,
 });
+
+const demoLoading = ref(false);
+
+const demoLogin = () => {
+    demoLoading.value = true;
+    router.post(route('demo.login'), {}, { onFinish: () => demoLoading.value = false });
+};
 
 const submit = () => {
     form.transform(data => ({
@@ -47,5 +55,15 @@ const submit = () => {
                 <VButton type="submit" :loading="form.processing" :disabled="form.processing">Anmelden</VButton>
             </div>
         </form>
+
+        <div class="mt-6 border-t border-white/10 pt-5">
+            <button type="button" :disabled="demoLoading"
+                class="group flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-accent/50 bg-accent/[0.06] px-4 py-2.5 text-sm font-medium text-accent transition hover:border-accent hover:bg-accent/[0.12] disabled:cursor-wait disabled:opacity-60"
+                @click="demoLogin">
+                <svg v-if="demoLoading" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".25" stroke-width="4" /><path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" stroke-width="4" stroke-linecap="round" /></svg>
+                {{ demoLoading ? 'Demo wird vorbereitet …' : 'Mit Demo-Benutzer starten' }}
+            </button>
+            <p class="mt-2 text-center text-xs text-gray-500">Ohne Passwort ausprobieren – mit Beispieldaten.</p>
+        </div>
     </AuthLayout>
 </template>

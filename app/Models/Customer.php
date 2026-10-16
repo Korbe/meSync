@@ -33,7 +33,15 @@ class Customer extends Model
         'phone',
         'uid_number',
         'notes',
+        'interests',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'interests' => 'array',
+        ];
+    }
 
     /**
      * The accessors to append to the model's array form.
@@ -54,6 +62,29 @@ class Customer extends Model
     public function maintenanceContracts(): HasMany
     {
         return $this->hasMany(MaintenanceContract::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    /**
+     * Snapshot of the address block stored on invoices,
+     * e.g. name "Markus Kirisits - FCG Villach".
+     *
+     * @return array<string, string|null>
+     */
+    public function toRecipient(): array
+    {
+        return [
+            'name' => implode(' - ', array_filter([$this->full_name, $this->company])),
+            'street' => $this->street,
+            'zip' => $this->zip,
+            'city' => $this->city,
+            'country' => $this->country,
+            'uid_number' => $this->uid_number,
+        ];
     }
 
     /**

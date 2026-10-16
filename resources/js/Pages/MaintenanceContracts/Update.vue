@@ -1,4 +1,5 @@
 <script setup>
+import { confirm } from '@/composables/useConfirm';
 import { computed } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import { BanknotesIcon, ClockIcon, ArrowUturnLeftIcon, CheckCircleIcon } from '@heroicons/vue/24/outline';
@@ -7,6 +8,7 @@ import VButton from '@/components/VButton.vue';
 import VInput from '@/components/VInput.vue';
 import ContractForm from './ContractForm.vue';
 import StatusBadge from './StatusBadge.vue';
+import MonitorCard from './MonitorCard.vue';
 import { formatDate, formatMoney, relativeDays, toDate, toIsoDate, today } from '@/utils/format';
 
 const props = defineProps({
@@ -34,8 +36,13 @@ const markInvoiced = () => {
     });
 };
 
-const undo = (invoice) => {
-    if (!confirm(`Rechnung für ${formatDate(invoice.period_start)} – ${formatDate(invoice.period_end)} wirklich rückgängig machen?`)) return;
+const undo = async (invoice) => {
+    if (!(await confirm({
+        title: 'Verrechnung rückgängig machen?',
+        message: `Die Verrechnung für ${formatDate(invoice.period_start)} – ${formatDate(invoice.period_end)} wird entfernt und der Vertrag ist wieder fällig.`,
+        confirmText: 'Rückgängig machen',
+        variant: 'danger',
+    }))) return;
 
     router.delete(route('contracts.invoices.destroy', [props.contract.id, invoice.id]), { preserveScroll: true });
 };
@@ -90,7 +97,13 @@ const dueClass = computed(() => ({
                             </div>
                         </div>
 
-                        <form @submit.prevent="markInvoiced" class="mt-6 grid grid-cols-1 items-end gap-4 border-t border-gray-200 pt-6 sm:grid-cols-3 dark:border-white/[0.08]">
+                        <div class="mt-6 flex flex-wrap items-center gap-3 border-t border-gray-200 pt-6 dark:border-white/[0.08]">
+                            <VButton :href="route('invoices.create', { contract: contract.id })" icon="DocumentTextIcon">Rechnung erstellen</VButton>
+                            <span class="text-sm text-gray-500">Rechnung mit vorausgefüllter Position, markiert den Vertrag automatisch als verrechnet.</span>
+                        </div>
+
+                        <p class="mt-6 text-xs font-medium uppercase tracking-[0.18em] text-gray-500 font-mono">Oder Rechnung von woanders vermerken</p>
+                        <form @submit.prevent="markInvoiced" class="mt-3 grid grid-cols-1 items-end gap-4 sm:grid-cols-3">
                             <VInput id="invoiced_at" type="date" label="Gesendet am" v-model="invoiceForm.invoiced_at" :error="invoiceForm.errors.invoiced_at" />
                             <VInput id="invoice_number" label="Rechnungsnummer (optional)" placeholder="RE-2026-001" v-model="invoiceForm.invoice_number" :error="invoiceForm.errors.invoice_number" />
                             <VButton type="submit" icon="CheckIcon" :loading="invoiceForm.processing" :disabled="invoiceForm.processing">Rechnung gesendet</VButton>
@@ -121,13 +134,17 @@ const dueClass = computed(() => ({
                             </div>
                             <div class="text-xs text-gray-500">{{ formatDate(invoice.period_start) }} – {{ formatDate(invoice.period_end) }}</div>
                             <div class="text-xs text-gray-500">
-                                Gesendet {{ formatDate(invoice.invoiced_at) }}<template v-if="invoice.invoice_number"> · <span class="font-mono">{{ invoice.invoice_number }}</span></template>
+                                Gesendet {{ formatDate(invoice.invoiced_at) }}
+                                <template v-if="invoice.invoice_id"> · <Link :href="route('invoices.edit', invoice.invoice_id)" class="font-mono text-primary-600 hover:underline dark:text-primary-300">{{ invoice.invoice_number }}</Link></template>
+                                <template v-else-if="invoice.invoice_number"> · <span class="font-mono">{{ invoice.invoice_number }}</span></template>
                             </div>
                         </div>
                     </li>
                 </ol>
             </section>
         </div>
+
+        <MonitorCard :contract="contract" class="mb-6" />
 
         <ContractForm :contract="contract" :customers="customers" :types="types" />
     </Layout>

@@ -61,6 +61,18 @@
               </Link>
             </li>
             <li>
+              <Link :href="route('invoices.index')" class="nav-link" :class="isActive('/invoices') && 'nav-link-active'">
+                <DocumentTextIcon class="nav-icon" />
+                <span class="nav-label">Rechnungen</span>
+              </Link>
+            </li>
+            <li>
+              <Link :href="route('catalog.index')" class="nav-link" :class="isActive('/catalog') && 'nav-link-active'">
+                <Squares2X2Icon class="nav-icon" />
+                <span class="nav-label">Leistungen</span>
+              </Link>
+            </li>
+            <li>
               <Link :href="route('contracts.index')" class="nav-link" :class="isActive('/contracts') && 'nav-link-active'">
                 <span class="relative">
                   <WrenchScrewdriverIcon class="nav-icon" />
@@ -69,6 +81,24 @@
                 </span>
                 <span class="nav-label">Wartungsverträge</span>
                 <span v-if="dueCount" class="ml-auto hidden rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-semibold text-accent ring-1 ring-inset ring-accent/40 lg:sidebar-expanded:inline 2xl:inline max-lg:inline">{{ dueCount }}</span>
+              </Link>
+            </li>
+            <li>
+              <Link :href="route('inventory.index')" class="nav-link" :class="isActive('/inventory') && 'nav-link-active'">
+                <ArchiveBoxIcon class="nav-icon" />
+                <span class="nav-label">Inventar</span>
+              </Link>
+            </li>
+            <li>
+              <Link :href="route('export.index')" class="nav-link" :class="isActive('/export') && 'nav-link-active'">
+                <ArrowDownTrayIcon class="nav-icon" />
+                <span class="nav-label">Export</span>
+              </Link>
+            </li>
+            <li>
+              <Link :href="route('backup.index')" class="nav-link" :class="isActive('/backup') && 'nav-link-active'">
+                <CircleStackIcon class="nav-icon" />
+                <span class="nav-label">Backup</span>
               </Link>
             </li>
           </ul>
@@ -95,7 +125,7 @@ import { usePage } from "@inertiajs/vue3";
 
 
 import SidebarLinkGroup from './SidebarLinkGroup.vue'
-import { BeakerIcon, HeartIcon, HomeIcon, SparklesIcon, UsersIcon, WrenchScrewdriverIcon } from '@heroicons/vue/24/solid';
+import { BeakerIcon, HeartIcon, HomeIcon, SparklesIcon, UsersIcon, WrenchScrewdriverIcon, DocumentTextIcon, Squares2X2Icon, ArrowDownTrayIcon, CircleStackIcon, ArchiveBoxIcon } from '@heroicons/vue/24/solid';
 
 export default {
   name: 'Sidebar',
@@ -110,6 +140,11 @@ export default {
     BeakerIcon,
     UsersIcon,
     WrenchScrewdriverIcon,
+    DocumentTextIcon,
+    Squares2X2Icon,
+    ArrowDownTrayIcon,
+    CircleStackIcon,
+    ArchiveBoxIcon,
   },  
   setup(props, { emit }) {
 

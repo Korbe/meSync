@@ -1,4 +1,5 @@
 <script setup>
+import { confirm } from '@/composables/useConfirm';
 import { computed, ref } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import { PhotoIcon, ArrowUpTrayIcon } from '@heroicons/vue/24/outline';
@@ -45,8 +46,13 @@ const upload = () => {
     });
 };
 
-const remove = () => {
-    if (!confirm('Logo wirklich entfernen?')) return;
+const remove = async () => {
+    if (!(await confirm({
+        title: 'Logo entfernen?',
+        message: 'Das Logo wird gelöscht und erscheint nicht mehr auf neuen Rechnungen.',
+        confirmText: 'Logo entfernen',
+        variant: 'danger',
+    }))) return;
 
     router.delete(route('profile.logo.destroy'), { preserveScroll: true });
 };

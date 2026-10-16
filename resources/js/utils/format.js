@@ -40,3 +40,23 @@ export const relativeDays = (value) => {
     const months = Math.round(days / 30);
     return `in ${months} Monaten`;
 };
+
+// ISO timestamp (UTC from Laravel) -> "15.10.2026, 14:05"
+export const formatDateTime = (value) => {
+    if (!value) return '';
+    return new Date(value).toLocaleString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
+// ISO timestamp -> "vor 3 Min." / "vor 2 Std." / "vor 4 Tagen"
+export const timeAgo = (value) => {
+    if (!value) return '';
+    const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60000);
+
+    if (minutes < 1) return 'gerade eben';
+    if (minutes < 60) return `vor ${minutes} Min.`;
+    if (minutes < 60 * 24) return `vor ${Math.round(minutes / 60)} Std.`;
+    return `vor ${Math.round(minutes / (60 * 24))} Tagen`;
+};
+
+// Whole days until an ISO timestamp (negative = in the past)
+export const daysUntilTimestamp = (value) => Math.floor((new Date(value).getTime() - Date.now()) / 86_400_000);

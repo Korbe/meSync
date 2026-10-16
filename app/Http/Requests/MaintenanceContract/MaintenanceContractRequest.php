@@ -34,6 +34,7 @@ class MaintenanceContractRequest extends FormRequest
             'next_invoice_date' => 'required|date|after_or_equal:start_date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'notes' => 'nullable|string|max:5000',
+            'monitor_enabled' => 'boolean',
         ];
     }
 

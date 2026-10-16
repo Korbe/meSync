@@ -9,6 +9,7 @@ import TwoFactorAuthenticationForm from '@/Pages/Profile/Partials/TwoFactorAuthe
 import UpdatePasswordForm from '@/Pages/Profile/Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from '@/Pages/Profile/Partials/UpdateProfileInformationForm.vue';
 import UpdateLogoForm from '@/Pages/Profile/Partials/UpdateLogoForm.vue';
+import UpdateBusinessProfileForm from '@/Pages/Profile/Partials/UpdateBusinessProfileForm.vue';
 
 defineProps({
     confirmsTwoFactorAuthentication: Boolean,
@@ -67,6 +68,8 @@ const memberSince = computed(() => new Date(user.value.created_at).toLocaleDateS
                 <UpdateProfileInformationForm v-if="$page.props.jetstream.canUpdateProfileInformation" :user="user" />
                 <UpdatePasswordForm v-if="$page.props.jetstream.canUpdatePassword" />
             </div>
+
+            <UpdateBusinessProfileForm :profile="$page.props.businessProfile" />
 
             <UpdateLogoForm :logo-url="$page.props.logoUrl" />
 

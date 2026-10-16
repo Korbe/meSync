@@ -9,22 +9,38 @@ import PaginationNumeric from '@/components/pagination/PaginationNumeric.vue';
 const props = defineProps({
     customers: Object,
     search: String,
+    interest: String,
+    interests: Array,
 });
 
 const search = ref(props.search ?? '');
+const interest = ref(props.interest ?? null);
+
+const interestLabel = (value) => props.interests.find(i => i.value === value)?.label ?? value;
+
+const reload = () => {
+    const query = {};
+    if (search.value) query.search = search.value;
+    if (interest.value) query.interest = interest.value;
+
+    router.get(route('customers.index'), query, {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+    });
+};
 
 // Debounced server-side search
 let timeout = null;
-watch(search, (value) => {
+watch(search, () => {
     clearTimeout(timeout);
-    timeout = setTimeout(() => {
-        router.get(route('customers.index'), value ? { search: value } : {}, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
-    }, 300);
+    timeout = setTimeout(reload, 300);
 });
+
+const filterBy = (value) => {
+    interest.value = interest.value === value ? null : value;
+    reload();
+};
 
 const initials = (customer) => {
     const source = customer.last_name
@@ -36,7 +52,7 @@ const initials = (customer) => {
 
 const location = (customer) => [customer.zip, customer.city].filter(Boolean).join(' ');
 
-const edit = (customer) => router.visit(route('customers.edit', customer.id));
+const show = (customer) => router.visit(route('customers.show', customer.id));
 </script>
 
 <template>
@@ -55,11 +71,22 @@ const edit = (customer) => router.visit(route('customers.edit', customer.id));
             <VButton :href="route('customers.create')" icon="PlusIcon">Neuer Kunde</VButton>
         </template>
 
-        <!-- Count -->
-        <p class="mb-4 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/60 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-400">
-            <span class="h-1.5 w-1.5 rounded-full bg-primary-500"></span>
-            {{ customers.total }} {{ customers.total === 1 ? 'Kunde' : 'Kunden' }}
-        </p>
+        <!-- Count + interest filter -->
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+            <p class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white/60 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.18em] text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-400">
+                <span class="h-1.5 w-1.5 rounded-full bg-primary-500"></span>
+                {{ customers.total }} {{ customers.total === 1 ? 'Kunde' : 'Kunden' }}
+            </p>
+            <span class="mx-1 hidden h-4 w-px bg-gray-200 sm:block dark:bg-white/10"></span>
+            <button v-for="option in interests" :key="option.value" type="button"
+                class="rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset transition"
+                :class="interest === option.value
+                    ? 'bg-primary-500 text-white ring-primary-500 shadow-[0_6px_16px_-6px_rgba(31,173,174,0.8)]'
+                    : 'text-gray-600 ring-gray-200 hover:ring-primary-400 hover:text-primary-600 dark:text-gray-400 dark:ring-white/10 dark:hover:text-primary-300'"
+                @click="filterBy(option.value)">
+                {{ option.label }}
+            </button>
+        </div>
 
         <!-- Empty state -->
         <div v-if="customers.data.length === 0" class="card relative overflow-hidden px-6 py-16 text-center">
@@ -68,9 +95,9 @@ const edit = (customer) => router.visit(route('customers.edit', customer.id));
                 <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary-500/10 ring-1 ring-primary-500/30">
                     <UsersIcon class="h-7 w-7 text-primary-500" />
                 </div>
-                <template v-if="search">
+                <template v-if="search || interest">
                     <h2 class="mt-5 font-display text-xl font-semibold text-gray-900 dark:text-white">Keine Treffer</h2>
-                    <p class="mt-2 text-sm text-gray-500">Für „{{ search }}“ wurde kein Kunde gefunden.</p>
+                    <p class="mt-2 text-sm text-gray-500">Für diese Suche bzw. diesen Filter wurde kein Kunde gefunden.</p>
                 </template>
                 <template v-else>
                     <h2 class="mt-5 font-display text-xl font-semibold text-gray-900 dark:text-white">Noch keine Kunden</h2>
@@ -98,7 +125,7 @@ const edit = (customer) => router.visit(route('customers.edit', customer.id));
                     <tbody class="divide-y divide-gray-100 dark:divide-white/[0.06]">
                         <tr v-for="customer in customers.data" :key="customer.id"
                             class="group cursor-pointer transition hover:bg-primary-500/[0.04]"
-                            @click="edit(customer)">
+                            @click="show(customer)">
                             <td class="px-5 py-3.5">
                                 <div class="flex items-center gap-3">
                                     <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-500/10 font-display text-sm font-bold text-primary-600 ring-1 ring-primary-500/25 transition group-hover:shadow-[0_0_18px_-4px_rgba(31,173,174,0.7)] dark:text-primary-300">
@@ -107,6 +134,9 @@ const edit = (customer) => router.visit(route('customers.edit', customer.id));
                                     <div class="min-w-0">
                                         <div class="truncate font-medium text-gray-900 dark:text-gray-100">{{ customer.display_name }}</div>
                                         <div v-if="customer.full_name && customer.company" class="truncate text-xs text-gray-500">{{ customer.company }}</div>
+                                        <div v-if="customer.interests?.length" class="mt-1 flex flex-wrap gap-1">
+                                            <span v-for="value in customer.interests" :key="value" class="rounded-full bg-primary-500/10 px-2 py-0.5 text-[10px] font-medium text-primary-700 ring-1 ring-inset ring-primary-500/25 dark:text-primary-300">{{ interestLabel(value) }}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </td>
@@ -139,13 +169,16 @@ const edit = (customer) => router.visit(route('customers.edit', customer.id));
 
             <!-- Mobile: cards -->
             <div class="space-y-3 md:hidden">
-                <Link v-for="customer in customers.data" :key="customer.id" :href="route('customers.edit', customer.id)" class="card flex items-center gap-3 p-4">
+                <Link v-for="customer in customers.data" :key="customer.id" :href="route('customers.show', customer.id)" class="card flex items-center gap-3 p-4">
                     <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-500/10 font-display text-sm font-bold text-primary-600 ring-1 ring-primary-500/25 dark:text-primary-300">
                         {{ initials(customer) }}
                     </div>
                     <div class="min-w-0 flex-1">
                         <div class="truncate font-medium text-gray-900 dark:text-gray-100">{{ customer.display_name }}</div>
                         <div class="truncate text-xs text-gray-500">{{ customer.full_name && customer.company ? customer.company : customer.email }}</div>
+                        <div v-if="customer.interests?.length" class="mt-1 flex flex-wrap gap-1">
+                            <span v-for="value in customer.interests" :key="value" class="rounded-full bg-primary-500/10 px-2 py-0.5 text-[10px] font-medium text-primary-700 ring-1 ring-inset ring-primary-500/25 dark:text-primary-300">{{ interestLabel(value) }}</span>
+                        </div>
                         <div v-if="location(customer)" class="mt-1 flex items-center gap-1 text-xs text-gray-500">
                             <MapPinIcon class="h-3.5 w-3.5" />{{ location(customer) }}
                         </div>

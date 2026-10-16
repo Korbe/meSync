@@ -46,6 +46,10 @@ class HandleInertiaRequests extends Middleware
             'logoUrl' => fn () => $request->routeIs('profile.show')
                 ? ($request->user()?->getFirstMediaUrl('logo') ?: null)
                 : null,
+            // Sender / bank details for invoices, only needed on the profile page
+            'businessProfile' => fn () => $request->routeIs('profile.show')
+                ? $request->user()?->businessProfile
+                : null,
             // Badge in the sidebar: overdue + due soon maintenance invoices
             'dueContractsCount' => fn () => $request->user()?->maintenanceContracts()
                 ->billable()
