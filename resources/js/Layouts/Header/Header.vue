@@ -32,6 +32,7 @@
 
         <!-- Header: Right side -->
         <div class="flex items-center gap-3">
+          <InstallApp />
           <ThemeToggle />
           <!-- korbitsch.at brand mark (loaded straight from the website) -->
           <a href="https://korbitsch.at" target="_blank" rel="noopener" title="korbitsch.at" class="glass-button">
@@ -49,6 +50,7 @@
 
 <script>
 import ThemeToggle from './ThemeToggle.vue'
+import InstallApp from './InstallApp.vue'
 import UserMenu from './DropdownProfile.vue'
 
 export default {
@@ -59,6 +61,7 @@ export default {
   ],
   components: {
     ThemeToggle,
+    InstallApp,
     UserMenu,
   },
   setup() {

@@ -1,0 +1,27 @@
+{
+    "id": "/",
+    "name": "meSync",
+    "short_name": "meSync",
+    "description": "Kunden, Rechnungen, Wartungsverträge, Inventar und Finanzen – privat und für die Firma.",
+    "lang": "de",
+    "dir": "ltr",
+    "start_url": "/dashboard",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#0a0a0a",
+    "theme_color": "#0a0a0a",
+    "categories": ["business", "finance", "productivity"],
+    "icons": [
+        { "src": "/images/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "/images/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+        { "src": "/images/pwa/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+        { "src": "/images/pwa/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ],
+    "shortcuts": [
+        { "name": "Neue Rechnung", "url": "/invoices/create", "icons": [{ "src": "/images/pwa/icon-192.png", "sizes": "192x192" }] },
+        { "name": "Ausgabe buchen", "short_name": "Buchen", "url": "/finance/entries", "icons": [{ "src": "/images/pwa/icon-192.png", "sizes": "192x192" }] },
+        { "name": "Kunden", "url": "/customers", "icons": [{ "src": "/images/pwa/icon-192.png", "sizes": "192x192" }] },
+        { "name": "Wartungsverträge", "short_name": "Verträge", "url": "/contracts", "icons": [{ "src": "/images/pwa/icon-192.png", "sizes": "192x192" }] }
+    ]
+}
