@@ -55,6 +55,11 @@ class HandleInertiaRequests extends Middleware
                 ->billable()
                 ->where('next_invoice_date', '<=', today()->addDays(MaintenanceContract::DUE_SOON_DAYS))
                 ->count() ?? 0,
+            // Red dot on "Monitoring" in the sidebar
+            'sitesDownCount' => fn () => $request->user()?->maintenanceContracts()
+                ->monitored()
+                ->where('monitor_status', 'down')
+                ->count() ?? 0,
         ]);
     }
 }

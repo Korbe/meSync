@@ -4,6 +4,7 @@ import { useForm } from '@inertiajs/vue3';
 import { SignalIcon, LockClosedIcon, BoltIcon } from '@heroicons/vue/24/outline';
 import VButton from '@/components/VButton.vue';
 import SiteStatusDot from './SiteStatusDot.vue';
+import MonitorToggle from './MonitorToggle.vue';
 import { formatDateTime, timeAgo, daysUntilTimestamp } from '@/utils/format';
 
 const props = defineProps({
@@ -28,11 +29,15 @@ const statusText = computed(() => ({
         <div class="relative">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <h2 class="card-title"><SignalIcon class="h-5 w-5 text-primary-500" />Monitoring</h2>
-                <VButton v-if="contract.url" variant="secondary" :loading="form.processing" :disabled="form.processing" @click="checkNow">Jetzt prüfen</VButton>
+                <div class="flex flex-wrap items-center gap-4">
+                    <MonitorToggle v-if="contract.url" :contract="contract" />
+                    <VButton v-if="contract.url && contract.monitor_enabled" variant="secondary" :loading="form.processing" :disabled="form.processing" @click="checkNow">Jetzt prüfen</VButton>
+                    <Link :href="route('monitoring.index')" class="text-xs text-gray-500 underline hover:text-primary-500">Monitoring Center</Link>
+                </div>
             </div>
 
-            <p v-if="!contract.url" class="mt-4 text-sm text-gray-500">Keine URL hinterlegt, daher keine Überwachung.</p>
-            <p v-else-if="!contract.monitor_enabled" class="mt-4 text-sm text-gray-500">Die Überwachung ist für diesen Vertrag ausgeschaltet.</p>
+            <p v-if="!contract.url" class="mt-4 text-sm text-gray-500">Keine URL hinterlegt. Trag unten im Formular eine URL ein, dann kannst du die Website überwachen.</p>
+            <p v-else-if="!contract.monitor_enabled" class="mt-4 text-sm text-gray-500">Die Überwachung ist ausgeschaltet. Schalte sie oben ein, dann wird {{ contract.url }} alle 5 Minuten geprüft und du bekommst bei einem Ausfall eine Mail.</p>
 
             <template v-else>
                 <div class="mt-5 flex items-center gap-3">

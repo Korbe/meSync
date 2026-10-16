@@ -13,3 +13,6 @@ Schedule::command('sites:check')->everyFiveMinutes()->withoutOverlapping();
 
 // "Yearly maintenance invoice due in 7 days" reminder
 Schedule::command('contracts:remind')->dailyAt('08:00');
+
+// Remove old website check history (see SiteCheck::prunable)
+Schedule::command('model:prune', ['--model' => [\App\Models\SiteCheck::class]])->daily();

@@ -22,7 +22,10 @@ class SeederTest extends TestCase
         $this->assertGreaterThan(0, $user->maintenanceContracts()->count());
         $this->assertGreaterThan(45, $user->invoices()->count());
         $this->assertNotNull($user->businessProfile);
-        $this->assertSame(0, $user->maintenanceContracts()->where('monitor_enabled', true)->count());
+        // Active demo sites are monitored with a simulated check history
+        $monitored = $user->maintenanceContracts()->where('monitor_enabled', true)->get();
+        $this->assertNotEmpty($monitored);
+        $this->assertTrue($monitored->every(fn ($contract) => $contract->siteChecks()->exists()));
 
         // Invoice numbers are unique and every invoice has items
         $this->assertSame($user->invoices()->count(), $user->invoices()->distinct('number')->count('number'));

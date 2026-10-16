@@ -61,7 +61,7 @@ const sitesDown = computed(() => props.sites.filter(site => site.monitor_status 
         <p class="-mt-4 mb-8 text-gray-500">{{ greeting }}, {{ firstName }}. Hier ist dein Überblick.</p>
 
         <!-- Site outage banner -->
-        <Link v-if="sitesDown.length" :href="route('contracts.edit', sitesDown[0].id)"
+        <Link v-if="sitesDown.length" :href="route('monitoring.index')"
             class="mb-6 flex items-center gap-3 rounded-2xl bg-red-500/10 px-5 py-4 text-red-700 ring-1 ring-red-500/30 transition hover:bg-red-500/15 dark:text-red-300">
             <span class="relative flex h-3 w-3">
                 <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75"></span>
@@ -119,7 +119,7 @@ const sitesDown = computed(() => props.sites.filter(site => site.monitor_status 
             <!-- Website status -->
             <section class="card overflow-hidden">
                 <div class="flex items-center justify-between p-6 pb-3">
-                    <h2 class="card-title"><SignalIcon class="h-5 w-5 text-primary-500" />Websites</h2>
+                    <Link :href="route('monitoring.index')" class="card-title hover:text-primary-600 dark:hover:text-primary-300"><SignalIcon class="h-5 w-5 text-primary-500" />Websites</Link>
                     <span v-if="sites.length" class="text-sm" :class="sitesDown.length ? 'font-semibold text-red-600 dark:text-red-400' : 'text-gray-500'">
                         {{ sitesDown.length ? `${sitesDown.length} down` : 'alle online' }}
                     </span>

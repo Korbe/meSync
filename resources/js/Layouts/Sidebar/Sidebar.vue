@@ -84,6 +84,16 @@
               </Link>
             </li>
             <li>
+              <Link :href="route('monitoring.index')" class="nav-link" :class="isActive('/monitoring') && 'nav-link-active'">
+                <span class="relative">
+                  <SignalIcon class="nav-icon" />
+                  <span v-if="sitesDown" class="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.9)] ring-2 ring-white dark:ring-gray-950"></span>
+                </span>
+                <span class="nav-label">Monitoring</span>
+                <span v-if="sitesDown" class="ml-auto hidden rounded-full bg-red-500/15 px-2 py-0.5 text-[11px] font-semibold text-red-500 ring-1 ring-inset ring-red-500/40 lg:sidebar-expanded:inline 2xl:inline max-lg:inline">{{ sitesDown }}</span>
+              </Link>
+            </li>
+            <li>
               <Link :href="route('finance.index')" class="nav-link" :class="isActive('/finance') && 'nav-link-active'">
                 <BanknotesIcon class="nav-icon" />
                 <span class="nav-label">Finanzen</span>
@@ -131,7 +141,7 @@ import { usePage } from "@inertiajs/vue3";
 
 
 import SidebarLinkGroup from './SidebarLinkGroup.vue'
-import { BeakerIcon, HeartIcon, HomeIcon, SparklesIcon, UsersIcon, WrenchScrewdriverIcon, DocumentTextIcon, Squares2X2Icon, ArrowDownTrayIcon, CircleStackIcon, ArchiveBoxIcon, BanknotesIcon } from '@heroicons/vue/24/solid';
+import { BeakerIcon, HeartIcon, HomeIcon, SparklesIcon, UsersIcon, WrenchScrewdriverIcon, DocumentTextIcon, Squares2X2Icon, ArrowDownTrayIcon, CircleStackIcon, ArchiveBoxIcon, BanknotesIcon, SignalIcon } from '@heroicons/vue/24/solid';
 
 export default {
   name: 'Sidebar',
@@ -152,6 +162,7 @@ export default {
     CircleStackIcon,
     ArchiveBoxIcon,
     BanknotesIcon,
+    SignalIcon,
   },  
   setup(props, { emit }) {
 
@@ -163,6 +174,7 @@ export default {
 
     const currentUrl = computed(() => usePage().url);
     const dueCount = computed(() => usePage().props.dueContractsCount);
+    const sitesDown = computed(() => usePage().props.sitesDownCount);
 
     
 
@@ -221,6 +233,7 @@ export default {
       currentRoute,
       isActive,
       dueCount,
+      sitesDown,
     }
   },
 }

@@ -23,10 +23,21 @@ class SiteMonitor
 
     public function check(MaintenanceContract $contract): void
     {
-        [$up, $responseMs, $error] = $this->probe($contract->url);
+        // The demo account's websites are made up: simulate, never request real domains
+        [$up, $responseMs, $error] = $contract->user->isDemo()
+            ? [true, random_int(90, 420), null]
+            : $this->probe($contract->url);
 
         $contract->monitor_checked_at = now();
         $contract->monitor_response_ms = $responseMs;
+
+        // History for uptime statistics and the outage list in the monitoring center
+        $contract->siteChecks()->create([
+            'checked_at' => $contract->monitor_checked_at,
+            'up' => $up,
+            'response_ms' => $responseMs,
+            'error' => $error ? mb_substr($error, 0, 250) : null,
+        ]);
 
         if ($up) {
             $this->markUp($contract);
@@ -34,7 +45,7 @@ class SiteMonitor
             $this->markFailure($contract, $error);
         }
 
-        if (str_starts_with(strtolower($contract->url), 'https://')) {
+        if (str_starts_with(strtolower($contract->url), 'https://') && ! $contract->user->isDemo()) {
             $this->checkCertificate($contract);
         }
 

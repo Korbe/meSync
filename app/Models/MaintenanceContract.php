@@ -49,6 +49,21 @@ class MaintenanceContract extends Model
         'status',
     ];
 
+    protected static function booted(): void
+    {
+        // Monitoring switched off (toggle or form): forget the status, it would be stale later
+        static::saving(function (MaintenanceContract $contract) {
+            if ($contract->isDirty('monitor_enabled') && ! $contract->monitor_enabled) {
+                $contract->forceFill([
+                    'monitor_status' => null,
+                    'monitor_status_since' => null,
+                    'monitor_failures' => 0,
+                    'monitor_error' => null,
+                ]);
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [
@@ -74,6 +89,11 @@ class MaintenanceContract extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function siteChecks(): HasMany
+    {
+        return $this->hasMany(SiteCheck::class);
     }
 
     public function invoices(): HasMany

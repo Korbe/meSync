@@ -15,6 +15,7 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\InvoicePaymentController;
 use App\Http\Controllers\MaintenanceContractController;
 use App\Http\Controllers\MaintenanceInvoiceController;
+use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\ProfileLogoController;
 use App\Http\Controllers\RecurringExpenseController;
 use App\Http\Controllers\RecurringPaymentController;
@@ -37,6 +38,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/contracts/{contract}/delete', [MaintenanceContractController::class, 'delete'])->name('contracts.delete');
     Route::get('/contracts/{contract}/pdf', [MaintenanceContractController::class, 'pdf'])->name('contracts.pdf');
     Route::post('/contracts/{contract}/check', [MaintenanceContractController::class, 'check'])->name('contracts.check');
+    Route::patch('/contracts/{contract}/monitor', [MonitoringController::class, 'toggle'])->name('contracts.monitor');
+    Route::get('/monitoring', [MonitoringController::class, 'index'])->name('monitoring.index');
     Route::resource('contracts', MaintenanceContractController::class)->except('show');
     Route::post('/contracts/{contract}/invoices', [MaintenanceInvoiceController::class, 'store'])->name('contracts.invoices.store');
     Route::delete('/contracts/{contract}/invoices/{invoice}', [MaintenanceInvoiceController::class, 'destroy'])->name('contracts.invoices.destroy');
