@@ -39,7 +39,8 @@ watch(search, () => {
 const changeYear = (year) => load({ year });
 const setTab = (tab) => load({ tab });
 
-const stats = computed(() => [
+// Tiles, built from the stats sent by the server (own name, "stats" is the prop)
+const statCards = computed(() => [
     { label: `Umsatz netto ${yearLabel.value}`, value: formatMoney(props.stats.net), hint: `${props.stats.count} Rechnungen`, icon: BanknotesIcon, tone: 'primary' },
     { label: `USt. ${yearLabel.value}`, value: formatMoney(props.stats.tax), hint: 'für die Voranmeldung', icon: ReceiptPercentIcon, tone: 'primary' },
     { label: 'Offen', value: formatMoney(props.stats.unpaid.sum), hint: `${props.stats.unpaid.count} Rechnungen`, icon: ClockIcon, tone: props.stats.unpaid.count ? 'amber' : 'primary' },
@@ -90,7 +91,7 @@ const edit = (invoice) => router.visit(route('invoices.edit', invoice.id));
 
         <!-- Stats -->
         <div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div v-for="stat in stats" :key="stat.label" class="card relative overflow-hidden p-5">
+            <div v-for="stat in statCards" :key="stat.label" class="card relative overflow-hidden p-5">
                 <div class="pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full blur-[60px]" :class="toneClasses[stat.tone].glow" aria-hidden="true"></div>
                 <div class="relative flex items-start justify-between gap-3">
                     <div class="min-w-0">
