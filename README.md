@@ -206,7 +206,7 @@ Was dadurch läuft:
 |---|---|---|
 | `sites:check` | alle 5 Minuten | Websites der Wartungsverträge prüfen, Verlauf speichern, Mails bei Ausfall, Entwarnung und SSL-Ablauf |
 | `contracts:remind` | täglich 08:00 | Mail, wenn eine jährliche Wartungsrechnung in 7 Tagen fällig ist |
-| `model:prune` (SiteCheck) | täglich 00:00 | Prüf-Verlauf älter als 90 Tage löschen |
+| `model:prune` (SiteCheck) | täglich 00:00 | Prüf-Verlauf älter als 30 Tage löschen (so weit schaut das Monitoring Center zurück) |
 
 Kontrollieren lässt sich das mit:
 

@@ -25,10 +25,30 @@ defineProps({
             <span class="font-display text-3xl font-bold tracking-tight text-white">me<span class="text-primary-400">Sync</span></span>
         </Link>
 
-        <div class="relative mt-8 w-full overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] px-6 py-8 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8),0_0_80px_-20px_rgba(31,173,174,0.35)] backdrop-blur-xl sm:max-w-md sm:px-8">
+        <div class="auth-card relative mt-8 w-full overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] px-6 py-8 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8),0_0_80px_-20px_rgba(31,173,174,0.35)] backdrop-blur-xl sm:max-w-md sm:px-8">
             <!-- Teal hairline along the top edge -->
             <div class="pointer-events-none absolute inset-x-8 top-0 h-px bg-linear-to-r from-transparent via-primary-400/70 to-transparent" aria-hidden="true"></div>
             <slot />
         </div>
     </div>
 </template>
+
+<style scoped>
+/* Auth pages: larger fields and buttons than in the dense app pages */
+.auth-card :deep(.form-input) {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    border-radius: 0.75rem;
+}
+
+.auth-card :deep(label) {
+    font-size: 0.9375rem;
+}
+
+.auth-card :deep(.btn) {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    border-radius: 0.75rem;
+}
+</style>

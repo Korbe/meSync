@@ -159,3 +159,12 @@
     background-color: var(--color-gray-900);
     color: var(--color-gray-100);
 }
+
+/* Phones: fields need at least 16px, otherwise iOS Safari zooms in when one is tapped */
+@media (max-width: 640px) {
+    .form-input,
+    .form-select,
+    .form-textarea {
+        font-size: 16px;
+    }
+}
