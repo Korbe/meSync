@@ -93,6 +93,7 @@ class MaintenanceContract extends Model
             'ssl_expires_at' => 'datetime',
             'ssl_warning_sent_for' => 'date:Y-m-d',
             'reminder_sent_for' => 'date:Y-m-d',
+            'due_notice_sent_for' => 'date:Y-m-d',
         ];
     }
 
@@ -169,7 +170,7 @@ class MaintenanceContract extends Model
     }
 
     /**
-     * ended | overdue | due_soon | active
+     * ended | overdue | due_today | due_soon | active
      */
     protected function status(): Attribute
     {
@@ -182,6 +183,7 @@ class MaintenanceContract extends Model
 
             return match (true) {
                 $this->next_invoice_date->lt($today) => 'overdue',
+                $this->next_invoice_date->isSameDay($today) => 'due_today',
                 $this->next_invoice_date->lte($today->copy()->addDays(self::DUE_SOON_DAYS)) => 'due_soon',
                 default => 'active',
             };

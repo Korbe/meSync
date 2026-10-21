@@ -42,6 +42,10 @@ class DashboardController extends Controller
             'revenueByMonth' => $revenueByMonth,
             'year' => $today->year,
             'month' => $today->month,
+            'dueToday' => $contracts
+                ->filter(fn (MaintenanceContract $contract) => $contract->status === 'due_today')
+                ->load('customer')
+                ->values(),
             'dueContracts' => $contracts
                 ->filter(fn (MaintenanceContract $contract) => $contract->next_invoice_date->lte($today->copy()->addDays(MaintenanceContract::DUE_SOON_DAYS)))
                 ->values(),

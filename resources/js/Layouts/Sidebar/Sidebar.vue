@@ -77,6 +77,7 @@
                 <span class="relative">
                   <WrenchScrewdriverIcon class="nav-icon" />
                   <!-- Due badge on the icon (visible when the sidebar is collapsed) -->
+                  <span v-if="dueToday" class="absolute -top-1.5 -right-1.5 h-4 w-4 animate-ping rounded-full bg-accent opacity-60 max-lg:hidden lg:sidebar-expanded:hidden 2xl:hidden"></span>
                   <span v-if="dueCount" class="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-gray-950 shadow-[0_0_10px_rgba(245,165,36,0.7)] max-lg:hidden lg:sidebar-expanded:hidden 2xl:hidden">{{ dueCount }}</span>
                 </span>
                 <span class="nav-label">Wartungsverträge</span>
@@ -174,6 +175,7 @@ export default {
 
     const currentUrl = computed(() => usePage().url);
     const dueCount = computed(() => usePage().props.dueContractsCount);
+    const dueToday = computed(() => usePage().props.dueTodayCount);
     const sitesDown = computed(() => usePage().props.sitesDownCount);
 
     
@@ -233,6 +235,7 @@ export default {
       currentRoute,
       isActive,
       dueCount,
+      dueToday,
       sitesDown,
     }
   },

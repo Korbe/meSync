@@ -49,6 +49,7 @@ const undo = async (invoice) => {
 
 const dueClass = computed(() => ({
     overdue: 'text-red-600 dark:text-red-400',
+    due_today: 'text-amber-600 dark:text-accent',
     due_soon: 'text-amber-600 dark:text-accent',
 }[props.contract.status] ?? 'text-primary-600 dark:text-primary-300'));
 </script>
@@ -79,7 +80,7 @@ const dueClass = computed(() => ({
             <!-- Billing panel -->
             <section class="card relative overflow-hidden p-6 xl:col-span-2">
                 <div class="pointer-events-none absolute -top-20 -right-20 h-64 w-64 rounded-full blur-[90px]"
-                    :class="contract.status === 'overdue' ? 'bg-red-500/20' : 'bg-primary-500/20'" aria-hidden="true"></div>
+                    :class="contract.status === 'overdue' ? 'bg-red-500/20' : contract.status === 'due_today' ? 'bg-accent/30' : 'bg-primary-500/20'" aria-hidden="true"></div>
 
                 <div class="relative">
                     <h2 class="card-title"><BanknotesIcon class="h-5 w-5 text-primary-500" />Nächste Rechnung</h2>
@@ -91,7 +92,7 @@ const dueClass = computed(() => ({
                                     {{ formatDate(contract.next_invoice_date) }}
                                 </div>
                                 <div class="mt-1 text-sm font-medium" :class="dueClass">
-                                    {{ contract.status === 'overdue' ? 'Überfällig' : 'Fällig' }} {{ relativeDays(contract.next_invoice_date) }}
+                                    {{ contract.status === 'overdue' ? 'Überfällig' : contract.status === 'due_today' ? 'Heute fällig' : 'Fällig' }}<template v-if="contract.status !== 'due_today'"> {{ relativeDays(contract.next_invoice_date) }}</template>
                                 </div>
                             </div>
                             <div class="text-right">

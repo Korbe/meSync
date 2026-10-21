@@ -57,6 +57,11 @@ class HandleInertiaRequests extends Middleware
                 ->count() ?? 0,
             // Shared demo account: profile is read only (see ProtectDemoProfile)
             'isDemo' => fn () => (bool) $request->user()?->isDemo(),
+            // Maintenance invoices due today: highlighted in the sidebar
+            'dueTodayCount' => fn () => $request->user()?->maintenanceContracts()
+                ->billable()
+                ->whereDate('next_invoice_date', today())
+                ->count() ?? 0,
             // Red dot on "Monitoring" in the sidebar
             'sitesDownCount' => fn () => $request->user()?->maintenanceContracts()
                 ->monitored()

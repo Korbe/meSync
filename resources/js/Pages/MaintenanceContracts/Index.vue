@@ -6,6 +6,7 @@ import { MagnifyingGlassIcon, ExclamationTriangleIcon, BellAlertIcon, CheckBadge
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import StatusBadge from './StatusBadge.vue';
+import DueTodayBanner from './DueTodayBanner.vue';
 import SiteStatusDot from './SiteStatusDot.vue';
 import { formatDate, formatMoney, relativeDays } from '@/utils/format';
 
@@ -18,7 +19,8 @@ const typeIcons = { website: GlobeAltIcon, webapp: CommandLineIcon };
 
 const billable = computed(() => props.contracts.filter(c => c.status !== 'ended'));
 const overdue = computed(() => props.contracts.filter(c => c.status === 'overdue'));
-const dueSoon = computed(() => props.contracts.filter(c => c.status === 'due_soon'));
+const dueSoon = computed(() => props.contracts.filter(c => ['due_today', 'due_soon'].includes(c.status)));
+const dueToday = computed(() => props.contracts.filter(c => c.status === 'due_today'));
 const sum = (contracts) => contracts.reduce((total, c) => total + Number(c.annual_price), 0);
 
 const stats = computed(() => [
@@ -77,7 +79,7 @@ const filtered = computed(() => {
     return props.contracts
         .filter(c => ({
             all: true,
-            due: ['overdue', 'due_soon'].includes(c.status),
+            due: ['overdue', 'due_today', 'due_soon'].includes(c.status),
             website: c.type === 'website' && c.status !== 'ended',
             webapp: c.type === 'webapp' && c.status !== 'ended',
             ended: c.status === 'ended',
@@ -88,6 +90,7 @@ const filtered = computed(() => {
 
 const dueTextClass = (contract) => ({
     overdue: 'text-red-600 dark:text-red-400',
+    due_today: 'font-semibold text-amber-600 dark:text-accent',
     due_soon: 'text-amber-600 dark:text-accent',
 }[contract.status] ?? 'text-gray-500');
 
@@ -115,6 +118,8 @@ const edit = (contract) => router.visit(route('contracts.edit', contract.id));
         <template v-slot:actions>
             <VButton :href="route('contracts.create')" icon="PlusIcon">Neuer Vertrag</VButton>
         </template>
+
+        <DueTodayBanner :contracts="dueToday" />
 
         <!-- Stats -->
         <div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -217,12 +222,12 @@ const edit = (contract) => router.visit(route('contracts.edit', contract.id));
                             </td>
                             <td class="px-5 py-3.5"><StatusBadge :status="contract.status" /></td>
                             <td class="px-5 py-3.5 text-right whitespace-nowrap">
-                                <Link v-if="['overdue', 'due_soon'].includes(contract.status)" :href="route('invoices.create', { contract: contract.id })"
+                                <Link v-if="['overdue', 'due_today', 'due_soon'].includes(contract.status)" :href="route('invoices.create', { contract: contract.id })"
                                     class="mr-2 inline-flex items-center gap-1.5 rounded-lg bg-primary-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-primary-600 hover:shadow-[0_8px_20px_-8px_rgba(31,173,174,0.8)]"
                                     @click.stop>
                                     <DocumentTextIcon class="h-4 w-4" />Rechnung
                                 </Link>
-                                <button v-if="['overdue', 'due_soon'].includes(contract.status)" type="button"
+                                <button v-if="['overdue', 'due_today', 'due_soon'].includes(contract.status)" type="button"
                                     class="inline-flex items-center gap-1.5 rounded-lg border border-primary-500/40 bg-primary-500/10 px-3 py-1.5 text-xs font-semibold text-primary-700 transition hover:bg-primary-500 hover:text-white disabled:opacity-50 dark:text-primary-300"
                                     :disabled="marking === contract.id"
                                     @click.stop="markInvoiced(contract)">

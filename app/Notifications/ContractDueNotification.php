@@ -7,13 +7,18 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Carbon;
 
 class ContractDueNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    // Fixed now: by the time the queued mail is sent, the contract could already be invoiced
+    public Carbon $dueDate;
+
     public function __construct(public MaintenanceContract $contract)
     {
+        $this->dueDate = $contract->next_invoice_date->copy();
     }
 
     /**
@@ -26,7 +31,7 @@ class ContractDueNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $due = $this->contract->next_invoice_date;
+        $due = $this->dueDate;
         $when = $due->isPast() ? 'war am '.$due->format('d.m.Y').' fällig' : 'wird am '.$due->format('d.m.Y').' fällig';
         $amount = number_format($this->contract->annual_price, 2, ',', '.');
 

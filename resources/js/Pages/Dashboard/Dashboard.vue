@@ -1,4 +1,5 @@
 <script setup>
+import DueTodayBanner from '@/Pages/MaintenanceContracts/DueTodayBanner.vue';
 import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { BanknotesIcon, ClockIcon, ArrowTrendingUpIcon, CalendarDaysIcon, SignalIcon, WrenchScrewdriverIcon, DocumentTextIcon, UsersIcon, ChartBarIcon } from '@heroicons/vue/24/outline';
@@ -15,6 +16,7 @@ const props = defineProps({
     year: Number,
     month: Number,
     dueContracts: Array,
+    dueToday: Array,
     openInvoices: Array,
     sites: Array,
     recentCustomers: Array,
@@ -59,6 +61,9 @@ const sitesDown = computed(() => props.sites.filter(site => site.monitor_status 
 <template>
     <Layout title="Dashboard">
         <p class="-mt-4 mb-8 text-gray-500">{{ greeting }}, {{ firstName }}. Hier ist dein Überblick.</p>
+
+        <!-- Maintenance invoices due today: big and on top -->
+        <DueTodayBanner :contracts="dueToday" />
 
         <!-- Site outage banner -->
         <Link v-if="sitesDown.length" :href="route('monitoring.index')"
@@ -153,7 +158,7 @@ const sitesDown = computed(() => props.sites.filter(site => site.monitor_status 
                     <li v-for="contract in dueContracts" :key="contract.id" class="flex items-center gap-3 px-6 py-3">
                         <div class="min-w-0 flex-1">
                             <div class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ contract.name }}</div>
-                            <div class="text-xs" :class="contract.status === 'overdue' ? 'text-red-600 dark:text-red-400' : 'text-gray-500'">
+                            <div class="text-xs" :class="contract.status === 'overdue' ? 'text-red-600 dark:text-red-400' : contract.status === 'due_today' ? 'font-semibold text-amber-600 dark:text-accent' : 'text-gray-500'">
                                 {{ formatDate(contract.next_invoice_date) }} · {{ relativeDays(contract.next_invoice_date) }}
                             </div>
                         </div>
