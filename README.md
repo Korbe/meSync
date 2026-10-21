@@ -87,7 +87,7 @@ DB_PASSWORD=geheim
 SESSION_DRIVER=database
 SESSION_SECURE_COOKIE=true
 CACHE_STORE=database
-QUEUE_CONNECTION=sync
+QUEUE_CONNECTION=database   # alle Mails gehen über die Queue, siehe Schritt 9
 
 # Mails: Erinnerungen, Monitoring-Alarme, E-Mail-Bestätigung, Passwort vergessen
 MAIL_MAILER=smtp
@@ -217,9 +217,57 @@ php artisan sites:check        # einmal von Hand prüfen
 
 Der Cronjob muss als derselbe Benutzer laufen wie PHP-FPM (`www-data`), sonst gehören neue Dateien in `storage/` dem falschen Benutzer.
 
-**Queue-Worker:** Nicht nötig. Mails werden direkt verschickt (`QUEUE_CONNECTION=sync`).
+### 9. Queue-Worker (wichtig!)
 
-### 9. Updates einspielen
+**Alle Mails** laufen über die Queue: Ausfall, Entwarnung, SSL-Warnung, Vertragserinnerung, E-Mail-Bestätigung und Passwort zurücksetzen. Sie landen zuerst in der Tabelle `jobs`, ein dauerhaft laufender Worker verschickt sie. **Ohne Worker geht keine einzige Mail raus** – es gibt dann auch keine Fehlermeldung, die Mails warten einfach.
+
+Den Worker als systemd-Dienst einrichten, damit er nach Abstürzen und Neustarts von selbst wieder läuft:
+
+```bash
+sudo nano /etc/systemd/system/mesync-queue.service
+```
+
+```ini
+[Unit]
+Description=meSync Queue Worker
+After=network.target mysql.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/mesync
+ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3 --backoff=60 --max-time=3600
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now mesync-queue
+sudo systemctl status mesync-queue      # muss "active (running)" zeigen
+```
+
+- `--tries=3 --backoff=60`: Ist der Mailserver kurz nicht erreichbar, wird jede Mail bis zu dreimal im Minutenabstand versucht.
+- `--max-time=3600`: Der Worker startet sich stündlich neu (systemd holt ihn sofort zurück) – das hält den Speicherverbrauch klein.
+
+Kontrollieren:
+
+```bash
+php artisan queue:monitor database:default   # wartende Mails
+php artisan queue:failed                     # endgültig fehlgeschlagene Mails (mit Fehlermeldung)
+php artisan queue:retry all                  # fehlgeschlagene nochmal versuchen
+```
+
+Auf Shared Hosting ohne systemd geht ersatzweise ein zweiter Cronjob, der jede Minute die wartenden Mails abarbeitet:
+
+```cron
+* * * * * cd /var/www/mesync && php artisan queue:work --stop-when-empty --tries=3 >> /dev/null 2>&1
+```
+
+### 10. Updates einspielen
 
 ```bash
 cd /var/www/mesync
@@ -229,12 +277,15 @@ composer install --no-dev --optimize-autoloader
 npm ci && npm run build
 php artisan migrate --force
 php artisan optimize          # config, routes, views, events neu cachen
+php artisan queue:restart     # Worker mit dem neuen Code neu starten
 php artisan up
 ```
 
 Wer auf dem Server kein Node.js haben will, baut lokal mit `npm run build` und lädt den Ordner `public/build` mit hoch.
 
-### 10. Demo-Benutzer (optional)
+`queue:restart` ist wichtig: Der Worker hält den Code im Speicher und würde sonst mit der alten Version weiterlaufen.
+
+### 11. Demo-Benutzer (optional)
 
 Der Knopf „Mit Demo-Benutzer starten“ legt beim ersten Klick den Benutzer `demo@mesync.test` an und füllt ihn mit Beispieldaten. Zurücksetzen auf frische Beispieldaten:
 
@@ -248,7 +299,7 @@ Der Seeder fasst ausschließlich den Demo-Benutzer an. Für den Demo-Benutzer gi
 - Es gehen keine Mails an ihn.
 - Seine Websites werden nie wirklich angefragt, die Prüfungen sind simuliert.
 
-### 11. Datensicherung
+### 12. Datensicherung
 
 - **In der App:** unter *Backup* alle eigenen Daten als JSON (inklusive Logo und Belegen).
 - **Am Server** zusätzlich regelmäßig die Datenbank (`mysqldump`) und den Ordner `storage/app` sichern.
@@ -266,11 +317,13 @@ cp .env.example .env && php artisan key:generate
 php artisan migrate
 php artisan storage:link
 
-npm run dev          # Vite mit Hot Reload
+composer dev         # Vite mit Hot Reload + Queue-Worker (+ artisan serve, unter Laragon nicht nötig)
 ```
 
+Wer nur `npm run dev` startet, braucht für Mails zusätzlich einen Worker in einem zweiten Terminal: `php artisan queue:work`.
+
 - **Demo-Daten:** `php artisan db:seed`, oder einfach auf der Login-Seite „Mit Demo-Benutzer starten“ klicken.
-- **Mails testen:** `MAIL_MAILER=log` schreibt sie nach `storage/logs/laravel.log`.
+- **Mails testen:** `MAIL_MAILER=log` schreibt sie nach `storage/logs/laravel.log` – aber erst, wenn ein Queue-Worker läuft.
 - **Scheduler lokal:** `php artisan schedule:work` statt Cronjob.
 - **PWA lokal testen:** In Laragon SSL aktivieren (Menü → Apache → SSL) und `https://mesync.test` öffnen. Über `http` bieten Browser keine Installation an.
 
