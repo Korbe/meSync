@@ -70,7 +70,12 @@ task('deploy:check_local', function () {
 // Build the assets locally instead of on the server and upload the result:
 // no Node.js needed on the server, no npm running there.
 task('assets:build', function () {
-    runLocally('npm ci');
+    // npm ci wipes node_modules, which fails on Windows while a Vite dev server holds its
+    // native modules. Only reinstall when the lockfile is newer than the installed packages.
+    $installed = __DIR__.'/node_modules/.package-lock.json';
+    if (! is_file($installed) || filemtime(__DIR__.'/package-lock.json') > filemtime($installed)) {
+        runLocally('npm ci');
+    }
     runLocally('npm run build');
 });
 
