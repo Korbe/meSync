@@ -11,7 +11,7 @@ const props = defineProps({
 });
 
 const fields = [
-    'name', 'street', 'zip', 'city', 'country', 'email', 'phone', 'website',
+    'name', 'brand_name', 'street', 'zip', 'city', 'country', 'email', 'phone', 'website',
     'uid_number', 'bank_name', 'account_holder', 'iban', 'bic',
 ];
 
@@ -66,6 +66,10 @@ const submit = () => {
                     <div class="space-y-4">
                         <h3 class="font-mono text-[11px] uppercase tracking-[0.18em] text-gray-500">Absender</h3>
                         <VInput id="bp_name" label="Name / Firma" placeholder="Lukas Korbitsch" v-model="form.name" :error="form.errors.name" />
+                        <div>
+                            <VInput id="bp_brand_name" label="Unternehmensbezeichnung (optional)" placeholder="z. B. Korbitsch Web Software und IT Dienstleistungen" v-model="form.brand_name" :error="form.errors.brand_name" />
+                            <p class="mt-1 text-xs text-gray-500">Für Mails an Kunden: Betreff, Absendername und Grußformel. Auf den Rechnungen steht weiterhin der Name darüber.</p>
+                        </div>
                         <VInput id="bp_street" label="Straße & Hausnummer" v-model="form.street" :error="form.errors.street" />
                         <div class="grid grid-cols-3 gap-3">
                             <VInput id="bp_zip" label="PLZ" v-model="form.zip" :error="form.errors.zip" />

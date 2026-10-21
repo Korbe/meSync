@@ -59,6 +59,7 @@ class Invoice extends Model implements HasMedia
             'tax_rate' => 'decimal:2',
             'paid_amount' => 'decimal:2',
             'paid_in_cash' => 'boolean',
+            'sent_at' => 'datetime',
             'recipient' => 'array',
             'issuer' => 'array',
         ];

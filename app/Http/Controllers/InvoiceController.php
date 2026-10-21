@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\PaymentMethod;
 use App\Http\Requests\Invoice\InvoiceRequest;
+use App\Jobs\SendInvoiceEmail;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\MaintenanceContract;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -179,6 +181,14 @@ class InvoiceController extends Controller
             'paymentMethods' => PaymentMethod::options(),
             'invoice' => $invoice->load(['items', 'payments', 'maintenanceContract', 'cancels:id,number,invoice_date', 'cancellation:id,number,cancels_invoice_id']),
             'original' => ($media = $invoice->getFirstMedia('original')) ? ['name' => $media->file_name, 'size' => $media->size] : null,
+            // Defaults for "send by email"; answers go to the business email
+            'mail' => [
+                'to' => $invoice->customer?->email ?? '',
+                'subject' => ($invoice->cancels_invoice_id ? 'Stornorechnung ' : 'Rechnung ').$invoice->number
+                    .(filled($sender = $request->user()->businessProfile?->displayName() ?? ($invoice->issuer['name'] ?? null)) ? ' von '.$sender : ''),
+                'replyTo' => $invoice->issuer['email'] ?? $request->user()->businessProfile?->email,
+                'demo' => $request->user()->isDemo(),
+            ],
             'locked' => $invoice->isLocked(),
             'canCancel' => Gate::allows('cancel', $invoice),
             'canDelete' => Gate::allows('delete', $invoice),
@@ -254,6 +264,37 @@ class InvoiceController extends Controller
         Gate::authorize('view', $invoice);
 
         return $pdf->download($invoice);
+    }
+
+    /**
+     * Email the invoice (PDF attached) to the customer, through the queue.
+     */
+    public function send(Request $request, Invoice $invoice): RedirectResponse
+    {
+        Gate::authorize('view', $invoice);
+
+        $validated = $request->validate([
+            'to' => 'required|email:rfc|max:255',
+            'subject' => 'required|string|max:255',
+            'message' => 'nullable|string|max:5000',
+        ], [
+            'to.required' => 'Bitte gib die E-Mail-Adresse des Kunden an.',
+            'to.email' => 'Bitte gib eine gültige E-Mail-Adresse an.',
+            'subject.required' => 'Bitte gib einen Betreff an.',
+        ]);
+
+        // The public demo must not become a way to send mails to any address
+        if ($request->user()->isDemo()) {
+            return back()->with('error', 'Im Demo-Modus werden keine E-Mails verschickt.');
+        }
+
+        if (blank($invoice->issuer['email'] ?? $request->user()->businessProfile?->email)) {
+            throw ValidationException::withMessages(['to' => 'Hinterlege zuerst im Profil deine Firmen-E-Mail – an sie gehen die Antworten des Kunden.']);
+        }
+
+        SendInvoiceEmail::dispatch($invoice, $validated['to'], $validated['subject'], $validated['message'] ?? null);
+
+        return back()->with('success', "Rechnung {$invoice->number} wird an {$validated['to']} verschickt.");
     }
 
     /**

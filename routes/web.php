@@ -51,6 +51,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/invoices/{invoice}/original', [InvoiceController::class, 'attachOriginal'])->name('invoices.original.store');
     Route::delete('/invoices/{invoice}/original', [InvoiceController::class, 'removeOriginal'])->name('invoices.original.destroy');
     Route::post('/invoices/{invoice}/cancel', [InvoiceController::class, 'cancel'])->name('invoices.cancel');
+    Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
     Route::post('/invoices/{invoice}/payments', [InvoicePaymentController::class, 'store'])->name('invoices.payments.store');
     Route::delete('/invoices/{invoice}/payments/{payment}', [InvoicePaymentController::class, 'destroy'])->name('invoices.payments.destroy');
     Route::resource('invoices', InvoiceController::class)->except('show');

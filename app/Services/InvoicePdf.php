@@ -43,7 +43,7 @@ class InvoicePdf
         // No payment QR for cash receipts, cancelled invoices and credits
         $qrCode = ! empty($issuer['iban']) && $invoice->amount_due > 0 && ! $paid && ! $invoice->cancellation
             ? EpcQrCode::dataUri(
-                $issuer['account_holder'] ?: ($issuer['name'] ?? ''),
+                ($issuer['account_holder'] ?? null) ?: ($issuer['name'] ?? ''),
                 $issuer['iban'],
                 $issuer['bic'] ?? null,
                 $invoice->amount_due,

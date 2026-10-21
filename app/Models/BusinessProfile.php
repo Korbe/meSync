@@ -17,6 +17,7 @@ class BusinessProfile extends Model
      */
     protected $fillable = [
         'name',
+        'brand_name',
         'street',
         'zip',
         'city',
@@ -52,6 +53,14 @@ class BusinessProfile extends Model
      *
      * @return array<string, string|null>
      */
+    /**
+     * Name shown to customers in mails: the business designation if set, else the name.
+     */
+    public function displayName(): ?string
+    {
+        return $this->brand_name ?: $this->name;
+    }
+
     public function toIssuer(): array
     {
         return $this->only([

@@ -1,18 +1,20 @@
 <script setup>
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import { ArrowDownTrayIcon, ArrowUturnLeftIcon, NoSymbolIcon } from '@heroicons/vue/24/outline';
+import { ArrowDownTrayIcon, ArrowUturnLeftIcon, NoSymbolIcon, EnvelopeIcon, CheckCircleIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import VModal from '@/components/VModal.vue';
 import InvoiceForm from './InvoiceForm.vue';
 import PaymentsPanel from './PaymentsPanel.vue';
 import OriginalPdfCard from './OriginalPdfCard.vue';
-import { formatDate, formatMoney } from '@/utils/format';
+import SendInvoiceModal from './SendInvoiceModal.vue';
+import { formatDate, formatDateTime, formatMoney } from '@/utils/format';
 
 const props = defineProps({
     invoice: Object,
     original: Object,
+    mail: Object,
     customers: Array,
     catalog: Array,
     paymentTermsDays: Number,
@@ -23,6 +25,7 @@ const props = defineProps({
 });
 
 const confirmingCancel = ref(false);
+const sending = ref(false);
 const cancelForm = useForm({});
 
 const cancelInvoice = () => {
@@ -39,6 +42,9 @@ const cancelInvoice = () => {
             <a :href="route('invoices.download', invoice.id)" class="btn cursor-pointer bg-primary-500 text-white hover:bg-primary-600 hover:shadow-[0_8px_24px_-8px_rgba(31,173,174,0.8)]">
                 <ArrowDownTrayIcon class="mr-2 h-5 w-5" />{{ original ? 'Original-PDF' : 'PDF herunterladen' }}
             </a>
+            <VButton variant="secondary" @click="sending = true">
+                <span class="inline-flex items-center"><EnvelopeIcon class="mr-2 h-5 w-5" />Per E-Mail senden</span>
+            </VButton>
             <VButton v-if="canCancel" variant="secondary" @click="confirmingCancel = true">
                 <span class="inline-flex items-center"><ArrowUturnLeftIcon class="mr-2 h-5 w-5" />Stornieren</span>
             </VButton>
@@ -68,6 +74,13 @@ const cancelInvoice = () => {
             </span>
         </div>
 
+        <!-- Already emailed to the customer -->
+        <div v-if="invoice.sent_at" class="mb-6 flex items-center gap-3 rounded-xl bg-primary-500/[0.06] px-4 py-3 text-sm text-gray-700 ring-1 ring-primary-500/25 dark:text-gray-300">
+            <CheckCircleIcon class="h-5 w-5 shrink-0 text-primary-500" />
+            <span>Per E-Mail verschickt am <strong>{{ formatDateTime(invoice.sent_at) }}</strong> an <strong>{{ invoice.sent_to }}</strong>.</span>
+            <button type="button" class="ml-auto cursor-pointer text-xs font-medium text-primary-600 hover:underline dark:text-primary-300" @click="sending = true">Erneut senden</button>
+        </div>
+
         <!-- Own PDF instead of the generated one -->
         <OriginalPdfCard :invoice="invoice" :original="original" />
 
@@ -75,6 +88,8 @@ const cancelInvoice = () => {
         <PaymentsPanel v-if="invoice.payment_status !== 'cancelled'" :invoice="invoice" />
 
         <InvoiceForm :invoice="invoice" :customers="customers" :catalog="catalog" :paymentTermsDays="paymentTermsDays" :profileComplete="profileComplete" :readonly="locked" is-edit />
+
+        <SendInvoiceModal :show="sending" :invoice="invoice" :mail="mail" @close="sending = false" />
 
         <!-- Cancel confirmation -->
         <VModal :show="confirmingCancel" @close="confirmingCancel = false">
