@@ -136,7 +136,7 @@ Das Document Root zeigt auf **`public/`**, nie auf das Projektverzeichnis selbst
 server {
     listen 443 ssl http2;
     server_name mesync.example.at;
-    root /var/www/mesync/public;
+    root /var/www/mesync/current/public;
     index index.php;
 
     ssl_certificate     /etc/letsencrypt/live/mesync.example.at/fullchain.pem;
@@ -197,7 +197,7 @@ sudo crontab -u www-data -e
 ```
 
 ```cron
-* * * * * cd /var/www/mesync && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /var/www/mesync/current && php artisan schedule:run >> /dev/null 2>&1
 ```
 
 Was dadurch läuft:
@@ -235,7 +235,7 @@ After=network.target mysql.service
 [Service]
 User=www-data
 Group=www-data
-WorkingDirectory=/var/www/mesync
+WorkingDirectory=/var/www/mesync/current
 ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3 --backoff=60 --max-time=3600
 Restart=always
 RestartSec=5
@@ -252,6 +252,7 @@ sudo systemctl status mesync-queue      # muss "active (running)" zeigen
 
 - `--tries=3 --backoff=60`: Ist der Mailserver kurz nicht erreichbar, wird jede Mail bis zu dreimal im Minutenabstand versucht.
 - `--max-time=3600`: Der Worker startet sich stündlich neu (systemd holt ihn sofort zurück) – das hält den Speicherverbrauch klein.
+- `current` ist der Symlink auf das aktuelle Release. Der Worker löst ihn beim Start auf und bleibt danach im alten Release-Ordner – deshalb nach jedem Deploy `php artisan queue:restart`, dann startet systemd ihn im neuen Release.
 
 Kontrollieren:
 
@@ -264,13 +265,13 @@ php artisan queue:retry all                  # fehlgeschlagene nochmal versuchen
 Auf Shared Hosting ohne systemd geht ersatzweise ein zweiter Cronjob, der jede Minute die wartenden Mails abarbeitet:
 
 ```cron
-* * * * * cd /var/www/mesync && php artisan queue:work --stop-when-empty --tries=3 >> /dev/null 2>&1
+* * * * * cd /var/www/mesync/current && php artisan queue:work --stop-when-empty --tries=3 >> /dev/null 2>&1
 ```
 
 ### 10. Updates einspielen
 
 ```bash
-cd /var/www/mesync
+cd /var/www/mesync/current
 php artisan down
 git pull
 composer install --no-dev --optimize-autoloader
