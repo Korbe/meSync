@@ -51,6 +51,11 @@ class CustomerController extends Controller
     {
         $request->user()->customers()->create($request->validated());
 
+        // Created from the invoice form: stay there, it selects the new customer
+        if ($request->boolean('inline')) {
+            return back()->with('success', 'Kunde wurde angelegt.');
+        }
+
         return to_route('customers.index')->with('success', 'Kunde wurde angelegt.');
     }
 

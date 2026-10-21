@@ -38,6 +38,19 @@ class CustomerTest extends TestCase
                 ->where('customers.data.0.last_name', 'Mustermann'));
     }
 
+    public function test_customer_created_from_the_invoice_form_returns_there(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->from(route('invoices.create'))
+            ->post(route('customers.store'), ['last_name' => 'Huber', 'inline' => true])
+            ->assertRedirect(route('invoices.create'))
+            ->assertSessionHas('success');
+
+        $this->assertSame('Huber', $user->customers()->value('last_name'));
+    }
+
     public function test_customer_can_be_created(): void
     {
         $user = User::factory()->create();

@@ -6,6 +6,7 @@ import VInput from '@/components/VInput.vue';
 import VSelect from '@/components/VSelect.vue';
 import VButton from '@/components/VButton.vue';
 import VModal from '@/components/VModal.vue';
+import QuickCustomerModal from './QuickCustomerModal.vue';
 import { formatDate, formatMoney, toDate, toIsoDate } from '@/utils/format';
 import { breakdown, formatDuration, minutesForPrice, parseDuration, priceForMinutes, rateLabel } from '@/utils/timePricing';
 
@@ -174,6 +175,12 @@ const taxAmount = computed(() => Math.round(subtotal.value * parseNumber(form.ta
 const total = computed(() => subtotal.value + taxAmount.value);
 const amountDue = computed(() => total.value - parseNumber(form.paid_amount));
 
+const creatingCustomer = ref(false);
+const customerCreated = (id) => {
+    creatingCustomer.value = false;
+    if (id) form.customer_id = id;
+};
+
 const recipient = computed(() => props.customers.find(c => String(c.value) === String(form.customer_id))?.recipient);
 
 const itemError = (index, field) => form.errors[`items.${index}.${field}`];
@@ -234,7 +241,7 @@ const submit = () => {
                             {{ recipient.name }} · {{ [recipient.street, [recipient.zip, recipient.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || 'keine Adresse hinterlegt' }}
                         </p>
                         <p v-else class="mt-1 text-xs text-gray-500">
-                            Kunde fehlt? <Link :href="route('customers.create')" class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400">Neuen Kunden anlegen</Link>
+                            Kunde fehlt? <button type="button" class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400" @click="creatingCustomer = true">Neuen Kunden anlegen</button>
                         </p>
                     </div>
 
@@ -427,5 +434,6 @@ const submit = () => {
                 <VButton :disabled="durationPrice === null || durationMinutes <= 0" @click="insertTimeEntry">Position einfügen</VButton>
             </template>
         </VModal>
+        <QuickCustomerModal :show="creatingCustomer" :customers="customers" @close="creatingCustomer = false" @created="customerCreated" />
     </form>
 </template>

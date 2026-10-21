@@ -65,7 +65,8 @@ const typeIcons = { website: GlobeAltIcon, webapp: CommandLineIcon };
                         </div>
                         <div v-if="address" class="flex items-center gap-2 sm:col-span-2">
                             <MapPinIcon class="h-4 w-4 shrink-0 text-gray-400" />
-                            <span class="text-gray-700 dark:text-gray-300">{{ address }}</span>
+                            <a :href="`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`" target="_blank" rel="noopener"
+                                class="text-gray-700 hover:text-primary-500 dark:text-gray-300" title="In Google Maps öffnen">{{ address }}</a>
                         </div>
                         <div v-if="customer.uid_number" class="flex items-center gap-2">
                             <ReceiptPercentIcon class="h-4 w-4 shrink-0 text-gray-400" />
