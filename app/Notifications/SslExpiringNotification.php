@@ -3,13 +3,21 @@
 namespace App\Notifications;
 
 use App\Models\MaintenanceContract;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Carbon;
 
-class SslExpiringNotification extends Notification
+class SslExpiringNotification extends Notification implements ShouldQueue
 {
+    use Queueable;
+
+    public Carbon $checkedAt;
+
     public function __construct(public MaintenanceContract $contract)
     {
+        $this->checkedAt = now();
     }
 
     /**
@@ -22,7 +30,7 @@ class SslExpiringNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $days = (int) now()->diffInDays($this->contract->ssl_expires_at);
+        $days = (int) $this->checkedAt->diffInDays($this->contract->ssl_expires_at);
 
         return (new MailMessage)
             ->error()

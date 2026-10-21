@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Notifications\Auth\ResetPasswordQueued;
+use App\Notifications\Auth\VerifyEmailQueued;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -142,6 +144,19 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
     public function financeEntries()
     {
         return $this->hasMany(FinanceEntry::class);
+    }
+
+    /**
+     * Laravel's own mails, sent through the queue.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailQueued);
+    }
+
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new ResetPasswordQueued($token));
     }
 
     public function isDemo(): bool
