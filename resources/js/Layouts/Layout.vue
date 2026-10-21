@@ -51,7 +51,8 @@ defineProps({
           </div>
 
           <!-- Right: Actions -->
-          <div class="grid grid-flow-col sm:auto-cols-max justify-start sm:justify-end gap-2">
+          <!-- Wraps on narrow screens instead of pushing buttons out of view -->
+          <div class="flex flex-wrap justify-start sm:justify-end gap-2">
 
             <slot name="actions" />
             <!-- <template v-slot:actions></template> -->
