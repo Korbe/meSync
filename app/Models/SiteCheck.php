@@ -14,8 +14,8 @@ class SiteCheck extends Model
 {
     use Prunable;
 
-    /** Days of history kept for uptime statistics and outages. */
-    public const KEEP_DAYS = 90;
+    /** Days of history kept: as long as the monitoring center looks back (uptime, outages). */
+    public const KEEP_DAYS = 30;
 
     public $timestamps = false;
 

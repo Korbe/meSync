@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // History of every website check (uptime, response times, outages); pruned after 90 days
+        // History of every website check (uptime, response times, outages); pruned after 30 days (SiteCheck::KEEP_DAYS)
         Schema::create('site_checks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('maintenance_contract_id')->constrained()->cascadeOnDelete();

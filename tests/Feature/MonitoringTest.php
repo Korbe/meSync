@@ -123,8 +123,8 @@ class MonitoringTest extends TestCase
     public function test_old_checks_are_pruned(): void
     {
         $contract = $this->contract(User::factory()->create());
-        $contract->siteChecks()->create(['checked_at' => now()->subDays(91), 'up' => true]);
-        $contract->siteChecks()->create(['checked_at' => now()->subDays(5), 'up' => true]);
+        $contract->siteChecks()->create(['checked_at' => now()->subDays(31), 'up' => true]);
+        $contract->siteChecks()->create(['checked_at' => now()->subDays(29), 'up' => true]);
 
         $this->artisan('model:prune', ['--model' => [SiteCheck::class]]);
 
