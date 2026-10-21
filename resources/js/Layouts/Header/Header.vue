@@ -32,6 +32,7 @@
 
         <!-- Header: Right side -->
         <div class="flex items-center gap-3">
+          <TimerIndicator />
           <InstallApp />
           <ThemeToggle />
           <!-- korbitsch.at brand mark (loaded straight from the website) -->
@@ -51,6 +52,7 @@
 <script>
 import ThemeToggle from './ThemeToggle.vue'
 import InstallApp from './InstallApp.vue'
+import TimerIndicator from './TimerIndicator.vue'
 import UserMenu from './DropdownProfile.vue'
 
 export default {
@@ -62,6 +64,7 @@ export default {
   components: {
     ThemeToggle,
     InstallApp,
+    TimerIndicator,
     UserMenu,
   },
   setup() {

@@ -85,6 +85,15 @@
               </Link>
             </li>
             <li>
+              <Link :href="route('stopwatch.index')" class="nav-link" :class="isActive('/stopwatch') && 'nav-link-active'">
+                <span class="relative">
+                  <ClockIcon class="nav-icon" />
+                  <span v-if="timerRunning" class="absolute -top-1 -right-1 h-2.5 w-2.5 animate-pulse rounded-full bg-primary-400 ring-2 ring-white dark:ring-gray-950"></span>
+                </span>
+                <span class="nav-label">Stoppuhr</span>
+              </Link>
+            </li>
+            <li>
               <Link :href="route('monitoring.index')" class="nav-link" :class="isActive('/monitoring') && 'nav-link-active'">
                 <span class="relative">
                   <SignalIcon class="nav-icon" />
@@ -142,7 +151,7 @@ import { usePage } from "@inertiajs/vue3";
 
 
 import SidebarLinkGroup from './SidebarLinkGroup.vue'
-import { BeakerIcon, HeartIcon, HomeIcon, SparklesIcon, UsersIcon, WrenchScrewdriverIcon, DocumentTextIcon, Squares2X2Icon, ArrowDownTrayIcon, CircleStackIcon, ArchiveBoxIcon, BanknotesIcon, SignalIcon } from '@heroicons/vue/24/solid';
+import { BeakerIcon, HeartIcon, HomeIcon, SparklesIcon, UsersIcon, WrenchScrewdriverIcon, DocumentTextIcon, Squares2X2Icon, ArrowDownTrayIcon, CircleStackIcon, ArchiveBoxIcon, BanknotesIcon, SignalIcon, ClockIcon } from '@heroicons/vue/24/solid';
 
 export default {
   name: 'Sidebar',
@@ -164,6 +173,7 @@ export default {
     ArchiveBoxIcon,
     BanknotesIcon,
     SignalIcon,
+    ClockIcon,
   },  
   setup(props, { emit }) {
 
@@ -177,6 +187,7 @@ export default {
     const dueCount = computed(() => usePage().props.dueContractsCount);
     const dueToday = computed(() => usePage().props.dueTodayCount);
     const sitesDown = computed(() => usePage().props.sitesDownCount);
+    const timerRunning = computed(() => usePage().props.activeTimer?.status === 'running');
 
     
 
@@ -237,6 +248,7 @@ export default {
       dueCount,
       dueToday,
       sitesDown,
+      timerRunning,
     }
   },
 }

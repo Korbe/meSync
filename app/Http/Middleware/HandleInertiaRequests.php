@@ -62,6 +62,13 @@ class HandleInertiaRequests extends Middleware
                 ->billable()
                 ->whereDate('next_invoice_date', today())
                 ->count() ?? 0,
+            // Stopwatch indicator in the header (running or paused)
+            'activeTimer' => fn () => $request->user()?->timeSessions()
+                ->whereNull('stopped_at')
+                ->with('customer:id,title_prefix,first_name,last_name,title_suffix,company_name,company_suffix')
+                ->latest('id')
+                ->first()
+                ?->only(['id', 'status', 'elapsed_seconds', 'running_since', 'customer']),
             // Red dot on "Monitoring" in the sidebar
             'sitesDownCount' => fn () => $request->user()?->maintenanceContracts()
                 ->monitored()

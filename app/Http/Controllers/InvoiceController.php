@@ -120,6 +120,18 @@ class InvoiceController extends Controller
             ]];
         }
 
+        // Prefill from stopwatch runs (one item per run)
+        if ($ids = array_filter((array) $request->input('sessions', []))) {
+            $sessions = $user->timeSessions()->with('catalogItem')->whereIn('id', $ids)
+                ->whereNotNull('stopped_at')->whereNull('invoice_id')->orderBy('started_at')->get();
+
+            if ($sessions->isNotEmpty()) {
+                $invoice['customer_id'] = $sessions->first()->customer_id ?? $invoice['customer_id'];
+                $invoice['items'] = $sessions->map->toInvoiceItem()->all();
+                $invoice['time_session_ids'] = $sessions->pluck('id')->all();
+            }
+        }
+
         return Inertia::render('Invoices/Create', [
             ...$this->formOptions($request),
             'invoice' => $invoice,
@@ -138,6 +150,11 @@ class InvoiceController extends Controller
             ]);
 
             $this->syncItems($invoice, $request->validated('items'));
+
+            // Stopwatch runs taken over into this invoice count as billed
+            if ($sessionIds = $request->validated('time_session_ids')) {
+                $user->timeSessions()->whereIn('id', $sessionIds)->whereNull('invoice_id')->update(['invoice_id' => $invoice->id]);
+            }
 
             // Paid in cash on the spot: record the payment right away
             if ($request->boolean('paid_in_cash') && $invoice->fresh()->outstanding > 0) {

@@ -47,6 +47,7 @@ class DatabaseSeeder extends Seeder
         $this->callWith(InvoiceSeeder::class, ['user' => $user]);
         $this->callWith(InventoryItemSeeder::class, ['user' => $user]);
         $this->callWith(FinanceSeeder::class, ['user' => $user]);
+        $this->callWith(TimeSessionSeeder::class, ['user' => $user]);
     }
 
     /**

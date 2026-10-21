@@ -59,8 +59,8 @@ Im PDF finden Sie auch einen QR-Code, den Sie mit Ihrer Banking-App scannen kön
 @endif
 @endif
 
-Freundliche Grüße<br>
-{{ $issuer['name'] ?? '' }}@if ($senderName && $senderName !== ($issuer['name'] ?? null))<br>
+Beste Grüße<br>
+{{ $signatureName }}@if ($senderName && $senderName !== $signatureName)<br>
 {{ $senderName }}@endif
 
 <x-slot:subcopy>
@@ -75,7 +75,7 @@ Freundliche Grüße<br>
 
 <x-slot:footer>
 <x-mail::footer>
-**{{ $senderName }}**@if ($senderName !== ($issuer['name'] ?? null)) · {{ $issuer['name'] ?? '' }}@endif<br>
+**{{ $senderName }}**@if ($senderName !== $signatureName) · {{ $signatureName }}@endif<br>
 {{ implode(', ', array_filter([$issuer['street'] ?? null, trim(($issuer['zip'] ?? '').' '.($issuer['city'] ?? ''))])) }}<br>
 {{ implode(' · ', array_filter([$replyTo, $issuer['phone'] ?? null, $issuer['website'] ?? null])) }}
 @if (! empty($issuer['uid_number']))<br>UID: {{ $issuer['uid_number'] }}@endif

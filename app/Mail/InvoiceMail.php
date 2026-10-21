@@ -46,6 +46,7 @@ class InvoiceMail extends Mailable
                 'recipient' => $this->invoice->recipient,
                 'salutation' => $this->salutation(),
                 'senderName' => $this->senderName(),
+                'signatureName' => $this->signatureName(),
                 'personalMessage' => $this->personalMessage,
                 'logoPath' => $logo && is_file($logo->getPath()) ? $logo->getPath() : null,
             ],
@@ -80,6 +81,15 @@ class InvoiceMail extends Mailable
     private function senderName(): ?string
     {
         return $this->invoice->user->businessProfile?->brand_name ?: ($this->issuer()['name'] ?? null);
+    }
+
+    /**
+     * Name under the mail: the current one from the profile (e.g. with a newly added title),
+     * not the one stored with an older invoice. The PDF keeps its own.
+     */
+    private function signatureName(): ?string
+    {
+        return $this->invoice->user->businessProfile?->name ?: ($this->issuer()['name'] ?? null);
     }
 
     private function salutation(): string

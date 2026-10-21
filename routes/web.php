@@ -19,6 +19,7 @@ use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\ProfileLogoController;
 use App\Http\Controllers\RecurringExpenseController;
 use App\Http\Controllers\RecurringPaymentController;
+use App\Http\Controllers\TimeSessionController;
 
 Route::redirect('/', '/dashboard');
 
@@ -40,6 +41,14 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/contracts/{contract}/check', [MaintenanceContractController::class, 'check'])->name('contracts.check');
     Route::patch('/contracts/{contract}/monitor', [MonitoringController::class, 'toggle'])->name('contracts.monitor');
     Route::get('/monitoring', [MonitoringController::class, 'index'])->name('monitoring.index');
+
+    Route::get('/stopwatch', [TimeSessionController::class, 'index'])->name('stopwatch.index');
+    Route::post('/stopwatch', [TimeSessionController::class, 'start'])->name('stopwatch.start');
+    Route::patch('/stopwatch/{session}', [TimeSessionController::class, 'update'])->name('stopwatch.update');
+    Route::post('/stopwatch/{session}/pause', [TimeSessionController::class, 'pause'])->name('stopwatch.pause');
+    Route::post('/stopwatch/{session}/resume', [TimeSessionController::class, 'resume'])->name('stopwatch.resume');
+    Route::post('/stopwatch/{session}/stop', [TimeSessionController::class, 'stop'])->name('stopwatch.stop');
+    Route::delete('/stopwatch/{session}', [TimeSessionController::class, 'destroy'])->name('stopwatch.destroy');
     Route::put('/monitoring/order', [MonitoringController::class, 'order'])->name('monitoring.order');
     Route::delete('/monitoring/order', [MonitoringController::class, 'resetOrder'])->name('monitoring.order.reset');
     Route::resource('contracts', MaintenanceContractController::class)->except('show');

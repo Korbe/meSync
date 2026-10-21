@@ -146,6 +146,11 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
         return $this->hasMany(FinanceEntry::class);
     }
 
+    public function timeSessions()
+    {
+        return $this->hasMany(TimeSession::class);
+    }
+
     /**
      * Laravel's own mails, sent through the queue.
      */

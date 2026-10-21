@@ -133,7 +133,20 @@ class InvoiceEmailTest extends TestCase
         $mail = new InvoiceMail($invoice->fresh(), 'Rechnung 2026-013');
         $mail->assertFrom(config('mail.from.address'), 'Korbitsch Web Software und IT Dienstleistungen');
         $mail->assertSeeInHtml('Korbitsch Web Software und IT Dienstleistungen');
+        $mail->assertSeeInHtml('Beste Grüße');
         $mail->assertSeeInHtml('Korbitsch Lukas');   // legal name stays in the signature
+    }
+
+    public function test_signature_uses_the_current_profile_name_also_for_older_invoices(): void
+    {
+        // Invoice created before the title was added to the profile
+        $invoice = $this->invoice(null, ['name' => 'Korbitsch Lukas']);
+        $invoice->user->businessProfile()->create(['name' => 'Ing. Korbitsch Lukas', 'email' => 'info@korbitsch.at']);
+
+        $mail = new InvoiceMail($invoice->fresh(), 'Rechnung 2026-013');
+
+        $mail->assertSeeInOrderInHtml(['Beste Grüße', 'Ing. Korbitsch Lukas']);
+        $mail->assertDontSeeInHtml('Freundliche Grüße');
     }
 
     public function test_edit_page_prefills_the_customer_email(): void

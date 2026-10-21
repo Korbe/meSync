@@ -55,6 +55,9 @@ class InvoiceRequest extends FormRequest
             'paid_in_cash' => 'boolean',
             // Existing invoice as PDF, replaces the generated one
             'original' => 'nullable|file|mimes:pdf|max:10240',
+            // Stopwatch runs billed with this invoice
+            'time_session_ids' => 'nullable|array',
+            'time_session_ids.*' => ['integer', Rule::exists('time_sessions', 'id')->where('user_id', $userId)->whereNull('invoice_id')],
             'items' => 'required|array|min:1',
             'items.*.description' => 'required|string|max:2000',
             'items.*.quantity' => 'required|numeric|min:0.01|max:999999',

@@ -35,6 +35,7 @@ const form = useForm({
     paid_amount: toFormNumber(props.invoice.paid_amount),
     notes: props.invoice.notes ?? '',
     paid_in_cash: false,
+    time_session_ids: props.invoice.time_session_ids ?? [],
     items: props.invoice.items.map(item => ({
         description: item.description ?? '',
         quantity: toFormNumber(item.quantity),
