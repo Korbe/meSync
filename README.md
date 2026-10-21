@@ -270,6 +270,24 @@ Auf Shared Hosting ohne systemd geht ersatzweise ein zweiter Cronjob, der jede M
 
 ### 10. Updates einspielen
 
+**Mit Deployer (empfohlen):** Vom eigenen Rechner aus genügt
+
+```bash
+dep deploy
+```
+
+`deploy.php` holt den Code aus GitHub in ein neues Release, installiert die Composer-Pakete, **baut die Assets lokal** und lädt nur `public/build` hoch (kein Node.js am Server), führt Caches und Migrationen aus, schaltet den Symlink `current` um, lädt PHP-FPM neu (leert den OPcache) und startet den Queue-Worker mit `queue:restart` neu. `.env` und `storage/` liegen unter `shared/` und bleiben über alle Releases erhalten.
+
+Damit der Benutzer `deployer` PHP-FPM neu laden darf, einmalig mit `sudo visudo -f /etc/sudoers.d/deployer`:
+
+```
+deployer ALL=(root) NOPASSWD: /usr/bin/systemctl reload php8.3-fpm
+```
+
+Die PHP-Version steht in `deploy.php` unter `php_fpm_service` – muss zu der am Server passen.
+
+**Von Hand (ohne Deployer):**
+
 ```bash
 cd /var/www/mesync/current
 php artisan down
