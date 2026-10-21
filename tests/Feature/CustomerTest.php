@@ -51,6 +51,29 @@ class CustomerTest extends TestCase
         $this->assertSame('Huber', $user->customers()->value('last_name'));
     }
 
+    public function test_customer_can_be_saved_to_the_phone_as_vcard(): void
+    {
+        $user = User::factory()->create();
+        $customer = $user->customers()->create([
+            'title_prefix' => 'Dr.', 'first_name' => 'Maria', 'last_name' => 'Huber', 'company_name' => 'Huber; Söhne', 'company_suffix' => 'GmbH',
+            'street' => 'Hauptplatz 1', 'zip' => '9500', 'city' => 'Villach', 'country' => 'Österreich',
+            'email' => 'maria@huber.at', 'phone' => '+43 664 1234567', 'notes' => 'intern',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('customers.vcard', $customer))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/vcard; charset=utf-8');
+
+        $vcard = $response->getContent();
+        $this->assertStringContainsString("N:Huber;Maria;;Dr.;\r\n", $vcard);
+        $this->assertStringContainsString('ORG:Huber\; Söhne GmbH', $vcard);
+        $this->assertStringContainsString('TEL;TYPE=CELL:+43 664 1234567', $vcard);
+        $this->assertStringContainsString('ADR;TYPE=WORK:;;Hauptplatz 1;Villach;;9500;Österreich', $vcard);
+        $this->assertStringNotContainsString('intern', $vcard);
+
+        $this->actingAs(User::factory()->create())->get(route('customers.vcard', $customer))->assertForbidden();
+    }
+
     public function test_customer_can_be_created(): void
     {
         $user = User::factory()->create();

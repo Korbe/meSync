@@ -22,6 +22,9 @@ const initials = computed(() => {
     return source.filter(Boolean).map(part => part[0]).slice(0, 2).join('').toUpperCase();
 });
 
+// Opens the contact card: the phone offers "Add to contacts"
+const saveToPhone = () => window.location.href = route('customers.vcard', props.customer.id);
+
 const interestLabel = (value) => props.interests.find(i => i.value === value)?.label ?? value;
 const address = computed(() => [props.customer.street, [props.customer.zip, props.customer.city].filter(Boolean).join(' '), props.customer.country].filter(Boolean).join(', '));
 const activeContracts = computed(() => props.contracts.filter(c => c.status !== 'ended'));
@@ -33,6 +36,7 @@ const typeIcons = { website: GlobeAltIcon, webapp: CommandLineIcon };
         <template v-slot:actions>
             <VButton :href="route('invoices.create', { customer: customer.id })" icon="DocumentTextIcon">Rechnung</VButton>
             <VButton :href="route('contracts.create', { customer: customer.id })" variant="secondary" icon="WrenchScrewdriverIcon">Wartungsvertrag</VButton>
+            <VButton variant="secondary" icon="DevicePhoneMobileIcon" title="Als Kontakt ins Handy übernehmen (vCard)" @click="saveToPhone">Ins Handy</VButton>
             <VButton :href="route('customers.edit', customer.id)" variant="secondary" icon="PencilSquareIcon">Bearbeiten</VButton>
         </template>
 

@@ -3,6 +3,8 @@ import { useForm } from '@inertiajs/vue3';
 import VInput from '@/components/VInput.vue';
 import VButton from '@/components/VButton.vue';
 import VModal from '@/components/VModal.vue';
+import VAddressSearch from '@/components/VAddressSearch.vue';
+import { canPickContact, pickContact } from '@/utils/contactPicker';
 
 /*
  * Create a customer without leaving the invoice. The page reloads its customer list
@@ -23,6 +25,23 @@ const blank = () => ({
 });
 
 const form = useForm(blank());
+
+const fillAddress = (address) => {
+    for (const field of ['street', 'zip', 'city', 'country']) {
+        if (address[field]) form[field] = address[field];
+    }
+};
+
+const fromPhone = async () => {
+    try {
+        const contact = await pickContact();
+        for (const [field, value] of Object.entries(contact ?? {})) {
+            if (value) form[field] = value;
+        }
+    } catch {
+        // Picker closed or not allowed: nothing to fill
+    }
+};
 
 const close = () => {
     form.reset();
@@ -50,6 +69,7 @@ const save = () => {
         <template #title>Neuer Kunde</template>
 
         <template #content>
+            <VButton v-if="canPickContact" class="mb-4 w-full justify-center" variant="secondary" icon="DevicePhoneMobileIcon" @click="fromPhone">Aus Handy-Kontakten übernehmen</VButton>
             <!-- Inside the invoice <form>: Enter saves the customer, not the invoice -->
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-12" @keydown.enter.prevent="save">
                 <VInput id="quick_title_prefix" class="sm:col-span-3" label="Titel" placeholder="Dr." v-model="form.title_prefix" :error="form.errors.title_prefix" />
@@ -57,6 +77,7 @@ const save = () => {
                 <VInput id="quick_last_name" class="sm:col-span-5" label="Nachname" v-model="form.last_name" :error="form.errors.last_name" />
                 <VInput id="quick_company_name" class="sm:col-span-8" label="Firmenname" v-model="form.company_name" :error="form.errors.company_name" />
                 <VInput id="quick_company_suffix" class="sm:col-span-4" label="Rechtsform" placeholder="GmbH" v-model="form.company_suffix" :error="form.errors.company_suffix" />
+                <VAddressSearch id="quick_address_search" class="sm:col-span-12" @select="fillAddress" />
                 <VInput id="quick_street" class="sm:col-span-12" label="Straße & Hausnummer" v-model="form.street" :error="form.errors.street" />
                 <VInput id="quick_zip" class="sm:col-span-3" label="PLZ" v-model="form.zip" :error="form.errors.zip" />
                 <VInput id="quick_city" class="sm:col-span-5" label="Ort" v-model="form.city" :error="form.errors.city" />

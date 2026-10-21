@@ -88,6 +88,31 @@ class Customer extends Model
     }
 
     /**
+     * Contact card (vCard 3.0, read by iPhone and Android) to save the customer on the phone.
+     * Internal notes stay out.
+     */
+    public function toVcard(): string
+    {
+        $escape = fn (?string $value) => str_replace(["\\", "\r\n", "\n", ',', ';'], ["\\\\", '\n', '\n', '\,', '\;'], (string) $value);
+
+        $lines = array_filter([
+            'BEGIN:VCARD',
+            'VERSION:3.0',
+            'N:'.implode(';', array_map($escape, [$this->last_name, $this->first_name, '', $this->title_prefix, $this->title_suffix])),
+            'FN:'.$escape($this->display_name),
+            $this->company ? 'ORG:'.$escape($this->company) : null,
+            $this->phone ? 'TEL;TYPE=CELL:'.$escape($this->phone) : null,
+            $this->email ? 'EMAIL;TYPE=INTERNET:'.$escape($this->email) : null,
+            $this->street || $this->city
+                ? 'ADR;TYPE=WORK:'.implode(';', array_map($escape, ['', '', $this->street, $this->city, '', $this->zip, $this->country]))
+                : null,
+            'END:VCARD',
+        ]);
+
+        return implode("\r\n", $lines)."\r\n";
+    }
+
+    /**
      * Name with titles, e.g. "Dr. Max Mustermann, MSc".
      */
     protected function fullName(): Attribute

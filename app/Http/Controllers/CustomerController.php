@@ -7,7 +7,9 @@ use App\Http\Requests\Customer\CustomerRequest;
 use App\Models\Customer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -57,6 +59,21 @@ class CustomerController extends Controller
         }
 
         return to_route('customers.index')->with('success', 'Kunde wurde angelegt.');
+    }
+
+    /**
+     * Contact card for the phone: opening it offers "Add to contacts".
+     */
+    public function vcard(Customer $customer): HttpResponse
+    {
+        Gate::authorize('update', $customer);
+
+        $filename = Str::slug($customer->display_name ?: 'kontakt').'.vcf';
+
+        return response($customer->toVcard(), 200, [
+            'Content-Type' => 'text/vcard; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
     }
 
     /**

@@ -4,6 +4,8 @@ import { UserIcon, BuildingOffice2Icon, MapPinIcon, PhoneIcon, ChatBubbleBottomC
 import VInput from '@/components/VInput.vue';
 import VTextarea from '@/components/VTextarea.vue';
 import VButton from '@/components/VButton.vue';
+import VAddressSearch from '@/components/VAddressSearch.vue';
+import { canPickContact, pickContact } from '@/utils/contactPicker';
 
 const props = defineProps({
     customer: { type: Object, default: null },
@@ -33,6 +35,23 @@ const toggleInterest = (value) => {
         : [...form.interests, value];
 };
 
+const fillAddress = (address) => {
+    for (const field of ['street', 'zip', 'city', 'country']) {
+        if (address[field]) form[field] = address[field];
+    }
+};
+
+const fromPhone = async () => {
+    try {
+        const contact = await pickContact();
+        for (const [field, value] of Object.entries(contact ?? {})) {
+            if (value) form[field] = value;
+        }
+    } catch {
+        // Picker closed or not allowed: nothing to fill
+    }
+};
+
 const submit = () => {
     if (props.customer)
         form.put(route('customers.update', props.customer.id));
@@ -47,7 +66,10 @@ const submit = () => {
 
             <!-- Person -->
             <section class="card p-6">
-                <h2 class="card-title"><UserIcon class="h-5 w-5 text-primary-500" />Person</h2>
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="card-title"><UserIcon class="h-5 w-5 text-primary-500" />Person</h2>
+                    <VButton v-if="canPickContact" variant="secondary" icon="DevicePhoneMobileIcon" @click="fromPhone">Aus Kontakten</VButton>
+                </div>
                 <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-12">
                     <VInput id="title_prefix" class="sm:col-span-3" label="Titel (vorangestellt)" placeholder="Dr." list="title-prefixes" v-model="form.title_prefix" :error="form.errors.title_prefix" />
                     <VInput id="first_name" class="sm:col-span-4" label="Vorname" v-model="form.first_name" :error="form.errors.first_name" />
@@ -71,6 +93,7 @@ const submit = () => {
             <section class="card p-6">
                 <h2 class="card-title"><MapPinIcon class="h-5 w-5 text-primary-500" />Adresse</h2>
                 <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-12">
+                    <VAddressSearch class="sm:col-span-12" @select="fillAddress" />
                     <VInput id="street" class="sm:col-span-12" label="Straße & Hausnummer" v-model="form.street" :error="form.errors.street" />
                     <VInput id="zip" class="sm:col-span-3" label="PLZ" v-model="form.zip" :error="form.errors.zip" />
                     <VInput id="city" class="sm:col-span-5" label="Ort" v-model="form.city" :error="form.errors.city" />

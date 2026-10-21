@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AddressSearchController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\BusinessProfileController;
 use App\Http\Controllers\CatalogItemController;
@@ -33,6 +34,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::delete('/user/profile/logo', [ProfileLogoController::class, 'destroy'])->name('profile.logo.destroy');
     Route::put('/user/business-profile', [BusinessProfileController::class, 'update'])->name('business-profile.update');
 
+    Route::get('/address-search', AddressSearchController::class)->middleware('throttle:60,1')->name('address.search');
+    Route::get('/customers/{customer}/vcard', [CustomerController::class, 'vcard'])->name('customers.vcard');
     Route::get('/customers/{customer}/delete', [CustomerController::class, 'delete'])->name('customers.delete');
     Route::resource('customers', CustomerController::class);
 
