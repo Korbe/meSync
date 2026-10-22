@@ -17,7 +17,9 @@ use App\Http\Controllers\InvoicePaymentController;
 use App\Http\Controllers\MaintenanceContractController;
 use App\Http\Controllers\MaintenanceInvoiceController;
 use App\Http\Controllers\MonitoringController;
+use App\Http\Controllers\OfferController;
 use App\Http\Controllers\ProfileLogoController;
+use App\Http\Controllers\ProfileSignatureController;
 use App\Http\Controllers\RecurringExpenseController;
 use App\Http\Controllers\RecurringPaymentController;
 use App\Http\Controllers\TimeSessionController;
@@ -32,6 +34,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
     Route::post('/user/profile/logo', [ProfileLogoController::class, 'store'])->name('profile.logo.store');
     Route::delete('/user/profile/logo', [ProfileLogoController::class, 'destroy'])->name('profile.logo.destroy');
+    Route::get('/user/profile/signature', [ProfileSignatureController::class, 'show'])->name('profile.signature.show');
+    Route::post('/user/profile/signature', [ProfileSignatureController::class, 'store'])->name('profile.signature.store');
+    Route::delete('/user/profile/signature', [ProfileSignatureController::class, 'destroy'])->name('profile.signature.destroy');
     Route::put('/user/business-profile', [BusinessProfileController::class, 'update'])->name('business-profile.update');
 
     Route::get('/address-search', AddressSearchController::class)->middleware('throttle:60,1')->name('address.search');
@@ -40,6 +45,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::resource('customers', CustomerController::class);
 
     Route::get('/contracts/{contract}/delete', [MaintenanceContractController::class, 'delete'])->name('contracts.delete');
+    Route::post('/contracts/{contract}/start', [MaintenanceContractController::class, 'start'])->name('contracts.start');
     Route::get('/contracts/{contract}/pdf', [MaintenanceContractController::class, 'pdf'])->name('contracts.pdf');
     Route::post('/contracts/{contract}/check', [MaintenanceContractController::class, 'check'])->name('contracts.check');
     Route::patch('/contracts/{contract}/monitor', [MonitoringController::class, 'toggle'])->name('contracts.monitor');
@@ -67,6 +73,15 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/invoices/{invoice}/payments', [InvoicePaymentController::class, 'store'])->name('invoices.payments.store');
     Route::delete('/invoices/{invoice}/payments/{payment}', [InvoicePaymentController::class, 'destroy'])->name('invoices.payments.destroy');
     Route::resource('invoices', InvoiceController::class)->except('show');
+
+    Route::get('/offers/{offer}/pdf', [OfferController::class, 'download'])->name('offers.download');
+    Route::post('/offers/{offer}/send', [OfferController::class, 'send'])->name('offers.send');
+    Route::post('/offers/{offer}/sent', [OfferController::class, 'markSent'])->name('offers.sent');
+    Route::post('/offers/{offer}/accept', [OfferController::class, 'accept'])->name('offers.accept');
+    Route::post('/offers/{offer}/decline', [OfferController::class, 'decline'])->name('offers.decline');
+    Route::post('/offers/{offer}/reopen', [OfferController::class, 'reopen'])->name('offers.reopen');
+    Route::post('/offers/{offer}/duplicate', [OfferController::class, 'duplicate'])->name('offers.duplicate');
+    Route::resource('offers', OfferController::class)->except('show');
 
     Route::get('/export', [ExportController::class, 'index'])->name('export.index');
     Route::get('/export/csv', [ExportController::class, 'csv'])->name('export.csv');

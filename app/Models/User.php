@@ -94,6 +94,12 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
         $this->addMediaCollection('logo')
             ->singleFile()
             ->acceptsMimeTypes(['image/png', 'image/jpeg', 'image/webp']);
+
+        // Handwritten signature for offers: private, only embedded into the PDF
+        $this->addMediaCollection('signature')
+            ->singleFile()
+            ->useDisk('local')
+            ->acceptsMimeTypes(['image/png', 'image/jpeg', 'image/webp']);
     }
 
     public function emotions()
@@ -149,6 +155,11 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
     public function timeSessions()
     {
         return $this->hasMany(TimeSession::class);
+    }
+
+    public function offers()
+    {
+        return $this->hasMany(Offer::class);
     }
 
     /**

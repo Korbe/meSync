@@ -18,6 +18,10 @@ class MaintenanceInvoiceController extends Controller
     {
         Gate::authorize('update', $contract);
 
+        if ($contract->isPending()) {
+            return back()->with('error', 'Dieser Vertrag wartet noch auf den Go-Live – erst starten.');
+        }
+
         if (! $contract->isBillable()) {
             return back()->with('error', 'Dieser Vertrag ist beendet, es ist keine Rechnung mehr fällig.');
         }

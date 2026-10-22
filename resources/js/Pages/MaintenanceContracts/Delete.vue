@@ -50,7 +50,7 @@ const destroy = () => {
                         </div>
                         <div class="flex justify-between gap-4">
                             <dt class="text-gray-500">Seit</dt>
-                            <dd class="text-right font-medium text-gray-900 dark:text-gray-100">{{ formatDate(contract.start_date) }}</dd>
+                            <dd class="text-right font-medium text-gray-900 dark:text-gray-100">{{ contract.start_date ? formatDate(contract.start_date) : 'mit Go-Live' }}</dd>
                         </div>
                     </dl>
 

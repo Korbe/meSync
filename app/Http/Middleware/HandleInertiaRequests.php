@@ -46,6 +46,10 @@ class HandleInertiaRequests extends Middleware
             'logoUrl' => fn () => $request->routeIs('profile.show')
                 ? ($request->user()?->getFirstMediaUrl('logo') ?: null)
                 : null,
+            // Signature is private: shown through its own route, with the media id against stale caches
+            'signatureUrl' => fn () => $request->routeIs('profile.show') && ($signature = $request->user()?->getFirstMedia('signature'))
+                ? route('profile.signature.show', ['v' => $signature->id])
+                : null,
             // Sender / bank details for invoices, only needed on the profile page
             'businessProfile' => fn () => $request->routeIs('profile.show')
                 ? $request->user()?->businessProfile

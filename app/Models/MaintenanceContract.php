@@ -128,16 +128,70 @@ class MaintenanceContract extends Model
         $query->where('monitor_enabled', true)->whereNotNull('url')->where('url', '!=', '')->billable();
     }
 
+    /**
+     * Running contracts with invoices still to send: started, and not ended before the next due date.
+     */
     public function scopeBillable(Builder $query): void
     {
-        $query->where(function (Builder $query) {
+        $query->whereNotNull('next_invoice_date')->where(function (Builder $query) {
             $query->whereNull('end_date')->orWhereColumn('next_invoice_date', '<=', 'end_date');
         });
     }
 
     public function isBillable(): bool
     {
-        return $this->end_date === null || $this->next_invoice_date->lte($this->end_date);
+        return ! $this->isPending() && ($this->end_date === null || $this->next_invoice_date->lte($this->end_date));
+    }
+
+    /**
+     * Created with the invoice of an offer: waits for the go-live, nothing is due yet.
+     */
+    public function isPending(): bool
+    {
+        return $this->start_date === null;
+    }
+
+    public function scopePending(Builder $query): void
+    {
+        $query->whereNull('start_date');
+    }
+
+    /**
+     * Go-live: the contract starts. The first year was already billed with the invoice of
+     * the offer, so it is recorded as invoiced and the next invoice is due a year later.
+     */
+    public function start(Carbon $date, ?Invoice $invoice = null): void
+    {
+        DB::transaction(function () use ($date, $invoice) {
+            $this->update(['start_date' => $date, 'next_invoice_date' => $date]);
+
+            if (! $invoice) {
+                return;
+            }
+
+            $this->markInvoiced($invoice->invoice_date, $invoice->number)->update(['invoice_id' => $invoice->id]);
+
+            // Not sent yet: the invoice gets the real period instead of "12 Monate ab Go-Live"
+            if ($invoice->sent_at === null && ! $invoice->isLocked()) {
+                $period = 'Zeitraum: '.$date->format('d.m.Y').' – '.$date->copy()->addYear()->subDay()->format('d.m.Y');
+
+                foreach ($invoice->items()->where('description', 'like', '%Zeitraum: 12 Monate ab Go-Live%')->get() as $item) {
+                    $lines = collect(explode("\n", $item->description))
+                        ->reject(fn (string $line) => trim($line) === config('offers.hints.maintenance_start'))
+                        ->map(fn (string $line) => trim($line) === 'Zeitraum: 12 Monate ab Go-Live' ? $period : $line);
+
+                    $item->update(['description' => $lines->implode("\n")]);
+                }
+            }
+        });
+    }
+
+    /**
+     * The invoice that billed the first year (the one of the offer), if any.
+     */
+    public function firstYearInvoice(): ?Invoice
+    {
+        return Invoice::where('maintenance_contract_id', $this->id)->oldest('id')->first();
     }
 
     /**
@@ -170,11 +224,15 @@ class MaintenanceContract extends Model
     }
 
     /**
-     * ended | overdue | due_today | due_soon | active
+     * pending | ended | overdue | due_today | due_soon | active
      */
     protected function status(): Attribute
     {
         return Attribute::get(function () {
+            if ($this->isPending()) {
+                return 'pending';
+            }
+
             if (! $this->isBillable()) {
                 return 'ended';
             }

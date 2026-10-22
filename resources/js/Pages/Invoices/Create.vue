@@ -9,11 +9,12 @@ defineProps({
     paymentTermsDays: Number,
     profileComplete: Boolean,
     contract: Object,
+    offer: Object,
 });
 </script>
 
 <template>
     <Layout title="Neue Rechnung" :backTo="route('invoices.index')">
-        <InvoiceForm :invoice="invoice" :customers="customers" :catalog="catalog" :paymentTermsDays="paymentTermsDays" :profileComplete="profileComplete" :contract="contract" />
+        <InvoiceForm :invoice="invoice" :customers="customers" :catalog="catalog" :paymentTermsDays="paymentTermsDays" :profileComplete="profileComplete" :contract="contract" :offer="offer" />
     </Layout>
 </template>

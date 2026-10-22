@@ -37,6 +37,9 @@ class MaintenanceContractRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Waiting for the go-live: dates and monitoring are set when the contract is started
+        $pending = (bool) $this->route('contract')?->isPending();
+
         return [
             // Only the user's own customers can be assigned
             'customer_id' => ['required', Rule::exists('customers', 'id')->where('user_id', $this->user()->id)],
@@ -44,11 +47,11 @@ class MaintenanceContractRequest extends FormRequest
             'name' => 'required|string|max:255',
             'url' => 'nullable|url:http,https|max:255',
             'monthly_price' => 'required|numeric|min:0|max:99999',
-            'start_date' => 'required|date',
-            'next_invoice_date' => 'required|date|after_or_equal:start_date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'start_date' => $pending ? 'exclude' : 'required|date',
+            'next_invoice_date' => $pending ? 'exclude' : 'required|date|after_or_equal:start_date',
+            'end_date' => $pending ? 'nullable|date' : 'nullable|date|after_or_equal:start_date',
             'notes' => 'nullable|string|max:5000',
-            'monitor_enabled' => 'boolean',
+            'monitor_enabled' => $pending ? 'exclude' : 'boolean',
             // Password protected websites (htpasswd)
             'monitor_auth' => 'nullable|in:none,basic,accept_401',
             'monitor_auth_user' => 'nullable|required_if:monitor_auth,basic|string|max:255',

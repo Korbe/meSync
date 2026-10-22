@@ -67,6 +67,12 @@
               </Link>
             </li>
             <li>
+              <Link :href="route('offers.index')" class="nav-link" :class="isActive('/offers') && 'nav-link-active'">
+                <ClipboardDocumentListIcon class="nav-icon" />
+                <span class="nav-label">Angebote</span>
+              </Link>
+            </li>
+            <li>
               <Link :href="route('catalog.index')" class="nav-link" :class="isActive('/catalog') && 'nav-link-active'">
                 <Squares2X2Icon class="nav-icon" />
                 <span class="nav-label">Leistungen</span>
@@ -151,7 +157,7 @@ import { usePage } from "@inertiajs/vue3";
 
 
 import SidebarLinkGroup from './SidebarLinkGroup.vue'
-import { BeakerIcon, HeartIcon, HomeIcon, SparklesIcon, UsersIcon, WrenchScrewdriverIcon, DocumentTextIcon, Squares2X2Icon, ArrowDownTrayIcon, CircleStackIcon, ArchiveBoxIcon, BanknotesIcon, SignalIcon, ClockIcon } from '@heroicons/vue/24/solid';
+import { BeakerIcon, HeartIcon, HomeIcon, SparklesIcon, UsersIcon, WrenchScrewdriverIcon, DocumentTextIcon, Squares2X2Icon, ArrowDownTrayIcon, CircleStackIcon, ArchiveBoxIcon, BanknotesIcon, SignalIcon, ClockIcon, ClipboardDocumentListIcon } from '@heroicons/vue/24/solid';
 
 export default {
   name: 'Sidebar',
@@ -174,6 +180,7 @@ export default {
     BanknotesIcon,
     SignalIcon,
     ClockIcon,
+    ClipboardDocumentListIcon,
   },  
   setup(props, { emit }) {
 

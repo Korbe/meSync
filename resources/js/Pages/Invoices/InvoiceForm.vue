@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import { DocumentTextIcon, ListBulletIcon, ChatBubbleBottomCenterTextIcon, PlusIcon, TrashIcon, ExclamationTriangleIcon, WrenchScrewdriverIcon, DocumentArrowUpIcon } from '@heroicons/vue/24/outline';
 import VInput from '@/components/VInput.vue';
@@ -8,6 +8,7 @@ import VButton from '@/components/VButton.vue';
 import VModal from '@/components/VModal.vue';
 import QuickCustomerModal from './QuickCustomerModal.vue';
 import { formatDate, formatMoney, toDate, toIsoDate } from '@/utils/format';
+import { vAutosize, continueBullet, addBullet } from '@/composables/useItemText';
 import { breakdown, formatDuration, minutesForPrice, parseDuration, priceForMinutes, rateLabel } from '@/utils/timePricing';
 
 const props = defineProps({
@@ -16,6 +17,7 @@ const props = defineProps({
     paymentTermsDays: { type: Number, default: 14 },
     profileComplete: { type: Boolean, default: true },
     contract: { type: Object, default: null },
+    offer: { type: Object, default: null },
     isEdit: { type: Boolean, default: false },
     readonly: { type: Boolean, default: false },
     catalog: { type: Array, default: () => [] },
@@ -37,6 +39,7 @@ const form = useForm({
     notes: props.invoice.notes ?? '',
     paid_in_cash: false,
     time_session_ids: props.invoice.time_session_ids ?? [],
+    offer_id: props.invoice.offer_id ?? null,
     items: props.invoice.items.map(item => ({
         description: item.description ?? '',
         quantity: toFormNumber(item.quantity),
@@ -56,54 +59,6 @@ watch(() => form.invoice_date, (date) => {
 
 const addItem = () => form.items.push({ description: '', quantity: '1', unit: 'Stück', unit_price: '' });
 
-// Bullet points in item descriptions ("- " at the start of a line, rendered as • in the PDF)
-const bulletPattern = /^\s*[-•*]\s/;
-
-// Grow textareas with their content (incl. wrapped lines), so no scrollbar appears
-const autosize = (el) => {
-    el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight + 2}px`;
-};
-const vAutosize = {
-    mounted: (el) => nextTick(() => autosize(el)),
-    updated: (el) => autosize(el),
-};
-
-const setCursor = (textarea, position) => nextTick(() => {
-    textarea.focus();
-    textarea.setSelectionRange(position, position);
-});
-
-// Enter inside a bullet line starts the next bullet; Enter on an empty bullet ends the list
-const continueBullet = (event, item) => {
-    if (event.shiftKey || event.isComposing) return;
-
-    const textarea = event.target;
-    const text = item.description;
-    const cursor = textarea.selectionStart;
-    const lineStart = text.lastIndexOf('\n', cursor - 1) + 1;
-    const line = text.slice(lineStart, cursor);
-
-    if (!bulletPattern.test(line)) return;
-    event.preventDefault();
-
-    if (line.replace(bulletPattern, '').trim() === '') {
-        item.description = text.slice(0, lineStart) + text.slice(cursor);
-        setCursor(textarea, lineStart);
-        return;
-    }
-
-    item.description = text.slice(0, cursor) + '\n- ' + text.slice(cursor);
-    setCursor(textarea, cursor + 3);
-};
-
-const addBullet = (event, item) => {
-    const textarea = event.currentTarget.closest('div').parentElement.querySelector('textarea');
-    const text = item.description.replace(/\s+$/, '');
-
-    item.description = text ? `${text}\n- ` : '- ';
-    setCursor(textarea, item.description.length);
-};
 const removeItem = (index) => form.items.splice(index, 1);
 
 // Insert a catalog item; an untouched empty first row is replaced instead of kept
@@ -225,6 +180,14 @@ const submit = () => {
             <span>
                 Rechnung für den Wartungsvertrag <strong>{{ contract.name }}</strong>.
                 Beim Speichern wird der Vertrag automatisch als verrechnet markiert und springt auf die nächste Fälligkeit.
+            </span>
+        </div>
+
+        <div v-if="offer && !isEdit" class="flex items-start gap-3 rounded-xl bg-primary-500/10 px-4 py-3 text-sm text-primary-800 ring-1 ring-primary-500/30 dark:text-primary-200">
+            <WrenchScrewdriverIcon class="mt-0.5 h-5 w-5 shrink-0" />
+            <span>
+                Rechnung für Angebot <strong>{{ offer.number }}</strong> – {{ offer.title }}.
+                Beim Speichern wird der Wartungsvertrag angelegt. Er wartet auf den Go-Live – dort startest du ihn, sobald die Seite live ist.
             </span>
         </div>
 

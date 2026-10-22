@@ -20,12 +20,13 @@ const props = defineProps({
     paymentTermsDays: Number,
     profileComplete: Boolean,
     locked: Boolean,
+    openSend: Boolean,
     canCancel: Boolean,
     canDelete: Boolean,
 });
 
 const confirmingCancel = ref(false);
-const sending = ref(false);
+const sending = ref(props.openSend);
 const cancelForm = useForm({});
 
 const cancelInvoice = () => {
@@ -89,7 +90,7 @@ const cancelInvoice = () => {
 
         <InvoiceForm :invoice="invoice" :customers="customers" :catalog="catalog" :paymentTermsDays="paymentTermsDays" :profileComplete="profileComplete" :readonly="locked" is-edit />
 
-        <SendInvoiceModal :show="sending" :invoice="invoice" :mail="mail" @close="sending = false" />
+        <SendInvoiceModal :show="sending" :document="invoice" :action="route('invoices.send', invoice.id)" :mail="mail" @close="sending = false" />
 
         <!-- Cancel confirmation -->
         <VModal :show="confirmingCancel" @close="confirmingCancel = false">

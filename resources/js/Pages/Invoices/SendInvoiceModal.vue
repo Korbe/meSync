@@ -9,8 +9,10 @@ import { formatDateTime } from '@/utils/format';
 
 const props = defineProps({
     show: Boolean,
-    invoice: { type: Object, required: true },
-    mail: { type: Object, required: true },   // to, subject, replyTo, demo
+    document: { type: Object, required: true },   // invoice or offer: number, sent_at, sent_to
+    label: { type: String, default: 'Rechnung' },
+    action: { type: String, required: true },     // send route
+    mail: { type: Object, required: true },       // to, subject, replyTo, demo
 });
 
 const emit = defineEmits(['close']);
@@ -31,7 +33,7 @@ watch(() => props.show, (open) => {
     }
 });
 
-const send = () => form.post(route('invoices.send', props.invoice.id), {
+const send = () => form.post(props.action, {
     preserveScroll: true,
     onSuccess: () => emit('close'),
 });
@@ -45,8 +47,8 @@ const send = () => form.post(route('invoices.send', props.invoice.id), {
                     <EnvelopeIcon class="h-6 w-6" />
                 </div>
                 <div>
-                    <h3 class="font-display text-lg font-semibold text-gray-900 dark:text-white">Rechnung {{ invoice.number }} per E-Mail senden</h3>
-                    <p v-if="invoice.sent_at" class="text-xs text-gray-500">Zuletzt verschickt am {{ formatDateTime(invoice.sent_at) }} an {{ invoice.sent_to }}</p>
+                    <h3 class="font-display text-lg font-semibold text-gray-900 dark:text-white">{{ label }} {{ document.number }} per E-Mail senden</h3>
+                    <p v-if="document.sent_at" class="text-xs text-gray-500">Zuletzt verschickt am {{ formatDateTime(document.sent_at) }}<template v-if="document.sent_to"> an {{ document.sent_to }}</template></p>
                 </div>
             </div>
 
@@ -65,7 +67,7 @@ const send = () => form.post(route('invoices.send', props.invoice.id), {
             </div>
 
             <ul class="mt-5 space-y-1.5 rounded-xl bg-gray-50 p-4 text-sm text-gray-600 dark:bg-white/[0.03] dark:text-gray-400">
-                <li class="flex gap-2"><PaperClipIcon class="mt-0.5 h-4 w-4 shrink-0" />Die Rechnung hängt als PDF an – genau wie beim Download.</li>
+                <li class="flex gap-2"><PaperClipIcon class="mt-0.5 h-4 w-4 shrink-0" />{{ label === 'Rechnung' ? 'Die Rechnung' : 'Das ' + label }} hängt als PDF an – genau wie beim Download.</li>
                 <li class="flex gap-2"><InformationCircleIcon class="mt-0.5 h-4 w-4 shrink-0" />
                     <span>Die Mail sagt dem Kunden, dass sie automatisch erstellt wurde. Antworten gehen an <strong class="text-gray-900 dark:text-gray-100">{{ mail.replyTo || '– (im Profil hinterlegen)' }}</strong>.</span>
                 </li>

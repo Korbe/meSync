@@ -69,6 +69,11 @@ class Customer extends Model
         return $this->hasMany(Invoice::class);
     }
 
+    public function offers(): HasMany
+    {
+        return $this->hasMany(Offer::class);
+    }
+
     /**
      * Snapshot of the address block stored on invoices,
      * e.g. name "Markus Kirisits - FCG Villach".

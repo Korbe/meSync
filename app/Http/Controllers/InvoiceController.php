@@ -106,7 +106,7 @@ class InvoiceController extends Controller
 
         // Prefill from a due maintenance contract
         if ($contractId = $request->integer('contract')) {
-            $contract = $user->maintenanceContracts()->findOrFail($contractId);
+            $contract = $user->maintenanceContracts()->billable()->findOrFail($contractId);
             $periodEnd = $contract->next_invoice_date->copy()->addYear()->subDay();
 
             $invoice['customer_id'] = $contract->customer_id;
@@ -118,6 +118,17 @@ class InvoiceController extends Controller
                 'unit' => 'Stück',
                 'unit_price' => $contract->annual_price,
             ]];
+        }
+
+        // Prefill from an accepted offer: the project plus the first year of maintenance.
+        // Saving creates the maintenance contract, which then waits for the go-live.
+        if ($offerId = $request->integer('offer')) {
+            $offer = $user->offers()->with('items')->whereNotNull('accepted_at')->whereNull('invoice_id')->findOrFail($offerId);
+
+            $invoice['customer_id'] = $offer->customer_id;
+            $invoice['offer_id'] = $offer->id;
+            $invoice['tax_rate'] = $offer->tax_rate;
+            $invoice['items'] = $offer->toInvoiceItems();
         }
 
         // Prefill from stopwatch runs (one item per run)
@@ -136,6 +147,7 @@ class InvoiceController extends Controller
             ...$this->formOptions($request),
             'invoice' => $invoice,
             'contract' => isset($contract) ? $contract->only(['id', 'name', 'next_invoice_date']) : null,
+            'offer' => isset($offer) ? $offer->only(['id', 'number', 'title']) : null,
         ]);
     }
 
@@ -150,6 +162,11 @@ class InvoiceController extends Controller
             ]);
 
             $this->syncItems($invoice, $request->validated('items'));
+
+            // Invoice for an accepted offer: its maintenance contract is created, waiting for the go-live
+            if ($offerId = $request->validated('offer_id')) {
+                $user->offers()->whereKey($offerId)->whereNull('invoice_id')->first()?->billWith($invoice);
+            }
 
             // Stopwatch runs taken over into this invoice count as billed
             if ($sessionIds = $request->validated('time_session_ids')) {
@@ -207,6 +224,8 @@ class InvoiceController extends Controller
                 'demo' => $request->user()->isDemo(),
             ],
             'locked' => $invoice->isLocked(),
+            // Coming from the go-live of its contract: the send dialog opens right away
+            'openSend' => $request->boolean('send'),
             'canCancel' => Gate::allows('cancel', $invoice),
             'canDelete' => Gate::allows('delete', $invoice),
         ]);
@@ -224,6 +243,7 @@ class InvoiceController extends Controller
             if ($this->undoesContractBilling($invoice)) {
                 $invoice->maintenanceContract->undoInvoice($invoice->maintenanceInvoice);
             }
+            $this->dropPendingContract($invoice);
 
             return $invoice->load('items')->cancel();
         });
@@ -266,6 +286,7 @@ class InvoiceController extends Controller
             if ($this->undoesContractBilling($invoice)) {
                 $invoice->maintenanceContract->undoInvoice($invoice->maintenanceInvoice);
             }
+            $this->dropPendingContract($invoice);
 
             $invoice->delete();
         });
@@ -377,6 +398,18 @@ class InvoiceController extends Controller
                 'unit' => $item['unit'] ?? null,
                 'unit_price' => $item['unit_price'],
             ]);
+        }
+    }
+
+    /**
+     * Invoice of an offer whose contract never started: the contract goes with it, and the
+     * offer can be billed again.
+     */
+    private function dropPendingContract(Invoice $invoice): void
+    {
+        if ($invoice->maintenanceContract?->isPending()) {
+            $invoice->user->offers()->where('invoice_id', $invoice->id)->update(['invoice_id' => null, 'maintenance_contract_id' => null]);
+            $invoice->maintenanceContract->delete();
         }
     }
 

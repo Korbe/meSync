@@ -8,7 +8,7 @@ import LogoutOtherBrowserSessionsForm from '@/Pages/Profile/Partials/LogoutOther
 import TwoFactorAuthenticationForm from '@/Pages/Profile/Partials/TwoFactorAuthenticationForm.vue';
 import UpdatePasswordForm from '@/Pages/Profile/Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from '@/Pages/Profile/Partials/UpdateProfileInformationForm.vue';
-import UpdateLogoForm from '@/Pages/Profile/Partials/UpdateLogoForm.vue';
+import UpdateImageForm from '@/Pages/Profile/Partials/UpdateImageForm.vue';
 import UpdateBusinessProfileForm from '@/Pages/Profile/Partials/UpdateBusinessProfileForm.vue';
 
 defineProps({
@@ -82,7 +82,13 @@ const memberSince = computed(() => new Date(user.value.created_at).toLocaleDateS
 
             <UpdateBusinessProfileForm :profile="$page.props.businessProfile" />
 
-            <UpdateLogoForm :logo-url="$page.props.logoUrl" />
+            <UpdateImageForm field="logo" :url="$page.props.logoUrl" title="Firmenlogo" noun="Logo"
+                hint="Steht auf deinen Rechnungen und Angeboten. PNG, JPG oder WebP, max. 2 MB. Am besten mit transparentem Hintergrund."
+                remove-message="Das Logo wird gelöscht und erscheint nicht mehr auf Rechnungen und Angeboten." />
+
+            <UpdateImageForm field="signature" :url="$page.props.signatureUrl" title="Unterschrift" noun="Unterschrift"
+                hint="Steht auf deinen Angeboten schon über „Unterschrift Auftragnehmer“. Ein Foto oder Scan auf weißem Papier reicht, PNG mit transparentem Hintergrund sieht am besten aus. Wird privat gespeichert."
+                remove-message="Die Unterschrift wird gelöscht. Angebote zeigen dann wieder nur die leere Linie." />
 
             <TwoFactorAuthenticationForm
                 v-if="$page.props.jetstream.canManageTwoFactorAuthentication"

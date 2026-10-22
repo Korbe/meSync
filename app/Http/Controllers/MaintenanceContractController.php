@@ -9,6 +9,7 @@ use App\Services\ContractPdf;
 use App\Services\SiteMonitor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -89,6 +90,37 @@ class MaintenanceContractController extends Controller
             $contract->monitor_status === 'down' || $contract->monitor_error ? 'error' : 'success',
             $contract->monitor_error ? "Website nicht erreichbar: {$contract->monitor_error}" : 'Website ist erreichbar.',
         );
+    }
+
+    /**
+     * Go-live: the contract starts on the given date. The first year was billed with the
+     * invoice of the offer, so the next invoice is due a year later.
+     */
+    public function start(Request $request, MaintenanceContract $contract): RedirectResponse
+    {
+        Gate::authorize('update', $contract);
+
+        $validated = $request->validate([
+            'start_date' => 'required|date',
+            'monitor_enabled' => 'boolean',
+        ], ['start_date.required' => 'Bitte gib an, wann die Seite live gegangen ist.']);
+
+        if (! $contract->isPending()) {
+            return back()->with('error', 'Dieser Vertrag läuft bereits.');
+        }
+
+        $invoice = $contract->firstYearInvoice();
+        $contract->start(Carbon::parse($validated['start_date']), $invoice);
+        $contract->update(['monitor_enabled' => $request->boolean('monitor_enabled') && filled($contract->url)]);
+
+        $message = "Wartungsvertrag „{$contract->name}“ läuft ab {$contract->start_date->format('d.m.Y')}. Nächste Rechnung am {$contract->next_invoice_date->format('d.m.Y')}.";
+
+        // Live now: on to the project invoice (with the real period) to send it
+        if ($invoice && $invoice->sent_at === null) {
+            return to_route('invoices.edit', ['invoice' => $invoice, 'send' => 1])->with('success', $message.' Die Rechnung kann jetzt raus.');
+        }
+
+        return back()->with('success', $message);
     }
 
     /**

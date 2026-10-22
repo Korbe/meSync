@@ -2,27 +2,39 @@
 import { confirm } from '@/composables/useConfirm';
 import { computed, ref } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
-import { PhotoIcon, ArrowUpTrayIcon } from '@heroicons/vue/24/outline';
+import { PhotoIcon, PencilIcon, ArrowUpTrayIcon } from '@heroicons/vue/24/outline';
 import VButton from '@/components/VButton.vue';
 
+/*
+ * Upload card for one image of the profile: company logo or signature.
+ */
+
 const props = defineProps({
-    logoUrl: { type: String, default: null },
+    field: { type: String, required: true },          // logo | signature (also the route name part)
+    url: { type: String, default: null },
+    title: { type: String, required: true },
+    hint: { type: String, required: true },
+    noun: { type: String, required: true },           // "Logo", "Unterschrift"
+    removeMessage: { type: String, required: true },
 });
 
+const icons = { logo: PhotoIcon, signature: PencilIcon };
+
 const form = useForm({
-    logo: null,
+    [props.field]: null,
 });
 
 const fileInput = ref(null);
 const preview = ref(null);
 const dragging = ref(false);
 
-const shownLogo = computed(() => preview.value ?? props.logoUrl);
+const shown = computed(() => preview.value ?? props.url);
+const selected = computed(() => form[props.field]);
 
 const select = (file) => {
     if (!file) return;
 
-    form.logo = file;
+    form[props.field] = file;
     form.clearErrors();
     preview.value = URL.createObjectURL(file);
 };
@@ -39,7 +51,7 @@ const reset = () => {
 };
 
 const upload = () => {
-    form.post(route('profile.logo.store'), {
+    form.post(route(`profile.${props.field}.store`), {
         forceFormData: true,
         preserveScroll: true,
         onSuccess: () => reset(),
@@ -48,21 +60,21 @@ const upload = () => {
 
 const remove = async () => {
     if (!(await confirm({
-        title: 'Logo entfernen?',
-        message: 'Das Logo wird gelöscht und erscheint nicht mehr auf neuen Rechnungen.',
-        confirmText: 'Logo entfernen',
+        title: `${props.noun} entfernen?`,
+        message: props.removeMessage,
+        confirmText: `${props.noun} entfernen`,
         variant: 'danger',
     }))) return;
 
-    router.delete(route('profile.logo.destroy'), { preserveScroll: true });
+    router.delete(route(`profile.${props.field}.destroy`), { preserveScroll: true });
 };
 </script>
 
 <template>
     <section class="card overflow-hidden">
         <div class="p-6">
-            <h2 class="card-title"><PhotoIcon class="h-5 w-5 text-primary-500" />Firmenlogo</h2>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Wird später auf deinen Rechnungen verwendet. PNG, JPG oder WebP, max. 2 MB. Am besten mit transparentem Hintergrund.</p>
+            <h2 class="card-title"><component :is="icons[field]" class="h-5 w-5 text-primary-500" />{{ title }}</h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ hint }}</p>
 
             <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
                 <!-- Drop zone -->
@@ -83,17 +95,17 @@ const remove = async () => {
                         <span class="font-semibold text-primary-600 dark:text-primary-300">Datei auswählen</span>
                         <span class="text-gray-500"> oder hierher ziehen</span>
                     </span>
-                    <span v-if="form.logo" class="max-w-full truncate font-mono text-xs text-gray-500">{{ form.logo.name }}</span>
+                    <span v-if="selected" class="max-w-full truncate font-mono text-xs text-gray-500">{{ selected.name }}</span>
                 </label>
 
-                <!-- Preview on white, like on the invoice -->
+                <!-- Preview on white, like in the PDF -->
                 <div class="flex min-h-44 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white p-5 dark:border-white/10">
-                    <img v-if="shownLogo" :src="shownLogo" alt="Logo-Vorschau" class="max-h-28 max-w-full object-contain">
-                    <span v-else class="text-xs text-gray-400">Kein Logo</span>
+                    <img v-if="shown" :src="shown" :alt="`${noun}-Vorschau`" class="max-h-28 max-w-full object-contain">
+                    <span v-else class="text-xs text-gray-400">Kein{{ field === 'logo' ? '' : 'e' }} {{ noun }}</span>
                 </div>
             </div>
 
-            <div v-if="form.errors.logo" class="mt-3 text-xs text-red-500">{{ form.errors.logo }}</div>
+            <div v-if="form.errors[field]" class="mt-3 text-xs text-red-500">{{ form.errors[field] }}</div>
 
             <div v-if="form.progress" class="mt-4 h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-white/10">
                 <div class="h-full rounded-full bg-primary-500 transition-all" :style="{ width: `${form.progress.percentage}%` }"></div>
@@ -101,9 +113,9 @@ const remove = async () => {
         </div>
 
         <div class="flex items-center justify-end gap-3 border-t border-gray-200 bg-gray-50/60 px-6 py-4 dark:border-white/[0.06] dark:bg-white/[0.02]">
-            <VButton v-if="logoUrl && !form.logo" variant="secondary" icon="TrashIcon" @click="remove">Entfernen</VButton>
-            <VButton v-if="form.logo" variant="secondary" @click="reset">Verwerfen</VButton>
-            <VButton :disabled="!form.logo || form.processing" :loading="form.processing" @click="upload">Logo speichern</VButton>
+            <VButton v-if="url && !selected" variant="secondary" icon="TrashIcon" @click="remove">Entfernen</VButton>
+            <VButton v-if="selected" variant="secondary" @click="reset">Verwerfen</VButton>
+            <VButton :disabled="!selected || form.processing" :loading="form.processing" @click="upload">{{ noun }} speichern</VButton>
         </div>
     </section>
 </template>

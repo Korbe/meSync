@@ -20,7 +20,7 @@ const dragging = ref(false);
 
 const modes = [
     { value: 'append', icon: PlusCircleIcon, title: 'Anhängen', text: 'Bestehende Daten bleiben erhalten, das Backup wird dazugefügt. Rechnungen mit bereits vorhandener Nummer werden übersprungen.' },
-    { value: 'replace', icon: ArrowPathIcon, title: 'Alles ersetzen', text: 'Alle Kunden, Verträge, Rechnungen, Katalogartikel, das Inventar, die Finanzen und die Firmendaten werden vorher gelöscht und durch das Backup ersetzt.' },
+    { value: 'replace', icon: ArrowPathIcon, title: 'Alles ersetzen', text: 'Alle Kunden, Verträge, Rechnungen, Angebote, Katalogartikel, das Inventar, die Finanzen und die Firmendaten werden vorher gelöscht und durch das Backup ersetzt.' },
 ];
 
 const select = (file) => {
@@ -41,7 +41,7 @@ const restore = async () => {
 
     if (!(await confirm(replace ? {
         title: 'Alle Daten ersetzen?',
-        message: 'Alle aktuellen Kunden, Verträge, Rechnungen, Katalogartikel, das Inventar, die Finanzen und die Firmendaten werden gelöscht und durch das Backup ersetzt. Das lässt sich nicht rückgängig machen – lade vorher am besten ein aktuelles Backup herunter.',
+        message: 'Alle aktuellen Kunden, Verträge, Rechnungen, Angebote, Katalogartikel, das Inventar, die Finanzen und die Firmendaten werden gelöscht und durch das Backup ersetzt. Das lässt sich nicht rückgängig machen – lade vorher am besten ein aktuelles Backup herunter.',
         confirmText: 'Löschen und wiederherstellen',
         variant: 'danger',
     } : {
@@ -78,6 +78,7 @@ const restore = async () => {
                             { label: 'Kunden', value: counts.customers },
                             { label: 'Verträge', value: counts.maintenance_contracts },
                             { label: 'Rechnungen', value: counts.invoices },
+                            { label: 'Angebote', value: counts.offers },
                             { label: 'Katalogartikel', value: counts.catalog_items },
                             { label: 'Inventar', value: counts.inventory_items },
                             { label: 'Finanzen', value: counts.finance },
@@ -93,7 +94,7 @@ const restore = async () => {
 
                     <p class="mt-4 flex gap-2 text-xs text-gray-500">
                         <InformationCircleIcon class="h-4 w-4 shrink-0" />
-                        Enthalten sind Kunden, Wartungsverträge samt Verrechnungen, Rechnungen mit Positionen und Zahlungen, der Katalog, das Inventar samt Belegen, deine Finanzen (Verträge und Buchungen), deine Firmendaten und dein Logo. Dein Benutzerkonto und Passwort sind nicht enthalten.
+                        Enthalten sind Kunden, Wartungsverträge samt Verrechnungen, Rechnungen mit Positionen und Zahlungen, Angebote, der Katalog, das Inventar samt Belegen, deine Finanzen (Verträge und Buchungen), deine Firmendaten und dein Logo. Dein Benutzerkonto und Passwort sind nicht enthalten.
                     </p>
                 </div>
             </section>

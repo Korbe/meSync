@@ -30,7 +30,15 @@ class Backup
         $contractIds = DB::table('maintenance_contracts')->where('user_id', $user->id)->pluck('id');
         $invoiceIds = DB::table('invoices')->where('user_id', $user->id)->pluck('id');
 
-        $logo = $user->getFirstMedia('logo');
+        $image = function (string $collection) use ($user) {
+            $media = $user->getFirstMedia($collection);
+
+            return $media && is_file($media->getPath()) ? [
+                'file_name' => $media->file_name,
+                'mime_type' => $media->mime_type,
+                'content' => base64_encode(file_get_contents($media->getPath())),
+            ] : null;
+        };
 
         return [
             'format' => self::FORMAT,
@@ -51,12 +59,11 @@ class Backup
                 'recurring_payments' => $this->rows('recurring_payments', 'recurring_expense_id', DB::table('recurring_expenses')->where('user_id', $user->id)->pluck('id')),
                 'finance_entries' => $this->rows('finance_entries', 'user_id', [$user->id]),
                 'time_sessions' => $this->rows('time_sessions', 'user_id', [$user->id]),
+                'offers' => $this->rows('offers', 'user_id', [$user->id]),
+                'offer_items' => $this->rows('offer_items', 'offer_id', DB::table('offers')->where('user_id', $user->id)->pluck('id')),
             ],
-            'logo' => $logo && is_file($logo->getPath()) ? [
-                'file_name' => $logo->file_name,
-                'mime_type' => $logo->mime_type,
-                'content' => base64_encode(file_get_contents($logo->getPath())),
-            ] : null,
+            'logo' => $image('logo'),
+            'signature' => $image('signature'),
             'invoice_originals' => $user->invoices()->whereHas('media')->with('media')->get()
                 ->map(fn (Invoice $invoice) => [$invoice, $invoice->getFirstMedia('original')])
                 ->filter(fn ($pair) => $pair[1] && is_file($pair[1]->getPath()))
@@ -100,7 +107,7 @@ class Backup
         $this->validate($backup);
 
         // Older backups don't know the inventory and finances yet
-        $data = $backup['data'] + ['inventory_items' => [], 'recurring_expenses' => [], 'recurring_payments' => [], 'finance_entries' => [], 'time_sessions' => []];
+        $data = $backup['data'] + ['inventory_items' => [], 'recurring_expenses' => [], 'recurring_payments' => [], 'finance_entries' => [], 'time_sessions' => [], 'offers' => [], 'offer_items' => []];
         $imported = array_fill_keys(array_keys($data), 0);
         $skippedInvoices = [];
 
@@ -224,6 +231,30 @@ class Backup
                 $imported['time_sessions']++;
             }
 
+            // Offers: customer, contract and invoice by their new IDs. Numbers are unique like
+            // invoice numbers, so an offer whose number exists is skipped.
+            $offers = [];
+            foreach ($data['offers'] as $row) {
+                if (DB::table('offers')->where('user_id', $user->id)->where('number', $row['number'])->exists()) {
+                    continue;
+                }
+
+                $offers[$row['id']] = $this->insert('offers', $row, [
+                    'user_id' => $user->id,
+                    'customer_id' => $customers[$row['customer_id'] ?? null] ?? null,
+                    'maintenance_contract_id' => $contracts[$row['maintenance_contract_id'] ?? null] ?? null,
+                    'invoice_id' => $invoices[$row['invoice_id'] ?? null] ?? null,
+                ]);
+                $imported['offers']++;
+            }
+
+            foreach ($data['offer_items'] as $row) {
+                if (isset($offers[$row['offer_id']])) {
+                    $this->insert('offer_items', $row, ['offer_id' => $offers[$row['offer_id']]]);
+                    $imported['offer_items']++;
+                }
+            }
+
             foreach ($data['maintenance_invoices'] as $row) {
                 if (isset($contracts[$row['maintenance_contract_id']])) {
                     $this->insert('maintenance_invoices', $row, [
@@ -235,7 +266,8 @@ class Backup
             }
         });
 
-        $this->restoreLogo($user, $backup['logo'] ?? null, $replace);
+        $this->restoreImage($user, 'logo', $backup['logo'] ?? null, $replace);
+        $this->restoreImage($user, 'signature', $backup['signature'] ?? null, $replace);
         $this->restoreReceipts($backup['receipts'] ?? [], $inventory);
         $this->restoreInvoiceOriginals($backup['invoice_originals'] ?? [], $restoredInvoices);
 
@@ -278,6 +310,7 @@ class Backup
         DB::table('recurring_expenses')->where('user_id', $user->id)->delete();
         DB::table('finance_entries')->where('user_id', $user->id)->delete();
         DB::table('time_sessions')->where('user_id', $user->id)->delete();
+        DB::table('offers')->where('user_id', $user->id)->delete();
 
         // Through the models, so the receipt files are deleted too
         $user->inventoryItems()->get()->each->delete();
@@ -365,23 +398,28 @@ class Backup
     /**
      * @param  array<string, string>|null  $logo
      */
-    private function restoreLogo(User $user, ?array $logo, bool $replace): void
+    /**
+     * Logo or signature of the user.
+     *
+     * @param  array<string, string>|null  $image
+     */
+    private function restoreImage(User $user, string $collection, ?array $image, bool $replace): void
     {
-        if ($replace && ! $logo) {
-            $user->clearMediaCollection('logo');
+        if ($replace && ! $image) {
+            $user->clearMediaCollection($collection);
 
             return;
         }
 
-        if (! $logo || (! $replace && $user->getFirstMedia('logo'))) {
+        if (! $image || (! $replace && $user->getFirstMedia($collection))) {
             return;
         }
 
-        // The data is already restored at this point, a broken logo must not fail the whole restore
+        // The data is already restored at this point, a broken image must not fail the whole restore
         try {
-            $user->addMediaFromBase64($logo['content'])
-                ->usingFileName(basename($logo['file_name'] ?? 'logo.png'))
-                ->toMediaCollection('logo');
+            $user->addMediaFromBase64($image['content'])
+                ->usingFileName(basename($image['file_name'] ?? "{$collection}.png"))
+                ->toMediaCollection($collection);
         } catch (\Throwable $e) {
             report($e);
         }

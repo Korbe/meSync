@@ -45,6 +45,9 @@ const form = useForm({
     monitor_auth_password: '',   // never sent to the browser; empty = keep the stored one
 });
 
+// From an offer, waiting for the go-live: dates and monitoring are set when it is started
+const pending = computed(() => props.contract?.status === 'pending');
+
 // Password protected website (htpasswd)
 const protectedSite = ref(form.monitor_auth !== 'none');
 watch(protectedSite, (value) => form.monitor_auth = value ? (form.monitor_auth === 'none' ? 'basic' : form.monitor_auth) : 'none');
@@ -130,7 +133,10 @@ const submit = () => {
                         <VUrlInput id="url" label="Website" placeholder="musterfirma.at" v-model="form.url" :error="form.errors.url" />
                     </div>
 
-                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-3.5 dark:border-white/10">
+                    <p v-if="pending" class="rounded-xl border border-dashed border-gray-200 p-3.5 text-xs text-gray-500 dark:border-white/10">
+                        Die Überwachung schaltest du beim Start des Vertrags ein, sobald die Seite live ist.
+                    </p>
+                    <label v-else class="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-3.5 dark:border-white/10">
                         <input type="checkbox" v-model="form.monitor_enabled" class="form-checkbox mt-0.5 rounded border-gray-300 text-primary-500 focus:ring-primary-500 dark:border-white/20 dark:bg-white/5">
                         <span>
                             <span class="block text-sm font-medium text-gray-900 dark:text-gray-100">Website überwachen</span>
@@ -139,7 +145,7 @@ const submit = () => {
                     </label>
 
                     <!-- htpasswd / HTTP Basic Auth -->
-                    <div v-if="form.monitor_enabled && form.url" class="rounded-xl border border-gray-200 p-3.5 dark:border-white/10">
+                    <div v-if="form.monitor_enabled && form.url && !pending" class="rounded-xl border border-gray-200 p-3.5 dark:border-white/10">
                         <label class="flex cursor-pointer items-start gap-3">
                             <input type="checkbox" v-model="protectedSite" class="form-checkbox mt-0.5 rounded border-gray-300 text-primary-500 focus:ring-primary-500 dark:border-white/20 dark:bg-white/5">
                             <span>
@@ -187,9 +193,12 @@ const submit = () => {
                 <h2 class="card-title"><CalendarDaysIcon class="h-5 w-5 text-primary-500" />Laufzeit &amp; Verrechnung</h2>
 
                 <div class="mt-5 space-y-4">
-                    <VInput id="start_date" type="date" label="Vertragsbeginn" v-model="form.start_date" :error="form.errors.start_date" />
+                    <p v-if="pending" class="rounded-xl bg-accent/[0.08] px-3.5 py-3 text-sm text-gray-700 ring-1 ring-accent/30 ring-inset dark:text-gray-300">
+                        Beginnt mit dem Go-Live. Das erste Jahr ist mit der Projektrechnung verrechnet, die nächste Rechnung wird ein Jahr nach dem Start fällig.
+                    </p>
+                    <VInput v-if="!pending" id="start_date" type="date" label="Vertragsbeginn" v-model="form.start_date" :error="form.errors.start_date" />
 
-                    <div>
+                    <div v-if="!pending">
                         <VInput id="next_invoice_date" type="date" label="Nächste Rechnung fällig am"
                             v-model="form.next_invoice_date" @input="nextInvoiceTouched = true" :error="form.errors.next_invoice_date" />
                         <p class="mt-1 text-xs text-gray-500">

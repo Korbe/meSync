@@ -2,7 +2,7 @@
 import { confirm } from '@/composables/useConfirm';
 import { computed } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
-import { BanknotesIcon, ClockIcon, ArrowUturnLeftIcon, CheckCircleIcon, DocumentArrowDownIcon } from '@heroicons/vue/24/outline';
+import { BanknotesIcon, ClockIcon, ArrowUturnLeftIcon, CheckCircleIcon, DocumentArrowDownIcon, RocketLaunchIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import VInput from '@/components/VInput.vue';
@@ -22,7 +22,15 @@ const invoiceForm = useForm({
     invoice_number: '',
 });
 
+// Go-live: start the contract (waiting since the invoice of its offer)
+const startForm = useForm({
+    start_date: today(),
+    monitor_enabled: !!props.contract.url,
+});
+const start = () => startForm.post(route('contracts.start', props.contract.id), { preserveScroll: true });
+
 const periodEnd = computed(() => {
+    if (!props.contract.next_invoice_date) return null;
     const end = toDate(props.contract.next_invoice_date);
     end.setFullYear(end.getFullYear() + 1);
     end.setDate(end.getDate() - 1);
@@ -83,9 +91,26 @@ const dueClass = computed(() => ({
                     :class="contract.status === 'overdue' ? 'bg-red-500/20' : contract.status === 'due_today' ? 'bg-accent/30' : 'bg-primary-500/20'" aria-hidden="true"></div>
 
                 <div class="relative">
-                    <h2 class="card-title"><BanknotesIcon class="h-5 w-5 text-primary-500" />Nächste Rechnung</h2>
+                    <template v-if="contract.status === 'pending'">
+                        <h2 class="card-title"><RocketLaunchIcon class="h-5 w-5 text-accent" />Wartet auf Go-Live</h2>
+                        <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                            Der Vertrag beginnt, sobald die Seite live ist. Das erste Jahr ({{ formatMoney(contract.annual_price) }}) ist mit der Projektrechnung bereits verrechnet –
+                            die nächste Rechnung wird ein Jahr nach dem Start fällig.
+                        </p>
+                        <form @submit.prevent="start" class="mt-5 flex flex-wrap items-end gap-4 border-t border-gray-200 pt-5 dark:border-white/[0.08]">
+                            <VInput id="start_date_live" type="date" label="Live seit" v-model="startForm.start_date" :error="startForm.errors.start_date" />
+                            <label v-if="contract.url" class="flex cursor-pointer items-center gap-2 pb-2.5 text-sm text-gray-700 dark:text-gray-300">
+                                <input type="checkbox" v-model="startForm.monitor_enabled" class="form-checkbox rounded text-primary-500">
+                                Website ab jetzt überwachen
+                            </label>
+                            <VButton type="submit" icon="PlayIcon" :loading="startForm.processing" :disabled="startForm.processing">Vertrag starten</VButton>
+                        </form>
+                    </template>
 
-                    <template v-if="contract.status !== 'ended'">
+                    <h2 v-else class="card-title"><BanknotesIcon class="h-5 w-5 text-primary-500" />Nächste Rechnung</h2>
+
+                    <template v-if="contract.status === 'pending'"></template>
+                    <template v-else-if="contract.status !== 'ended'">
                         <div class="mt-5 flex flex-wrap items-end justify-between gap-6">
                             <div>
                                 <div class="font-display text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
@@ -148,7 +173,7 @@ const dueClass = computed(() => ({
             </section>
         </div>
 
-        <MonitorCard :contract="contract" class="mb-6" />
+        <MonitorCard v-if="contract.status !== 'pending'" :contract="contract" class="mb-6" />
 
         <ContractForm :contract="contract" :customers="customers" :types="types" />
     </Layout>

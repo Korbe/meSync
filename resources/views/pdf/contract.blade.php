@@ -13,7 +13,8 @@
 
     $ended = $contract->end_date && $contract->end_date->isPast();
     $billable = $contract->isBillable();
-    $nextPeriodEnd = $contract->next_invoice_date->copy()->addYear()->subDay();
+    $pending = $contract->isPending();   // waits for the go-live: no dates yet
+    $nextPeriodEnd = $contract->next_invoice_date?->copy()->addYear()->subDay();
     $url = $contract->url ? preg_replace('#^https?://#', '', rtrim($contract->url, '/')) : null;
 
     if ($contract->monitor_enabled && $contract->url) {
@@ -221,7 +222,7 @@
                 <span class="issuer-name-fallback">{{ $issuer['name'] }}</span>
             @endif
             <br>
-            <span class="status{{ $ended ? ' ended' : '' }}">{{ $ended ? 'BEENDET' : 'AKTIVER VERTRAG' }}</span>
+            <span class="status{{ $ended ? ' ended' : '' }}">{{ $ended ? 'BEENDET' : ($pending ? 'WARTET AUF GO-LIVE' : 'AKTIVER VERTRAG') }}</span>
         </td>
     </tr>
 </table>
@@ -234,7 +235,7 @@
     <tr>
         <td class="first">
             <div class="label">Vertragsbeginn</div>
-            <div class="value">{{ $date($contract->start_date) }}</div>
+            <div class="value">{{ $pending ? 'Mit Go-Live' : $date($contract->start_date) }}</div>
         </td>
         <td>
             <div class="label">Laufzeit</div>
@@ -289,7 +290,9 @@
                 @if ($period)
                     Zuletzt verrechnet: {{ $date($period->period_start) }} – {{ $date($period->period_end) }}@if ($period->invoice_number) (Rechnung {{ $period->invoice_number }})@endif.<br>
                 @endif
-                @if ($ended)
+                @if ($pending)
+                    Der Vertrag beginnt, sobald die Seite live ist. Das erste Jahr ist mit der Projektrechnung bereits verrechnet.
+                @elseif ($ended)
                     Der Vertrag endete am {{ $date($contract->end_date) }}.
                 @elseif ($billable)
                     Nächste Verrechnung am <strong>{{ $date($contract->next_invoice_date) }}</strong> für {{ $date($contract->next_invoice_date) }} – {{ $date($contract->end_date && $contract->end_date->lt($nextPeriodEnd) ? $contract->end_date : $nextPeriodEnd) }}.

@@ -214,7 +214,8 @@ const edit = (contract) => router.visit(route('contracts.edit', contract.id));
                                 <div class="text-xs text-gray-500">{{ formatMoney(contract.monthly_price) }} / Monat</div>
                             </td>
                             <td class="px-5 py-3.5">
-                                <template v-if="contract.status !== 'ended'">
+                                <div v-if="contract.status === 'pending'" class="text-xs text-gray-500">startet mit dem Go-Live</div>
+                                <template v-else-if="contract.status !== 'ended'">
                                     <div class="font-medium text-gray-900 dark:text-gray-100">{{ formatDate(contract.next_invoice_date) }}</div>
                                     <div class="text-xs font-medium" :class="dueTextClass(contract)">{{ relativeDays(contract.next_invoice_date) }}</div>
                                 </template>
@@ -254,7 +255,8 @@ const edit = (contract) => router.visit(route('contracts.edit', contract.id));
                         <StatusBadge :status="contract.status" />
                     </div>
                     <div class="mt-3 flex items-end justify-between text-sm">
-                        <div v-if="contract.status !== 'ended'">
+                        <div v-if="contract.status === 'pending'" class="text-xs text-gray-500">Startet mit dem Go-Live</div>
+                        <div v-else-if="contract.status !== 'ended'">
                             <div class="text-xs text-gray-500">Nächste Rechnung</div>
                             <div class="font-medium text-gray-900 dark:text-gray-100">{{ formatDate(contract.next_invoice_date) }}
                                 <span class="text-xs" :class="dueTextClass(contract)">({{ relativeDays(contract.next_invoice_date) }})</span>

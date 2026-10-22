@@ -1,16 +1,18 @@
 <script setup>
 import { computed } from 'vue';
-import { EnvelopeIcon, PhoneIcon, MapPinIcon, ReceiptPercentIcon, BanknotesIcon, ClockIcon, WrenchScrewdriverIcon, DocumentTextIcon, ChatBubbleBottomCenterTextIcon, GlobeAltIcon, CommandLineIcon } from '@heroicons/vue/24/outline';
+import { EnvelopeIcon, PhoneIcon, MapPinIcon, ReceiptPercentIcon, BanknotesIcon, ClockIcon, WrenchScrewdriverIcon, DocumentTextIcon, ChatBubbleBottomCenterTextIcon, ClipboardDocumentListIcon, GlobeAltIcon, CommandLineIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import StatusBadge from '@/Pages/MaintenanceContracts/StatusBadge.vue';
 import PaymentStatusBadge from '@/Pages/Invoices/PaymentStatusBadge.vue';
+import OfferStatusBadge from '@/Pages/Offers/OfferStatusBadge.vue';
 import { formatDate, formatMoney, relativeDays } from '@/utils/format';
 
 const props = defineProps({
     customer: Object,
     contracts: Array,
     invoices: Array,
+    offers: Array,
     interests: Array,
     stats: Object,
 });
@@ -35,6 +37,7 @@ const typeIcons = { website: GlobeAltIcon, webapp: CommandLineIcon };
     <Layout :title="customer.display_name" :backTo="route('customers.index')">
         <template v-slot:actions>
             <VButton :href="route('invoices.create', { customer: customer.id })" icon="DocumentTextIcon">Rechnung</VButton>
+            <VButton :href="route('offers.create', { customer: customer.id })" variant="secondary" icon="ClipboardDocumentListIcon">Angebot</VButton>
             <VButton :href="route('contracts.create', { customer: customer.id })" variant="secondary" icon="WrenchScrewdriverIcon">Wartungsvertrag</VButton>
             <VButton variant="secondary" icon="DevicePhoneMobileIcon" title="Als Kontakt ins Handy übernehmen (vCard)" @click="saveToPhone">Ins Handy</VButton>
             <VButton :href="route('customers.edit', customer.id)" variant="secondary" icon="PencilSquareIcon">Bearbeiten</VButton>
@@ -137,7 +140,8 @@ const typeIcons = { website: GlobeAltIcon, webapp: CommandLineIcon };
                                 <div class="min-w-0 flex-1">
                                     <div class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ contract.name }}</div>
                                     <div class="text-xs text-gray-500">
-                                        <template v-if="contract.status !== 'ended'">nächste Rechnung {{ formatDate(contract.next_invoice_date) }} ({{ relativeDays(contract.next_invoice_date) }})</template>
+                                        <template v-if="contract.status === 'pending'">startet mit dem Go-Live</template>
+                                        <template v-else-if="contract.status !== 'ended'">nächste Rechnung {{ formatDate(contract.next_invoice_date) }} ({{ relativeDays(contract.next_invoice_date) }})</template>
                                         <template v-else>beendet {{ formatDate(contract.end_date) }}</template>
                                     </div>
                                 </div>
@@ -147,6 +151,27 @@ const typeIcons = { website: GlobeAltIcon, webapp: CommandLineIcon };
                     </ul>
                 </section>
             </div>
+
+            <!-- Offers -->
+            <section v-if="offers.length" class="card overflow-hidden">
+                <div class="p-6 pb-3">
+                    <h2 class="card-title"><ClipboardDocumentListIcon class="h-5 w-5 text-primary-500" />Angebote</h2>
+                </div>
+                <ul class="divide-y divide-gray-100 dark:divide-white/[0.06]">
+                    <li v-for="offer in offers" :key="offer.id">
+                        <Link :href="route('offers.edit', offer.id)" class="flex items-center gap-3 px-6 py-3 transition hover:bg-primary-500/[0.04]">
+                            <div class="min-w-0 flex-1">
+                                <div class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ offer.title }}</div>
+                                <div class="text-xs text-gray-500"><span class="font-mono">{{ offer.number }}</span> · {{ formatDate(offer.offer_date) }} · {{ offer.type_label }}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ formatMoney(offer.total) }}</div>
+                                <OfferStatusBadge :status="offer.status" class="mt-1" />
+                            </div>
+                        </Link>
+                    </li>
+                </ul>
+            </section>
 
             <!-- Notes -->
             <section v-if="customer.notes" class="card p-6">

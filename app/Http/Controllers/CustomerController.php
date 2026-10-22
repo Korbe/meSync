@@ -93,6 +93,7 @@ class CustomerController extends Controller
             'customer' => $customer,
             'contracts' => $customer->maintenanceContracts()->orderBy('next_invoice_date')->get(),
             'invoices' => $invoices,
+            'offers' => $customer->offers()->with('items')->latest('offer_date')->latest('id')->get(),
             'interests' => CustomerInterest::options(),
             'stats' => [
                 // Cancellations are negative, so cancelled invoices cancel out automatically
