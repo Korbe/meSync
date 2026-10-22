@@ -9,6 +9,7 @@ import TwoFactorAuthenticationForm from '@/Pages/Profile/Partials/TwoFactorAuthe
 import UpdatePasswordForm from '@/Pages/Profile/Partials/UpdatePasswordForm.vue';
 import UpdateProfileInformationForm from '@/Pages/Profile/Partials/UpdateProfileInformationForm.vue';
 import UpdateImageForm from '@/Pages/Profile/Partials/UpdateImageForm.vue';
+import UpdateDocumentsForm from '@/Pages/Profile/Partials/UpdateDocumentsForm.vue';
 import UpdateBusinessProfileForm from '@/Pages/Profile/Partials/UpdateBusinessProfileForm.vue';
 
 defineProps({
@@ -89,6 +90,8 @@ const memberSince = computed(() => new Date(user.value.created_at).toLocaleDateS
             <UpdateImageForm field="signature" :url="$page.props.signatureUrl" title="Unterschrift" noun="Unterschrift"
                 hint="Steht auf deinen Angeboten schon über „Unterschrift Auftragnehmer“. Ein Foto oder Scan auf weißem Papier reicht, PNG mit transparentem Hintergrund sieht am besten aus. Wird privat gespeichert."
                 remove-message="Die Unterschrift wird gelöscht. Angebote zeigen dann wieder nur die leere Linie." />
+
+            <UpdateDocumentsForm :documents="$page.props.documents" />
 
             <TwoFactorAuthenticationForm
                 v-if="$page.props.jetstream.canManageTwoFactorAuthentication"

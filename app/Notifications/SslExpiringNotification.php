@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Models\MaintenanceContract;
+use App\Models\Monitor;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -15,7 +15,7 @@ class SslExpiringNotification extends Notification implements ShouldQueue
 
     public Carbon $checkedAt;
 
-    public function __construct(public MaintenanceContract $contract)
+    public function __construct(public Monitor $monitor)
     {
         $this->checkedAt = now();
     }
@@ -30,14 +30,14 @@ class SslExpiringNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $days = (int) $this->checkedAt->diffInDays($this->contract->ssl_expires_at);
+        $days = (int) $this->checkedAt->diffInDays($this->monitor->ssl_expires_at);
 
         return (new MailMessage)
             ->error()
-            ->subject("🔒 SSL-Zertifikat von {$this->contract->name} läuft in {$days} Tagen ab")
+            ->subject("🔒 SSL-Zertifikat von {$this->monitor->name} läuft in {$days} Tagen ab")
             ->greeting('SSL-Zertifikat läuft ab')
-            ->line("Das SSL-Zertifikat von **{$this->contract->name}** ({$this->contract->url}) läuft am {$this->contract->ssl_expires_at->format('d.m.Y')} ab.")
+            ->line("Das SSL-Zertifikat von **{$this->monitor->name}** ({$this->monitor->url}) läuft am {$this->monitor->ssl_expires_at->format('d.m.Y')} ab.")
             ->line("Let's Encrypt erneuert normalerweise 30 Tage vorher automatisch. Wahrscheinlich ist die automatische Erneuerung fehlgeschlagen.")
-            ->action('Wartungsvertrag öffnen', route('contracts.edit', $this->contract));
+            ->action($this->monitor->maintenance_contract_id ? 'Wartungsvertrag öffnen' : 'Monitoring öffnen', $this->monitor->link());
     }
 }

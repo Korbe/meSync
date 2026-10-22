@@ -68,6 +68,8 @@ const send = () => form.post(props.action, {
 
             <ul class="mt-5 space-y-1.5 rounded-xl bg-gray-50 p-4 text-sm text-gray-600 dark:bg-white/[0.03] dark:text-gray-400">
                 <li class="flex gap-2"><PaperClipIcon class="mt-0.5 h-4 w-4 shrink-0" />{{ label === 'Rechnung' ? 'Die Rechnung' : 'Das ' + label }} hängt als PDF an – genau wie beim Download.</li>
+                <li v-if="mail.attachments?.length" class="flex gap-2"><PaperClipIcon class="mt-0.5 h-4 w-4 shrink-0" />Außerdem im Anhang: {{ mail.attachments.join(' und ') }} (aus dem Profil).</li>
+                <li v-else-if="label === 'Angebot'" class="flex gap-2"><PaperClipIcon class="mt-0.5 h-4 w-4 shrink-0" />Keine AGB oder Datenschutzerklärung hinterlegt – im Profil als PDF hochladen, dann gehen sie mit.</li>
                 <li class="flex gap-2"><InformationCircleIcon class="mt-0.5 h-4 w-4 shrink-0" />
                     <span>Die Mail sagt dem Kunden, dass sie automatisch erstellt wurde. Antworten gehen an <strong class="text-gray-900 dark:text-gray-100">{{ mail.replyTo || '– (im Profil hinterlegen)' }}</strong>.</span>
                 </li>

@@ -7,6 +7,7 @@ use App\Http\Requests\Offer\OfferRequest;
 use App\Jobs\SendOfferEmail;
 use App\Models\Customer;
 use App\Models\Offer;
+use App\Models\User;
 use App\Services\OfferPdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,8 +19,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Offers for websites and web apps. The maintenance is always part of them: the invoice bills
- * the project plus its first year and creates the contract, which starts with the go-live.
+ * Offers for websites and web apps. The maintenance is always part of them: the project invoice
+ * creates the contract, which starts with the go-live and gets its own yearly invoices.
  */
 class OfferController extends Controller
 {
@@ -70,16 +71,18 @@ class OfferController extends Controller
     {
         $user = $request->user();
         $today = today();
-        $type = MaintenanceContractType::Website;
+        $project = $request->integer('project') ? $user->projects()->findOrFail($request->integer('project')) : null;
+        $type = $project?->type ?? MaintenanceContractType::Website;
 
         return Inertia::render('Offers/Create', [
             ...$this->formOptions($request),
             'offer' => [
-                'customer_id' => $request->integer('customer') ?: null,
+                'customer_id' => $project?->customer_id ?? ($request->integer('customer') ?: null),
+                'project_id' => $project?->id ?? 'new',
                 'type' => $type->value,
                 'number' => Offer::nextNumberFor($user, $today->year),
-                'title' => '',
-                'url' => '',
+                'title' => $project?->name ?? '',
+                'url' => $project?->url ?? '',
                 'offer_date' => $today->toDateString(),
                 'valid_until' => $today->copy()->addDays(config('offers.valid_days'))->toDateString(),
                 'tax_rate' => $user->businessProfile->default_tax_rate ?? 20,
@@ -103,6 +106,7 @@ class OfferController extends Controller
     {
         $offer = DB::transaction(function () use ($request) {
             $offer = $request->user()->offers()->create($this->offerAttributes($request));
+            $this->createProjectIfWanted($request, $offer);
             $this->syncItems($offer, $request->validated('items'));
 
             return $offer;
@@ -120,12 +124,14 @@ class OfferController extends Controller
         return Inertia::render('Offers/Update', [
             ...$this->formOptions($request),
             // Complete models: their computed attributes (status, totals) need all columns
-            'offer' => $offer->load(['items', 'maintenanceContract', 'invoice.items', 'invoice.payments']),
+            'offer' => $offer->load(['items', 'maintenanceContract', 'invoice.items', 'invoice.payments', 'project:id,name,completed_at']),
             'mail' => [
                 'to' => $offer->customer?->email ?? '',
                 'subject' => "Angebot {$offer->number}".(filled($sender) ? " von {$sender}" : '')." – {$offer->title}",
                 'replyTo' => $offer->issuer['email'] ?? $request->user()->businessProfile?->email,
                 'demo' => $request->user()->isDemo(),
+                // Terms and privacy policy from the profile go along
+                'attachments' => array_values(array_intersect_key(User::DOCUMENTS, $request->user()->documents())),
             ],
             'locked' => $offer->isLocked(),
             'canReopen' => $offer->canReopen(),
@@ -138,6 +144,7 @@ class OfferController extends Controller
 
         DB::transaction(function () use ($request, $offer) {
             $offer->update($this->offerAttributes($request));
+            $this->createProjectIfWanted($request, $offer);
             $this->syncItems($offer, $request->validated('items'));
         });
 
@@ -268,6 +275,7 @@ class OfferController extends Controller
             'features' => $isWebapp ? array_values($request->validated('features', [])) : [],
             'integrations' => $isWebapp ? array_values($request->validated('integrations', [])) : [],
             'reference_customer' => $request->boolean('reference_customer'),
+            'project_id' => $request->validated('project_id') === 'new' ? null : $request->validated('project_id'),
             'offer_date' => Carbon::parse($request->validated('offer_date')),
             'valid_until' => Carbon::parse($request->validated('valid_until')),
             'recipient' => [
@@ -279,6 +287,25 @@ class OfferController extends Controller
             ],
             'issuer' => $request->user()->businessProfile?->toIssuer() ?? [],
         ];
+    }
+
+    /**
+     * "Neues Projekt anlegen": the project takes customer, type, name and domain from the offer.
+     */
+    private function createProjectIfWanted(OfferRequest $request, Offer $offer): void
+    {
+        if ($request->validated('project_id') !== 'new') {
+            return;
+        }
+
+        $project = $request->user()->projects()->create([
+            'customer_id' => $offer->customer_id,
+            'type' => $offer->type,
+            'name' => $offer->title,
+            'url' => $offer->url,
+        ]);
+
+        $offer->forceFill(['project_id' => $project->id])->save();
     }
 
     /**
@@ -315,6 +342,12 @@ class OfferController extends Controller
                     'label' => $customer->display_name,
                     'recipient' => $customer->toRecipient(),
                 ]),
+            'projects' => $user->projects()->with('customer')->latest()->get()->map(fn ($project) => [
+                'value' => $project->id,
+                'label' => "{$project->name} · {$project->customer->display_name}",
+                ...$project->only(['customer_id', 'name', 'url']),
+                'type' => $project->type->value,
+            ]),
             'catalog' => $user->catalogItems()->where('pricing', '!=', 'time')->orderBy('name')->get(['id', 'name', 'description', 'unit', 'unit_price']),
             'types' => collect(MaintenanceContractType::cases())->map(fn (MaintenanceContractType $type) => [
                 'value' => $type->value,

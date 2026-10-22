@@ -17,7 +17,7 @@
     $nextPeriodEnd = $contract->next_invoice_date?->copy()->addYear()->subDay();
     $url = $contract->url ? preg_replace('#^https?://#', '', rtrim($contract->url, '/')) : null;
 
-    if ($contract->monitor_enabled && $contract->url) {
+    if ($contract->monitor?->enabled && $contract->url) {
         $services[] = 'Laufende Überwachung der Erreichbarkeit und des SSL-Zertifikats';
     }
 @endphp
@@ -291,7 +291,7 @@
                     Zuletzt verrechnet: {{ $date($period->period_start) }} – {{ $date($period->period_end) }}@if ($period->invoice_number) (Rechnung {{ $period->invoice_number }})@endif.<br>
                 @endif
                 @if ($pending)
-                    Der Vertrag beginnt, sobald die Seite live ist. Das erste Jahr ist mit der Projektrechnung bereits verrechnet.
+                    Der Vertrag beginnt, sobald die Seite live ist. Ab dann wird jährlich im Voraus verrechnet.
                 @elseif ($ended)
                     Der Vertrag endete am {{ $date($contract->end_date) }}.
                 @elseif ($billable)

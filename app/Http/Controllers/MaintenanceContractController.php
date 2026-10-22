@@ -6,7 +6,6 @@ use App\Enums\MaintenanceContractType;
 use App\Http\Requests\MaintenanceContract\MaintenanceContractRequest;
 use App\Models\MaintenanceContract;
 use App\Services\ContractPdf;
-use App\Services\SiteMonitor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -21,7 +20,7 @@ class MaintenanceContractController extends Controller
     {
         // A freelancer has few enough contracts to load them all; filtering and stats happen client-side
         $contracts = $request->user()->maintenanceContracts()
-            ->with('customer')
+            ->with(['customer', 'monitor'])
             ->orderBy('next_invoice_date')
             ->get();
 
@@ -41,7 +40,8 @@ class MaintenanceContractController extends Controller
 
     public function store(MaintenanceContractRequest $request): RedirectResponse
     {
-        $request->user()->maintenanceContracts()->create($this->attributes($request));
+        [$attributes, $monitoring] = $this->attributes($request);
+        $request->user()->maintenanceContracts()->create($attributes)->syncMonitor($monitoring);
 
         return to_route('contracts.index')->with('success', 'Wartungsvertrag wurde angelegt.');
     }
@@ -52,7 +52,7 @@ class MaintenanceContractController extends Controller
 
         return Inertia::render('MaintenanceContracts/Update', [
             ...$this->formOptions($request),
-            'contract' => $contract->load(['customer', 'invoices']),
+            'contract' => $contract->load(['customer', 'invoices', 'monitor', 'project:id,completed_at']),
         ]);
     }
 
@@ -60,14 +60,13 @@ class MaintenanceContractController extends Controller
     {
         Gate::authorize('update', $contract);
 
-        $contract->update($this->attributes($request, $contract));
+        [$attributes, $monitoring] = $this->attributes($request, $contract);
+        $contract->update($attributes);
+        $contract->syncMonitor($monitoring);
 
         return to_route('contracts.edit', $contract)->with('success', 'Wartungsvertrag wurde gespeichert.');
     }
 
-    /**
-     * Check the website right now (instead of waiting for the scheduler).
-     */
     /**
      * Information sheet for the customer: who, what, how long, how much.
      */
@@ -78,23 +77,9 @@ class MaintenanceContractController extends Controller
         return $pdf->download($contract);
     }
 
-    public function check(MaintenanceContract $contract, SiteMonitor $monitor): RedirectResponse
-    {
-        Gate::authorize('update', $contract);
-
-        abort_if(blank($contract->url), 422, 'Für diesen Vertrag ist keine URL hinterlegt.');
-
-        $monitor->check($contract->load(['user', 'customer']));
-
-        return back()->with(
-            $contract->monitor_status === 'down' || $contract->monitor_error ? 'error' : 'success',
-            $contract->monitor_error ? "Website nicht erreichbar: {$contract->monitor_error}" : 'Website ist erreichbar.',
-        );
-    }
 
     /**
-     * Go-live: the contract starts on the given date. The first year was billed with the
-     * invoice of the offer, so the next invoice is due a year later.
+     * Go-live: the contract starts on the given date, and its first year is billed right away.
      */
     public function start(Request $request, MaintenanceContract $contract): RedirectResponse
     {
@@ -109,18 +94,12 @@ class MaintenanceContractController extends Controller
             return back()->with('error', 'Dieser Vertrag läuft bereits.');
         }
 
-        $invoice = $contract->firstYearInvoice();
-        $contract->start(Carbon::parse($validated['start_date']), $invoice);
-        $contract->update(['monitor_enabled' => $request->boolean('monitor_enabled') && filled($contract->url)]);
+        $contract->start(Carbon::parse($validated['start_date']));
+        $contract->syncMonitor(['enabled' => $request->boolean('monitor_enabled')]);
 
-        $message = "Wartungsvertrag „{$contract->name}“ läuft ab {$contract->start_date->format('d.m.Y')}. Nächste Rechnung am {$contract->next_invoice_date->format('d.m.Y')}.";
-
-        // Live now: on to the project invoice (with the real period) to send it
-        if ($invoice && $invoice->sent_at === null) {
-            return to_route('invoices.edit', ['invoice' => $invoice, 'send' => 1])->with('success', $message.' Die Rechnung kann jetzt raus.');
-        }
-
-        return back()->with('success', $message);
+        // On to the maintenance invoice for the first 12 months, sent right after saving
+        return to_route('invoices.create', ['contract' => $contract, 'send' => 1])
+            ->with('success', "Wartungsvertrag „{$contract->name}“ läuft ab {$contract->start_date->format('d.m.Y')} – jetzt die Wartungsrechnung erstellen.");
     }
 
     /**
@@ -145,32 +124,27 @@ class MaintenanceContractController extends Controller
     }
 
     /**
-     * @return array<string, mixed>
-     */
-    /**
-     * Validated data with the website protection settled: an empty password field keeps
-     * the stored one, without "basic" no credentials are kept at all.
+     * Contract data and the monitoring settings for its website (see MaintenanceContract::syncMonitor):
+     * an empty password field keeps the stored one, without "basic" no credentials are kept at all.
      *
-     * @return array<string, mixed>
+     * @return array{0: array<string, mixed>, 1: array<string, mixed>}
      */
     private function attributes(MaintenanceContractRequest $request, ?MaintenanceContract $contract = null): array
     {
         $data = $request->validated();
-        $data['monitor_auth'] ??= 'none';
+        $monitoring = [
+            'enabled' => (bool) ($data['monitor_enabled'] ?? $contract?->monitor?->enabled ?? false),
+            'auth' => $data['monitor_auth'] ?? 'none',
+            'auth_user' => $data['monitor_auth_user'] ?? null,
+            'auth_password' => $data['monitor_auth_password'] ?? null,
+        ];
+        $data = array_diff_key($data, array_flip(['monitor_enabled', 'monitor_auth', 'monitor_auth_user', 'monitor_auth_password']));
 
-        if ($data['monitor_auth'] !== 'basic') {
-            return [...$data, 'monitor_auth_user' => null, 'monitor_auth_password' => null];
+        if ($monitoring['auth'] === 'basic' && blank($monitoring['auth_password']) && ! $contract?->monitor?->has_password) {
+            throw ValidationException::withMessages(['monitor_auth_password' => 'Bitte gib das Passwort für den Passwortschutz an.']);
         }
 
-        if (blank($data['monitor_auth_password'] ?? null)) {
-            unset($data['monitor_auth_password']);
-
-            if (! $contract?->has_monitor_password) {
-                throw ValidationException::withMessages(['monitor_auth_password' => 'Bitte gib das Passwort für den Passwortschutz an.']);
-            }
-        }
-
-        return $data;
+        return [$data, $monitoring];
     }
 
     private function formOptions(Request $request): array

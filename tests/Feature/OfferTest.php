@@ -12,6 +12,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -179,27 +180,27 @@ class OfferTest extends TestCase
         $this->assertSame(0, $this->user->maintenanceContracts()->count());
     }
 
-    public function test_invoice_creates_a_contract_that_waits_for_the_go_live(): void
+    public function test_project_invoice_creates_a_contract_that_waits_for_the_go_live(): void
     {
         $offer = $this->offer();
         $this->post(route('offers.accept', $offer));
 
+        // Only the project: the maintenance gets its own invoice once the site is live
         $this->get(route('invoices.create', ['offer' => $offer->id]))
             ->assertInertia(fn (Assert $page) => $page
                 ->where('invoice.offer_id', $offer->id)
                 ->where('offer.number', 'A-2026-001')
-                ->has('invoice.items', 2)
-                ->where('invoice.items.1.unit_price', 468)
-                ->where('invoice.items.1.description', "Webanwendung Wartung & Betreuung – Web-App Duschking\nZeitraum: 12 Monate ab Go-Live\nDer Wartungsvertrag beginnt, sobald die Seite live ist."));
+                ->has('invoice.items', 1)
+                ->where('invoice.items.0.unit_price', '3500.00'));
 
         $invoice = $this->billOffer($offer);
         $offer->refresh();
         $contract = $offer->maintenanceContract;
 
         $this->assertSame($invoice->id, $offer->invoice_id);
-        $this->assertSame($contract->id, $invoice->maintenance_contract_id);
+        $this->assertNull($invoice->maintenance_contract_id);
         $this->assertSame('pending', $contract->status);
-        $this->assertFalse($contract->monitor_enabled);
+        $this->assertNull($contract->monitor);   // not live yet: nothing to monitor
         $this->assertSame('Web-App Duschking', $contract->name);
         $this->assertSame('39.00', $contract->monthly_price);
         $this->assertFalse($offer->canReopen());
@@ -213,32 +214,40 @@ class OfferTest extends TestCase
         $this->get(route('dashboard'))->assertOk();
     }
 
-    public function test_starting_the_contract_fills_in_the_period_and_opens_sending_the_invoice(): void
+    public function test_go_live_starts_the_contract_and_bills_the_first_maintenance_year(): void
     {
         $offer = $this->offer();
         $this->post(route('offers.accept', $offer));
-        $invoice = $this->billOffer($offer);
+        $this->billOffer($offer);
         $contract = $offer->fresh()->maintenanceContract;
 
         $this->post(route('contracts.start', $contract), ['start_date' => '2026-12-01', 'monitor_enabled' => true])
-            ->assertRedirect(route('invoices.edit', ['invoice' => $invoice, 'send' => 1]));
+            ->assertRedirect(route('invoices.create', ['contract' => $contract, 'send' => 1]));
 
         $contract->refresh();
         $this->assertSame('2026-12-01', $contract->start_date->toDateString());
-        // The first year is paid with the project invoice: next one a year after the go-live
-        $this->assertSame('2027-12-01', $contract->next_invoice_date->toDateString());
-        $this->assertSame($invoice->id, $contract->invoices()->first()->invoice_id);
-        $this->assertTrue($contract->monitor_enabled);
-        $this->assertSame(
-            "Webanwendung Wartung & Betreuung – Web-App Duschking\nZeitraum: 01.12.2026 – 30.11.2027",
-            $invoice->items()->get()->last()->description,
-        );
+        $this->assertSame('2026-12-01', $contract->next_invoice_date->toDateString());
+        $this->assertTrue($contract->monitor->enabled);
+        $this->assertSame('https://duschking.at', $contract->monitor->url);
 
-        $this->get(route('invoices.edit', ['invoice' => $invoice, 'send' => 1]))
-            ->assertInertia(fn (Assert $page) => $page->where('openSend', true));
+        // Maintenance invoice for 12 months from the go-live, sent right after saving
+        $this->get(route('invoices.create', ['contract' => $contract, 'send' => 1]))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('sendAfterSave', true)
+                ->where('invoice.maintenance_contract_id', $contract->id)
+                ->where('invoice.items.0.unit_price', 468)
+                ->where('invoice.items.0.description', "Webanwendung Wartung & Betreuung – Web-App Duschking\nZeitraum: 01.12.2026 – 30.11.2027"));
+
+        $this->post(route('invoices.store'), [
+            'customer_id' => $this->customer->id, 'number' => '2026-101', 'invoice_date' => '2026-12-01', 'due_date' => '2026-12-15',
+            'tax_rate' => 20, 'paid_amount' => 0, 'maintenance_contract_id' => $contract->id, 'send_after_save' => true,
+            'items' => [['description' => 'Wartung', 'quantity' => 1, 'unit_price' => 468]],
+        ])->assertRedirect(route('invoices.edit', ['invoice' => $this->user->invoices()->latest('id')->first(), 'send' => 1]));
+
+        $this->assertSame('2027-12-01', $contract->fresh()->next_invoice_date->toDateString());
     }
 
-    public function test_deleting_the_invoice_drops_the_waiting_contract(): void
+    public function test_deleting_the_project_invoice_drops_the_waiting_contract(): void
     {
         $offer = $this->offer();
         $this->post(route('offers.accept', $offer));
@@ -249,6 +258,28 @@ class OfferTest extends TestCase
         $this->assertSame(0, $this->user->maintenanceContracts()->count());
         $this->assertNull($offer->fresh()->invoice_id);
         $this->assertTrue($offer->fresh()->canReopen());
+    }
+
+    public function test_terms_and_privacy_policy_go_along_with_the_offer_mail(): void
+    {
+        Storage::fake('local');
+        $pdf = fn (string $name) => UploadedFile::fake()->createWithContent($name, "%PDF-1.4\n%%EOF");
+
+        $this->actingAs($this->user)->post(route('profile.documents.store', 'terms'), ['file' => $pdf('agb.pdf')])->assertSessionHasNoErrors();
+        $this->post(route('profile.documents.store', 'privacy'), ['file' => $pdf('datenschutz.pdf')])->assertSessionHasNoErrors();
+        $this->assertSame('local', $this->user->fresh()->getFirstMedia('terms')->disk);
+        $this->get(route('profile.documents.show', 'terms'))->assertOk();
+
+        $offer = $this->offer();
+        $this->get(route('offers.edit', $offer))->assertInertia(fn (Assert $page) => $page->where('mail.attachments', ['AGB', 'Datenschutzerklärung']));
+
+        $mail = new OfferMail($offer->fresh(), 'Angebot');
+        $names = collect($mail->attachments())->map(fn ($attachment) => $attachment->as)->all();
+        $this->assertSame([$offer->fileName(), 'AGB.pdf', 'Datenschutzerklärung.pdf'], $names);
+        $this->assertStringContainsString('Im Anhang finden Sie außerdem: AGB und Datenschutzerklärung.', $mail->render());
+
+        $this->delete(route('profile.documents.destroy', 'privacy'));
+        $this->assertCount(2, (new OfferMail($offer->fresh(), 'Angebot'))->attachments());
     }
 
     public function test_list_filters_by_status(): void

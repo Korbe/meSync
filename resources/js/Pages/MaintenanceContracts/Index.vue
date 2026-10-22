@@ -203,7 +203,7 @@ const edit = (contract) => router.visit(route('contracts.edit', contract.id));
                                     <div class="min-w-0">
                                         <div class="flex items-center gap-2 font-medium text-gray-900 dark:text-gray-100">
                                             <span class="truncate">{{ contract.name }}</span>
-                                            <SiteStatusDot :contract="contract" />
+                                            <SiteStatusDot :site="contract.monitor" />
                                         </div>
                                         <div class="truncate text-xs text-gray-500">{{ contract.customer.display_name }} · {{ contract.type_label }}</div>
                                     </div>
@@ -234,7 +234,7 @@ const edit = (contract) => router.visit(route('contracts.edit', contract.id));
                                     @click.stop="markInvoiced(contract)">
                                     <CheckIcon class="h-4 w-4" />Verrechnet
                                 </button>
-                                <a :href="route('contracts.pdf', contract.id)" class="ml-1 inline-flex rounded-lg p-2 align-middle text-gray-500 transition hover:bg-primary-500/10 hover:text-primary-600 dark:hover:text-primary-300"
+                                <a :href="route('contracts.pdf', contract.id)" target="_blank" rel="noopener\" class="ml-1 inline-flex rounded-lg p-2 align-middle text-gray-500 transition hover:bg-primary-500/10 hover:text-primary-600 dark:hover:text-primary-300"
                                     title="Vertragsinformation als PDF" @click.stop>
                                     <DocumentArrowDownIcon class="h-4 w-4" />
                                 </a>

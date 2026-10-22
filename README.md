@@ -20,7 +20,7 @@ Die Oberfläche ist komplett auf Deutsch, im dunklen Glas-Look von korbitsch.at 
 
 ## Technologien
 
-- **Backend:** [Laravel 13](https://laravel.com) (PHP 8.3) mit Jetstream und Fortify für Login, E-Mail-Bestätigung und Zwei-Faktor-Anmeldung. Die Registrierung ist deaktiviert.
+- **Backend:** [Laravel 13](https://laravel.com) (PHP 8.5) mit Jetstream und Fortify für Login, E-Mail-Bestätigung und Zwei-Faktor-Anmeldung. Die Registrierung ist deaktiviert.
 - **Frontend:** [Vue 3](https://vuejs.org) über [Inertia 3](https://inertiajs.com) (ohne SSR), gebaut mit [Vite 8](https://vite.dev).
 - **Styling:** [Tailwind CSS 4](https://tailwindcss.com) (CSS-first-Konfiguration in `resources/css/style.css`), Heroicons, Schrift Bricolage Grotesque.
 - **Datenbank:** MySQL 8 bzw. MariaDB (Tests laufen auf SQLite im Speicher).
@@ -39,7 +39,7 @@ Diese Anleitung beschreibt einen Linux-Server (z. B. Ubuntu 24.04) mit nginx, PH
 
 | Was | Version / Hinweis |
 |---|---|
-| PHP | **8.3** oder neuer, mit FPM |
+| PHP | **8.5** (Ubuntu 26.04), mit FPM (Erweiterungen: mysql, mbstring, xml, curl, zip, gd, intl) |
 | PHP-Erweiterungen | `bcmath`, `ctype`, `curl`, `dom`, `fileinfo`, `gd`, `intl`, `mbstring`, `openssl`, `pdo_mysql`, `tokenizer`, `xml`, `zip` |
 | Datenbank | MySQL 8 oder MariaDB 10.6+ |
 | Composer | 2.x |
@@ -161,7 +161,7 @@ server {
 
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+        fastcgi_pass unix:/run/php/php8.5-fpm.sock;
         fastcgi_read_timeout 120;
     }
 
@@ -177,7 +177,7 @@ server {
 
 ### 7. PHP-Einstellungen
 
-In der `php.ini` von PHP-FPM (z. B. `/etc/php/8.3/fpm/php.ini`):
+In der `php.ini` von PHP-FPM (z. B. `/etc/php/8.5/fpm/php.ini`):
 
 ```ini
 upload_max_filesize = 100M   ; Backup-Datei einspielen
@@ -186,7 +186,7 @@ memory_limit = 256M          ; PDFs und ZIP-Export
 max_execution_time = 120     ; ZIP mit vielen Rechnungs-PDFs
 ```
 
-Danach `sudo systemctl reload php8.3-fpm`.
+Danach `sudo systemctl reload php8.5-fpm`.
 
 ### 8. Cronjob (wichtig!)
 
@@ -281,7 +281,7 @@ dep deploy
 Damit der Benutzer `deployer` PHP-FPM neu laden darf, einmalig mit `sudo visudo -f /etc/sudoers.d/deployer`:
 
 ```
-deployer ALL=(root) NOPASSWD: /usr/bin/systemctl reload php8.3-fpm
+deployer ALL=(root) NOPASSWD: /usr/bin/systemctl reload php8.5-fpm
 ```
 
 Die PHP-Version steht in `deploy.php` unter `php_fpm_service` – muss zu der am Server passen.

@@ -18,6 +18,8 @@ const props = defineProps({
     profileComplete: { type: Boolean, default: true },
     contract: { type: Object, default: null },
     offer: { type: Object, default: null },
+    project: { type: Object, default: null },
+    sendAfterSave: { type: Boolean, default: false },
     isEdit: { type: Boolean, default: false },
     readonly: { type: Boolean, default: false },
     catalog: { type: Array, default: () => [] },
@@ -31,15 +33,18 @@ const parseNumber = (value) => Number(String(value ?? '').replace(',', '.')) || 
 const form = useForm({
     customer_id: props.invoice.customer_id ?? '',
     maintenance_contract_id: props.invoice.maintenance_contract_id ?? null,
+    project_id: props.invoice.project_id ?? null,
     number: props.invoice.number ?? '',
     invoice_date: props.invoice.invoice_date ?? '',
     due_date: props.invoice.due_date ?? '',
     tax_rate: toFormNumber(props.invoice.tax_rate),
+    prices_include_tax: !!props.invoice.prices_include_tax,
     paid_amount: toFormNumber(props.invoice.paid_amount),
     notes: props.invoice.notes ?? '',
     paid_in_cash: false,
     time_session_ids: props.invoice.time_session_ids ?? [],
     offer_id: props.invoice.offer_id ?? null,
+    send_after_save: props.sendAfterSave,
     items: props.invoice.items.map(item => ({
         description: item.description ?? '',
         quantity: toFormNumber(item.quantity),
@@ -125,9 +130,33 @@ const insertTimeEntry = () => {
 };
 
 const lineTotal = (item) => Math.round(parseNumber(item.quantity) * parseNumber(item.unit_price) * 100) / 100;
-const subtotal = computed(() => form.items.reduce((sum, item) => sum + lineTotal(item), 0));
-const taxAmount = computed(() => Math.round(subtotal.value * parseNumber(form.tax_rate)) / 100);
+// Items are net (web design) or gross (PC help, PC builds); same rounding as on the server
+const itemsTotal = computed(() => Math.round(form.items.reduce((sum, item) => sum + lineTotal(item), 0) * 100) / 100);
+const taxAmount = computed(() => {
+    const rate = parseNumber(form.tax_rate);
+    return form.prices_include_tax
+        ? Math.round(itemsTotal.value * rate / (100 + rate) * 100) / 100
+        : Math.round(itemsTotal.value * rate) / 100;
+});
+const subtotal = computed(() => form.prices_include_tax ? itemsTotal.value - taxAmount.value : itemsTotal.value);
 const total = computed(() => subtotal.value + taxAmount.value);
+
+// Kind of service: PC help and PC builds are priced gross, web design net
+const serviceKinds = [
+    { gross: true, label: 'PC-Hilfe / PC-Build', hint: 'Preise brutto inkl. USt.' },
+    { gross: false, label: 'Webdesign / Website / Web-App', hint: 'Preise netto zzgl. USt.' },
+];
+
+// A new free invoice follows the customer: web customers net, PC help customers gross
+const priceModeTouched = ref(props.isEdit || !!props.contract || !!props.offer || (props.invoice.time_session_ids ?? []).length > 0);
+watch(() => form.customer_id, (id) => {
+    const customer = props.customers.find(c => String(c.value) === String(id));
+    if (!priceModeTouched.value && customer && customer.gross !== undefined) form.prices_include_tax = customer.gross;
+});
+const choosePriceMode = (gross) => {
+    form.prices_include_tax = gross;
+    priceModeTouched.value = true;
+};
 const amountDue = computed(() => total.value - parseNumber(form.paid_amount));
 
 const creatingCustomer = ref(false);
@@ -180,14 +209,20 @@ const submit = () => {
             <span>
                 Rechnung für den Wartungsvertrag <strong>{{ contract.name }}</strong>.
                 Beim Speichern wird der Vertrag automatisch als verrechnet markiert und springt auf die nächste Fälligkeit.
+                <template v-if="sendAfterSave">Danach öffnet sich gleich „Per E-Mail senden“.</template>
             </span>
+        </div>
+
+        <div v-if="project && !isEdit && !offer && !contract" class="flex items-start gap-3 rounded-xl bg-primary-500/10 px-4 py-3 text-sm text-primary-800 ring-1 ring-primary-500/30 dark:text-primary-200">
+            <WrenchScrewdriverIcon class="mt-0.5 h-5 w-5 shrink-0" />
+            <span>Rechnung zum Projekt <strong>{{ project.name }}</strong>.</span>
         </div>
 
         <div v-if="offer && !isEdit" class="flex items-start gap-3 rounded-xl bg-primary-500/10 px-4 py-3 text-sm text-primary-800 ring-1 ring-primary-500/30 dark:text-primary-200">
             <WrenchScrewdriverIcon class="mt-0.5 h-5 w-5 shrink-0" />
             <span>
-                Rechnung für Angebot <strong>{{ offer.number }}</strong> – {{ offer.title }}.
-                Beim Speichern wird der Wartungsvertrag angelegt. Er wartet auf den Go-Live – dort startest du ihn, sobald die Seite live ist.
+                Projektrechnung für Angebot <strong>{{ offer.number }}</strong> – {{ offer.title }}.
+                Beim Speichern wird der Wartungsvertrag angelegt. Er wartet auf den Go-Live – beim Start kommt die eigene Wartungsrechnung.
             </span>
         </div>
 
@@ -213,6 +248,20 @@ const submit = () => {
                     <VInput id="due_date" class="sm:col-span-2" type="date" label="Fällig am" v-model="form.due_date" @input="dueDateTouched = true" :error="form.errors.due_date" />
                     <VInput id="tax_rate" class="sm:col-span-2" label="USt." suffix="%" v-model="form.tax_rate" :error="form.errors.tax_rate" />
                     <VInput id="paid_amount" class="sm:col-span-2" label="Bereits bezahlt" suffix="€" v-model="form.paid_amount" :error="form.errors.paid_amount" />
+
+                    <!-- Gross or net prices, decides how the tax is calculated and shown -->
+                    <div class="sm:col-span-6">
+                        <div class="mb-1 text-sm font-medium">Art der Leistung</div>
+                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <button v-for="kind in serviceKinds" :key="kind.label" type="button"
+                                class="rounded-xl border px-3.5 py-2.5 text-left transition"
+                                :class="form.prices_include_tax === kind.gross ? 'border-primary-500 bg-primary-500/[0.08]' : 'border-gray-200 hover:border-gray-300 dark:border-white/10 dark:hover:border-white/20'"
+                                @click="choosePriceMode(kind.gross)">
+                                <span class="block text-sm font-semibold text-gray-900 dark:text-gray-100">{{ kind.label }}</span>
+                                <span class="block text-xs text-gray-500">{{ kind.hint }}</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -222,8 +271,8 @@ const submit = () => {
                 <div class="relative">
                     <h2 class="card-title">Summe</h2>
                     <dl class="mt-5 space-y-2.5 text-sm">
-                        <div class="flex justify-between"><dt class="text-gray-500">Zwischensumme netto</dt><dd class="font-medium text-gray-900 dark:text-gray-100">{{ formatMoney(subtotal) }}</dd></div>
-                        <div class="flex justify-between"><dt class="text-gray-500">USt. {{ form.tax_rate || 0 }} %</dt><dd class="font-medium text-gray-900 dark:text-gray-100">{{ formatMoney(taxAmount) }}</dd></div>
+                        <div class="flex justify-between"><dt class="text-gray-500">{{ form.prices_include_tax ? 'darin netto' : 'Zwischensumme netto' }}</dt><dd class="font-medium text-gray-900 dark:text-gray-100">{{ formatMoney(subtotal) }}</dd></div>
+                        <div class="flex justify-between"><dt class="text-gray-500">{{ form.prices_include_tax ? 'darin' : '' }} USt. {{ form.tax_rate || 0 }} %</dt><dd class="font-medium text-gray-900 dark:text-gray-100">{{ formatMoney(taxAmount) }}</dd></div>
                         <div class="flex justify-between border-t border-gray-200 pt-2.5 dark:border-white/10"><dt class="font-semibold text-gray-900 dark:text-gray-100">Gesamt</dt><dd class="font-semibold text-gray-900 dark:text-gray-100">{{ formatMoney(total) }}</dd></div>
                         <div v-if="parseNumber(form.paid_amount)" class="flex justify-between"><dt class="text-gray-500">Bereits bezahlt</dt><dd class="text-gray-700 dark:text-gray-300">− {{ formatMoney(parseNumber(form.paid_amount)) }}</dd></div>
                     </dl>
@@ -246,7 +295,7 @@ const submit = () => {
                         <div class="col-span-5">Beschreibung</div>
                         <div class="col-span-1">Menge</div>
                         <div class="col-span-2">Einheit</div>
-                        <div class="col-span-2">Preis netto</div>
+                        <div class="col-span-2">Preis {{ form.prices_include_tax ? 'brutto' : 'netto' }}</div>
                         <div class="col-span-2 text-right">Betrag</div>
                     </div>
 

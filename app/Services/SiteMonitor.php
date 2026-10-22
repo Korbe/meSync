@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\MaintenanceContract;
+use App\Models\Monitor;
 use App\Notifications\SiteDownNotification;
 use App\Notifications\SiteRecoveredNotification;
 use App\Notifications\SslExpiringNotification;
@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Http;
 use Throwable;
 
 /**
- * Checks whether a contract's website is reachable and when its SSL certificate expires.
+ * Checks whether a monitored website is reachable and when its SSL certificate expires.
  */
 class SiteMonitor
 {
@@ -21,41 +21,41 @@ class SiteMonitor
     /** Warn when the certificate expires within this many days (Let's Encrypt renews 30 days ahead). */
     public const SSL_WARNING_DAYS = 14;
 
-    public function check(MaintenanceContract $contract): void
+    public function check(Monitor $monitor): void
     {
         // The demo account's websites are made up: simulate, never request real domains
-        [$up, $responseMs, $error] = $contract->user->isDemo()
+        [$up, $responseMs, $error] = $monitor->user->isDemo()
             ? [true, random_int(90, 420), null]
-            : $this->probe($contract);
+            : $this->probe($monitor);
 
-        $contract->monitor_checked_at = now();
-        $contract->monitor_response_ms = $responseMs;
+        $monitor->checked_at = now();
+        $monitor->response_ms = $responseMs;
 
         // History for uptime statistics and the outage list in the monitoring center
-        $contract->siteChecks()->create([
-            'checked_at' => $contract->monitor_checked_at,
+        $monitor->siteChecks()->create([
+            'checked_at' => $monitor->checked_at,
             'up' => $up,
             'response_ms' => $responseMs,
             'error' => $error ? mb_substr($error, 0, 250) : null,
         ]);
 
         if ($up) {
-            $this->markUp($contract);
+            $this->markUp($monitor);
         } else {
-            $this->markFailure($contract, $error);
+            $this->markFailure($monitor, $error);
         }
 
-        if (str_starts_with(strtolower($contract->url), 'https://') && ! $contract->user->isDemo()) {
-            $this->checkCertificate($contract);
+        if (str_starts_with(strtolower($monitor->url), 'https://') && ! $monitor->user->isDemo()) {
+            $this->checkCertificate($monitor);
         }
 
-        $contract->save();
+        $monitor->save();
     }
 
     /**
      * @return array{bool, int|null, string|null}
      */
-    protected function probe(MaintenanceContract $contract): array
+    protected function probe(Monitor $monitor): array
     {
         $started = microtime(true);
 
@@ -65,76 +65,76 @@ class SiteMonitor
                 ->withUserAgent('meSync-Monitor/1.0 (+https://korbitsch.at)');
 
             // Password protected website (htpasswd): log in with the stored credentials
-            if ($contract->monitor_auth === 'basic' && $contract->monitor_auth_user) {
-                $request = $request->withBasicAuth($contract->monitor_auth_user, (string) $contract->monitorPassword());
+            if ($monitor->auth === 'basic' && $monitor->auth_user) {
+                $request = $request->withBasicAuth($monitor->auth_user, (string) $monitor->password());
             }
 
-            $response = $request->get($contract->url);
+            $response = $request->get($monitor->url);
             $ms = (int) round((microtime(true) - $started) * 1000);
 
             // Without credentials the password prompt itself shows the server is up
-            if ($response->status() === 401 && $contract->monitor_auth === 'accept_401') {
+            if ($response->status() === 401 && $monitor->auth === 'accept_401') {
                 return [true, $ms, null];
             }
 
             return $response->status() < 400
                 ? [true, $ms, null]
                 : [false, $ms, $response->status() === 401
-                    ? 'HTTP 401 – Passwortschutz: Zugangsdaten im Vertrag hinterlegen'
+                    ? 'HTTP 401 – Passwortschutz: Zugangsdaten hinterlegen'
                     : "HTTP {$response->status()}"];
         } catch (Throwable $e) {
             return [false, null, mb_substr($e->getMessage(), 0, 250)];
         }
     }
 
-    protected function markUp(MaintenanceContract $contract): void
+    protected function markUp(Monitor $monitor): void
     {
-        $wasDown = $contract->monitor_status === 'down';
-        $downSince = $contract->monitor_status_since;
+        $wasDown = $monitor->status === 'down';
+        $downSince = $monitor->status_since;
 
-        if ($contract->monitor_status !== 'up') {
-            $contract->monitor_status = 'up';
-            $contract->monitor_status_since = now();
+        if ($monitor->status !== 'up') {
+            $monitor->status = 'up';
+            $monitor->status_since = now();
         }
 
-        $contract->monitor_failures = 0;
-        $contract->monitor_error = null;
+        $monitor->failures = 0;
+        $monitor->error = null;
 
         if ($wasDown) {
-            $contract->user->notify(new SiteRecoveredNotification($contract, $downSince ?? now()));
+            $monitor->user->notify(new SiteRecoveredNotification($monitor, $downSince ?? now()));
         }
     }
 
-    protected function markFailure(MaintenanceContract $contract, ?string $error): void
+    protected function markFailure(Monitor $monitor, ?string $error): void
     {
-        $contract->monitor_failures = min(255, $contract->monitor_failures + 1);
-        $contract->monitor_error = $error;
+        $monitor->failures = min(255, $monitor->failures + 1);
+        $monitor->error = $error;
 
-        if ($contract->monitor_status !== 'down' && $contract->monitor_failures >= self::FAILURES_BEFORE_DOWN) {
-            $contract->monitor_status = 'down';
-            $contract->monitor_status_since = now();
+        if ($monitor->status !== 'down' && $monitor->failures >= self::FAILURES_BEFORE_DOWN) {
+            $monitor->status = 'down';
+            $monitor->status_since = now();
 
-            $contract->user->notify(new SiteDownNotification($contract));
+            $monitor->user->notify(new SiteDownNotification($monitor));
         }
     }
 
-    protected function checkCertificate(MaintenanceContract $contract): void
+    protected function checkCertificate(Monitor $monitor): void
     {
-        $expiresAt = $this->certificateExpiry(parse_url($contract->url, PHP_URL_HOST) ?: '');
+        $expiresAt = $this->certificateExpiry(parse_url($monitor->url, PHP_URL_HOST) ?: '');
 
         if (! $expiresAt) {
             return;
         }
 
-        $contract->ssl_expires_at = $expiresAt;
+        $monitor->ssl_expires_at = $expiresAt;
 
         // Warn once per certificate
         $expiresSoon = $expiresAt->lte(now()->addDays(self::SSL_WARNING_DAYS));
-        $alreadyWarned = $contract->ssl_warning_sent_for?->isSameDay($expiresAt);
+        $alreadyWarned = $monitor->ssl_warning_sent_for?->isSameDay($expiresAt);
 
         if ($expiresSoon && ! $alreadyWarned) {
-            $contract->ssl_warning_sent_for = $expiresAt->toDateString();
-            $contract->user->notify(new SslExpiringNotification($contract));
+            $monitor->ssl_warning_sent_for = $expiresAt->toDateString();
+            $monitor->user->notify(new SslExpiringNotification($monitor));
         }
     }
 

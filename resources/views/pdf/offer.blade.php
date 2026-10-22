@@ -609,7 +609,7 @@
 @endif
 
 <div class="terms">
-    Dieses Angebot ist ab dem Ausstellungsdatum {{ $validDays }} Tage gültig (bis {{ $offer->valid_until->format('d.m.Y') }}). {{ $hints['terms'] }}
+    Dieses Angebot ist ab dem Ausstellungsdatum {{ $validDays }} Tage gültig (bis {{ $offer->valid_until->format('d.m.Y') }}). {{ ($termsAttached ?? false) ? rtrim($hints['terms'], '.').' (liegen bei).' : $hints['terms'] }}
 </div>
 
 <table class="signatures"{!! $signature ? ' style="margin-top: 10px;"' : '' !!}>

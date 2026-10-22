@@ -6,6 +6,8 @@ import { ArrowPathIcon, BoltIcon, CheckBadgeIcon, ExclamationTriangleIcon, Globe
 import Layout from '@/Layouts/Layout.vue';
 import SiteStatusDot from '@/Pages/MaintenanceContracts/SiteStatusDot.vue';
 import MonitorToggle from '@/Pages/MaintenanceContracts/MonitorToggle.vue';
+import MonitorFormModal from './MonitorFormModal.vue';
+import VButton from '@/components/VButton.vue';
 import { formatDateTime, timeAgo } from '@/utils/format';
 
 const props = defineProps({
@@ -15,7 +17,16 @@ const props = defineProps({
     summary: Object,
     interval: Number,
     failuresBeforeDown: Number,
+    customers: Array,
 });
+
+// Own websites without maintenance contract: add and edit here
+const editing = ref(null);       // monitor being edited
+const adding = ref(false);
+const openForm = (site = null) => {
+    editing.value = site;
+    adding.value = true;
+};
 
 // Refresh the figures every minute while the page is open
 const refreshedAt = ref(Date.now());
@@ -42,7 +53,7 @@ const checking = ref(null);
 const checkForm = useForm({});
 const checkNow = (site) => {
     checking.value = site.id;
-    checkForm.post(route('contracts.check', site.id), { preserveScroll: true, onFinish: () => checking.value = null });
+    checkForm.post(route('monitors.check', site.id), { preserveScroll: true, onFinish: () => checking.value = null });
 };
 
 // Order: own order (by creation until changed), or sorted by name, problems or uptime.
@@ -110,7 +121,7 @@ const resetOrder = () => router.delete(route('monitoring.order.reset'), {
 });
 
 const hero = computed(() => {
-    if (props.summary.total === 0) return { tone: 'idle', title: 'Noch keine Website überwacht', text: 'Schalte bei einem Wartungsvertrag mit URL die Überwachung ein.' };
+    if (props.summary.total === 0) return { tone: 'idle', title: 'Noch keine Website überwacht', text: 'Füge oben eine Website hinzu oder schalte bei einem Wartungsvertrag die Überwachung ein.' };
     if (props.summary.down > 0) return { tone: 'down', title: props.summary.down === 1 ? '1 Website ist nicht erreichbar' : `${props.summary.down} Websites sind nicht erreichbar`, text: 'Du hast dazu eine Mail bekommen. Sobald sie wieder läuft, kommt die Entwarnung.' };
     if (props.summary.unknown === props.summary.total) return { tone: 'idle', title: 'Erste Prüfung läuft', text: `Alle ${props.interval} Minuten wird geprüft – gleich gibt es erste Werte.` };
     return { tone: 'up', title: 'Alle Websites laufen', text: `${props.summary.up} von ${props.summary.total} erreichbar, geprüft alle ${props.interval} Minuten.` };
@@ -164,6 +175,7 @@ const duration = (minutes) => {
             <button type="button" class="glass-button" title="Jetzt aktualisieren" :disabled="refreshing" @click="refresh">
                 <ArrowPathIcon class="h-5 w-5" :class="refreshing && 'animate-spin'" />
             </button>
+            <VButton icon="PlusIcon" @click="openForm()">Website hinzufügen</VButton>
         </template>
 
         <!-- Hero status -->
@@ -224,12 +236,14 @@ const duration = (minutes) => {
                             <button type="button" class="cursor-pointer rounded p-0.5 hover:text-primary-500 disabled:invisible" title="Nach unten"
                                 :disabled="order.indexOf(site.id) === order.length - 1" @click="move(site, 1)"><ChevronDownIcon class="h-3.5 w-3.5" /></button>
                         </div>
-                        <SiteStatusDot :contract="{ url: site.url, monitor_enabled: true, monitor_status: site.status }" class="mt-1.5" />
+                        <SiteStatusDot :site="site" class="mt-1.5" />
                         <div class="min-w-0 flex-1">
-                            <Link :href="route('contracts.edit', site.id)" class="block truncate font-display text-lg font-semibold text-gray-900 hover:text-primary-600 dark:text-white dark:hover:text-primary-300">{{ site.name }}</Link>
+                            <Link v-if="site.contract_id" :href="route('contracts.edit', site.contract_id)" class="block truncate font-display text-lg font-semibold text-gray-900 hover:text-primary-600 dark:text-white dark:hover:text-primary-300">{{ site.name }}</Link>
+                            <button v-else type="button" class="block max-w-full cursor-pointer truncate text-left font-display text-lg font-semibold text-gray-900 hover:text-primary-600 dark:text-white dark:hover:text-primary-300" title="Bearbeiten" @click="openForm(site)">{{ site.name }}</button>
                             <div class="flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
                                 <a :href="site.url" target="_blank" rel="noopener" class="truncate hover:text-primary-500">{{ site.url.replace(/^https?:\/\//, '') }}</a>
                                 <span v-if="site.customer">· {{ site.customer }}</span>
+                                <span v-if="!site.contract_id" class="rounded-full bg-gray-500/10 px-1.5 text-[10px] font-medium text-gray-500 ring-1 ring-inset ring-gray-500/20">ohne Vertrag</span>
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
@@ -237,7 +251,7 @@ const duration = (minutes) => {
                                 title="Jetzt prüfen" :disabled="checking !== null" @click="checkNow(site)">
                                 <ArrowPathIcon class="h-4 w-4" :class="checking === site.id && 'animate-spin'" />
                             </button>
-                            <MonitorToggle :contract="site" :label="false" />
+                            <MonitorToggle :monitor="site" :label="false" />
                         </div>
                     </div>
 
@@ -319,9 +333,10 @@ const duration = (minutes) => {
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-white/[0.06]">
-                    <tr v-for="incident in incidents" :key="`${incident.contract_id}-${incident.started_at}`">
+                    <tr v-for="incident in incidents" :key="`${incident.monitor_id}-${incident.started_at}`">
                         <td class="px-6 py-2.5">
-                            <Link :href="route('contracts.edit', incident.contract_id)" class="font-medium text-gray-900 hover:text-primary-600 dark:text-gray-100 dark:hover:text-primary-300">{{ incident.name }}</Link>
+                            <Link v-if="incident.contract_id" :href="route('contracts.edit', incident.contract_id)" class="font-medium text-gray-900 hover:text-primary-600 dark:text-gray-100 dark:hover:text-primary-300">{{ incident.name }}</Link>
+                            <span v-else class="font-medium text-gray-900 dark:text-gray-100">{{ incident.name }}</span>
                         </td>
                         <td class="px-6 py-2.5 text-gray-600 dark:text-gray-400">{{ formatDateTime(incident.started_at) }}</td>
                         <td class="hidden px-6 py-2.5 sm:table-cell">
@@ -339,17 +354,20 @@ const duration = (minutes) => {
         <section v-if="unmonitored.length" class="card overflow-hidden">
             <div class="p-6 pb-3">
                 <h2 class="card-title"><SignalIcon class="h-5 w-5 text-gray-400" />Nicht überwacht</h2>
-                <p class="mt-1 text-sm text-gray-500">Wartungsverträge mit URL, bei denen die Überwachung aus ist.</p>
+                <p class="mt-1 text-sm text-gray-500">Websites, bei denen die Überwachung aus ist oder deren Vertrag gerade nicht läuft.</p>
             </div>
             <div v-for="site in unmonitored" :key="site.id" class="flex items-center gap-3 border-t border-gray-100 px-6 py-3 dark:border-white/[0.06]">
                 <div class="min-w-0 flex-1">
-                    <Link :href="route('contracts.edit', site.id)" class="font-medium text-gray-900 hover:text-primary-600 dark:text-gray-100 dark:hover:text-primary-300">{{ site.name }}</Link>
+                    <Link v-if="site.contract_id" :href="route('contracts.edit', site.contract_id)" class="font-medium text-gray-900 hover:text-primary-600 dark:text-gray-100 dark:hover:text-primary-300">{{ site.name }}</Link>
+                    <button v-else type="button" class="cursor-pointer font-medium text-gray-900 hover:text-primary-600 dark:text-gray-100 dark:hover:text-primary-300" @click="openForm(site)">{{ site.name }}</button>
                     <div class="truncate text-xs text-gray-500">{{ site.url }}<template v-if="site.customer"> · {{ site.customer }}</template></div>
                 </div>
-                <span v-if="site.ended" class="text-xs text-gray-400">Vertrag beendet</span>
-                <MonitorToggle v-else :contract="site" />
+                <span v-if="site.paused" class="text-xs text-gray-400">{{ site.paused_reason }}</span>
+                <MonitorToggle v-else :monitor="site" />
             </div>
         </section>
+
+        <MonitorFormModal :show="adding" :monitor="editing" :customers="customers" @close="adding = false" />
     </Layout>
 </template>
 

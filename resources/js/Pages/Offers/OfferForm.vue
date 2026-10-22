@@ -13,6 +13,7 @@ import { formatDate, formatMoney } from '@/utils/format';
 const props = defineProps({
     offer: { type: Object, required: true },
     customers: { type: Array, required: true },
+    projects: { type: Array, default: () => [] },
     catalog: { type: Array, default: () => [] },
     types: { type: Array, required: true },
     packages: { type: Array, required: true },
@@ -32,6 +33,7 @@ const parseNumber = (value) => Number(String(value ?? '').replace(',', '.')) || 
 
 const form = useForm({
     customer_id: props.offer.customer_id ?? '',
+    project_id: props.offer.project_id ?? '',
     type: props.offer.type,
     number: props.offer.number ?? '',
     title: props.offer.title ?? '',
@@ -136,6 +138,25 @@ const subtotal = computed(() => projectSubtotal.value + maintenanceAnnual.value)
 const taxAmount = computed(() => Math.round(subtotal.value * parseNumber(form.tax_rate)) / 100);
 const total = computed(() => subtotal.value + taxAmount.value);
 
+// Project: create one with the offer, none, or an existing one (always switchable)
+const projectOptions = computed(() => [
+    { value: 'new', label: '+ Neues Projekt anlegen (aus diesem Angebot)' },
+    { value: '', label: 'Ohne Projekt' },
+    ...props.projects,
+]);
+
+// Choosing a project takes over its customer, type, name and domain
+const chooseProject = (id) => {
+    form.project_id = id;
+    const project = props.projects.find(p => String(p.value) === String(id));
+    if (!project) return;
+
+    form.customer_id = project.customer_id;
+    chooseType(project.type);
+    form.title = project.name;
+    form.url = project.url ?? '';
+};
+
 const creatingCustomer = ref(false);
 const customerCreated = (id) => {
     creatingCustomer.value = false;
@@ -166,6 +187,10 @@ const chipClass = (active) => active
                 <h2 class="card-title"><DocumentTextIcon class="h-5 w-5 text-primary-500" />Angebot</h2>
 
                 <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-6">
+                    <div class="sm:col-span-6">
+                        <VSelect id="project_id" label="Projekt" :options="projectOptions" :modelValue="String(form.project_id ?? '')" @update:modelValue="chooseProject" :error="form.errors.project_id" />
+                        <p v-if="form.project_id === 'new'" class="mt-1 text-xs text-gray-500">Beim Speichern entsteht ein Projekt mit Kunde, Art, Name und Domain aus diesem Angebot.</p>
+                    </div>
                     <div class="sm:col-span-6">
                         <VSelect id="customer_id" label="Kunde" placeholder="Kunde wählen …" :options="customers" v-model="form.customer_id" :error="form.errors.customer_id" />
                         <p v-if="recipient" class="mt-2 text-xs text-gray-500">

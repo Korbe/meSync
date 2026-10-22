@@ -39,9 +39,10 @@ const form = useForm({
     next_invoice_date: props.contract?.next_invoice_date ?? today(),
     end_date: props.contract?.end_date ?? '',
     notes: props.contract?.notes ?? '',
-    monitor_enabled: props.contract?.monitor_enabled ?? true,
-    monitor_auth: props.contract?.monitor_auth ?? 'none',
-    monitor_auth_user: props.contract?.monitor_auth_user ?? '',
+    // Monitoring of the website lives in its own monitor
+    monitor_enabled: props.contract ? !!props.contract.monitor?.enabled : true,
+    monitor_auth: props.contract?.monitor?.auth ?? 'none',
+    monitor_auth_user: props.contract?.monitor?.auth_user ?? '',
     monitor_auth_password: '',   // never sent to the browser; empty = keep the stored one
 });
 
@@ -51,7 +52,7 @@ const pending = computed(() => props.contract?.status === 'pending');
 // Password protected website (htpasswd)
 const protectedSite = ref(form.monitor_auth !== 'none');
 watch(protectedSite, (value) => form.monitor_auth = value ? (form.monitor_auth === 'none' ? 'basic' : form.monitor_auth) : 'none');
-const hasStoredPassword = computed(() => !!props.contract?.has_monitor_password && props.contract?.monitor_auth === 'basic');
+const hasStoredPassword = computed(() => !!props.contract?.monitor?.has_password && props.contract?.monitor?.auth === 'basic');
 const plainHttp = computed(() => String(form.url).startsWith('http://'));
 
 // Switching the type switches the standard price, unless a custom price was entered
@@ -69,6 +70,11 @@ const nextInvoiceTouched = ref(!!props.contract);
 
 watch(() => form.start_date, (start) => {
     if (!nextInvoiceTouched.value) form.next_invoice_date = nextAnniversary(start);
+});
+
+// Switched on/off with the toggle above the form: don't turn it back when saving
+watch(() => props.contract?.monitor?.enabled, (enabled) => {
+    if (enabled !== undefined) form.monitor_enabled = enabled;
 });
 
 // Marking an invoice as sent moves the due date on the server; keep the form in sync
@@ -194,7 +200,7 @@ const submit = () => {
 
                 <div class="mt-5 space-y-4">
                     <p v-if="pending" class="rounded-xl bg-accent/[0.08] px-3.5 py-3 text-sm text-gray-700 ring-1 ring-accent/30 ring-inset dark:text-gray-300">
-                        Beginnt mit dem Go-Live. Das erste Jahr ist mit der Projektrechnung verrechnet, die nächste Rechnung wird ein Jahr nach dem Start fällig.
+                        Beginnt mit dem Go-Live. Beim Start wird gleich die Rechnung für die ersten 12 Monate fällig.
                     </p>
                     <VInput v-if="!pending" id="start_date" type="date" label="Vertragsbeginn" v-model="form.start_date" :error="form.errors.start_date" />
 

@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { EnvelopeIcon, PhoneIcon, MapPinIcon, ReceiptPercentIcon, BanknotesIcon, ClockIcon, WrenchScrewdriverIcon, DocumentTextIcon, ChatBubbleBottomCenterTextIcon, ClipboardDocumentListIcon, GlobeAltIcon, CommandLineIcon } from '@heroicons/vue/24/outline';
+import { EnvelopeIcon, PhoneIcon, MapPinIcon, ReceiptPercentIcon, BanknotesIcon, ClockIcon, WrenchScrewdriverIcon, DocumentTextIcon, ChatBubbleBottomCenterTextIcon, ClipboardDocumentListIcon, FolderIcon, GlobeAltIcon, CommandLineIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import StatusBadge from '@/Pages/MaintenanceContracts/StatusBadge.vue';
@@ -13,6 +13,7 @@ const props = defineProps({
     contracts: Array,
     invoices: Array,
     offers: Array,
+    projects: Array,
     interests: Array,
     stats: Object,
 });
@@ -37,6 +38,7 @@ const typeIcons = { website: GlobeAltIcon, webapp: CommandLineIcon };
     <Layout :title="customer.display_name" :backTo="route('customers.index')">
         <template v-slot:actions>
             <VButton :href="route('invoices.create', { customer: customer.id })" icon="DocumentTextIcon">Rechnung</VButton>
+            <VButton :href="route('projects.create', { customer: customer.id })" variant="secondary" icon="FolderIcon">Projekt</VButton>
             <VButton :href="route('offers.create', { customer: customer.id })" variant="secondary" icon="ClipboardDocumentListIcon">Angebot</VButton>
             <VButton :href="route('contracts.create', { customer: customer.id })" variant="secondary" icon="WrenchScrewdriverIcon">Wartungsvertrag</VButton>
             <VButton variant="secondary" icon="DevicePhoneMobileIcon" title="Als Kontakt ins Handy übernehmen (vCard)" @click="saveToPhone">Ins Handy</VButton>
@@ -151,6 +153,24 @@ const typeIcons = { website: GlobeAltIcon, webapp: CommandLineIcon };
                     </ul>
                 </section>
             </div>
+
+            <!-- Projects -->
+            <section v-if="projects.length" class="card overflow-hidden">
+                <div class="p-6 pb-3">
+                    <h2 class="card-title"><FolderIcon class="h-5 w-5 text-primary-500" />Projekte</h2>
+                </div>
+                <ul class="divide-y divide-gray-100 dark:divide-white/[0.06]">
+                    <li v-for="project in projects" :key="project.id">
+                        <Link :href="route('projects.show', project.id)" class="flex items-center gap-3 px-6 py-3 transition hover:bg-primary-500/[0.04]">
+                            <div class="min-w-0 flex-1">
+                                <div class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ project.name }}</div>
+                                <div class="text-xs text-gray-500">{{ project.type_label }}</div>
+                            </div>
+                            <span class="rounded-full bg-primary-500/10 px-2.5 py-0.5 text-xs font-medium text-primary-700 ring-1 ring-inset ring-primary-500/25 dark:text-primary-300">{{ project.phase }}</span>
+                        </Link>
+                    </li>
+                </ul>
+            </section>
 
             <!-- Offers -->
             <section v-if="offers.length" class="card overflow-hidden">

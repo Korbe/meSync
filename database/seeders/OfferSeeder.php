@@ -9,8 +9,9 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 
 /**
- * A few offers in every state: draft, sent, accepted (billed, its contract waiting for the go-live),
- * declined, expired.
+ * Projects in every phase, each with its offers: a fresh request, offers in every state (draft,
+ * sent, declined, expired, accepted and billed with its contract waiting for the go-live) and
+ * running websites from the existing contracts.
  */
 class OfferSeeder extends Seeder
 {
@@ -33,18 +34,26 @@ class OfferSeeder extends Seeder
         $issuer = $user->businessProfile?->toIssuer() ?? [];
         $packages = config('offers.packages');
 
-        foreach (self::OFFERS as $index => [$type, $package, $daysAgo, $state, $project, $discount]) {
+        foreach (self::OFFERS as $index => [$type, $package, $daysAgo, $state, $name, $discount]) {
             $customer = $customers[$index % $customers->count()];
             $date = today()->subDays($daysAgo);
             $type = MaintenanceContractType::from($type);
             $isWebapp = $type === MaintenanceContractType::Webapp;
 
-            $offer = $user->offers()->create([
+            $project = $user->projects()->create([
                 'customer_id' => $customer->id,
                 'type' => $type,
-                'number' => Offer::nextNumberFor($user, $date->year),
-                'title' => "{$project} {$customer->company_name}",
+                'name' => "{$name} {$customer->company_name}",
                 'url' => 'https://'.str($customer->company_name)->slug().'.at',
+            ]);
+
+            $offer = $user->offers()->create([
+                'customer_id' => $customer->id,
+                'project_id' => $project->id,
+                'type' => $type,
+                'number' => Offer::nextNumberFor($user, $date->year),
+                'title' => $project->name,
+                'url' => $project->url,
                 'offer_date' => $date,
                 'valid_until' => $date->copy()->addDays(config('offers.valid_days')),
                 'tax_rate' => 20,
@@ -85,13 +94,36 @@ class OfferSeeder extends Seeder
                 $offer->forceFill(['sent_at' => $date, 'sent_to' => $customer->email])->save();
             }
 
-            // Accepted and billed: the maintenance contract waits for the go-live
+            // Accepted, implemented and billed: the maintenance contract waits for the go-live
             if ($state === 'accepted') {
                 $offer->accept();
+                $project->forceFill(['completed_at' => today()->subDays(3)])->save();
                 $this->bill($offer->load('items'), $user);
             } elseif ($state === 'declined') {
                 $offer->forceFill(['declined_at' => $date->copy()->addDays(9)])->save();
             }
+        }
+
+        $this->requestAndLiveProjects($user);
+    }
+
+    /**
+     * A new request without an offer yet, and running websites (existing contracts) as live projects.
+     */
+    private function requestAndLiveProjects(User $user): void
+    {
+        $customer = $user->customers()->whereNotNull('company_name')->inRandomOrder()->first();
+        $user->projects()->create([
+            'customer_id' => $customer->id,
+            'type' => MaintenanceContractType::Webapp,
+            'name' => "Kundenportal {$customer->company_name}",
+            'notes' => 'Erstgespräch am Telefon: Login für Kunden, Dokumente herunterladen, Termine anfragen.',
+        ]);
+
+        foreach ($user->maintenanceContracts()->whereNull('project_id')->billable()->limit(3)->get() as $contract) {
+            $project = $user->projects()->create($contract->only(['customer_id', 'type', 'name', 'url']));
+            $contract->update(['project_id' => $project->id]);
+            $user->invoices()->where('maintenance_contract_id', $contract->id)->update(['project_id' => $project->id]);
         }
     }
 
@@ -99,6 +131,7 @@ class OfferSeeder extends Seeder
     {
         $invoice = $user->invoices()->create([
             'customer_id' => $offer->customer_id,
+            'project_id' => $offer->project_id,
             'number' => Invoice::nextNumberFor($user, today()->year),
             'invoice_date' => today(),
             'due_date' => today()->addDays(14),

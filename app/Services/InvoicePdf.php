@@ -76,7 +76,7 @@ class InvoicePdf
 
         return response($this->render($invoice), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => HeaderUtils::makeDisposition('attachment', $name, Str::ascii($name)),
+            'Content-Disposition' => HeaderUtils::makeDisposition('inline', $name, Str::ascii($name)),
         ]);
     }
 }

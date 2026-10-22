@@ -2,13 +2,13 @@
 import { computed } from 'vue';
 
 const props = defineProps({
-    contract: { type: Object, required: true },
+    site: { type: Object, default: null },   // monitor: url, enabled, status
 });
 
-// up | down | pending (not checked yet) | off (no URL or monitoring disabled)
+// up | down | pending (not checked yet) | off (no monitor or switched off)
 const state = computed(() => {
-    if (!props.contract.url || !props.contract.monitor_enabled) return 'off';
-    return props.contract.monitor_status ?? 'pending';
+    if (!props.site?.url || !props.site?.enabled) return 'off';
+    return props.site.status ?? 'pending';
 });
 
 const styles = {

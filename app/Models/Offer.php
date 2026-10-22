@@ -13,8 +13,8 @@ use Illuminate\Support\Str;
 
 /**
  * Offer for a website or web app: project items plus the first 12 months of maintenance,
- * which are always part of it. Billing it creates the maintenance contract, which waits
- * for the go-live.
+ * which are always part of it. The project invoice creates the maintenance contract, which
+ * waits for the go-live and is billed on its own from then on.
  */
 class Offer extends Model
 {
@@ -23,6 +23,7 @@ class Offer extends Model
      */
     protected $fillable = [
         'customer_id',
+        'project_id',
         'type',
         'number',
         'title',
@@ -102,6 +103,11 @@ class Offer extends Model
         return $this->belongsTo(Invoice::class);
     }
 
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
     /**
      * Sent or decided offers stay as the customer got them; changes go into a copy.
      */
@@ -149,15 +155,15 @@ class Offer extends Model
     }
 
     /**
-     * Billed: the maintenance contract is created and waits for the go-live (no start, nothing
-     * due). Monitoring stays off, the site isn't live yet and would be reported as down.
+     * Project billed: the maintenance contract is created and waits for the go-live (no start,
+     * nothing due). No monitoring yet, the site isn't live and would be reported as down.
      */
     public function billWith(Invoice $invoice): MaintenanceContract
     {
         return DB::transaction(function () use ($invoice) {
             $contract = $this->user->maintenanceContracts()->create([
-                'monitor_enabled' => false,
                 'customer_id' => $this->customer_id,
+                'project_id' => $this->project_id,
                 'type' => $this->type,
                 'name' => $this->title,
                 'url' => $this->url,
@@ -167,7 +173,6 @@ class Offer extends Model
                 'notes' => "Aus Angebot {$this->number}",
             ]);
 
-            $invoice->forceFill(['maintenance_contract_id' => $contract->id])->save();
             $this->forceFill(['invoice_id' => $invoice->id, 'maintenance_contract_id' => $contract->id])->save();
 
             return $contract;
@@ -177,6 +182,15 @@ class Offer extends Model
     public function decline(): void
     {
         $this->forceFill(['declined_at' => now()])->save();
+    }
+
+    /**
+     * Billed only when the work is done ("100 % bei Fertigstellung"). Otherwise (prepayment,
+     * 50/50) the project invoice comes right after the acceptance.
+     */
+    public function billsOnCompletion(): bool
+    {
+        return $this->payment_terms === 'on_completion';
     }
 
     /**
@@ -202,7 +216,7 @@ class Offer extends Model
 
             $copy = $this->user->offers()->create([
                 ...$this->only([
-                    'customer_id', 'type', 'title', 'url', 'tax_rate', 'package', 'features', 'integrations', 'other_function',
+                    'customer_id', 'project_id', 'type', 'title', 'url', 'tax_rate', 'package', 'features', 'integrations', 'other_function',
                     'content_delivery', 'payment_terms', 'reference_customer', 'maintenance_package', 'maintenance_monthly_price',
                     'intro', 'notes', 'recipient', 'issuer',
                 ]),
@@ -220,24 +234,14 @@ class Offer extends Model
     }
 
     /**
-     * Items for the invoice of an accepted offer: the project, then the first maintenance year,
-     * which runs from the go-live.
+     * Items for the project invoice of an accepted offer. The maintenance is billed separately
+     * once the contract starts with the go-live.
      *
      * @return array<int, array<string, mixed>>
      */
     public function toInvoiceItems(): array
     {
-        return [
-            ...$this->items->map(fn (OfferItem $item) => $item->only(['description', 'quantity', 'unit', 'unit_price']))->all(),
-            [
-                'description' => "{$this->type_label} Wartung & Betreuung – {$this->title}\n"
-                    ."Zeitraum: 12 Monate ab Go-Live\n"
-                    .config('offers.hints.maintenance_start'),
-                'quantity' => 1,
-                'unit' => 'Stück',
-                'unit_price' => $this->maintenance_annual_price,
-            ],
-        ];
+        return $this->items->map(fn (OfferItem $item) => $item->only(['description', 'quantity', 'unit', 'unit_price']))->all();
     }
 
     protected function typeLabel(): Attribute

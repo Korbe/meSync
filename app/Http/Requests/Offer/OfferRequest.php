@@ -45,6 +45,8 @@ class OfferRequest extends FormRequest
 
         return [
             'customer_id' => ['required', Rule::exists('customers', 'id')->where('user_id', $userId)],
+            // An own project, or "new": one is created from the offer
+            'project_id' => ['nullable', $this->input('project_id') === 'new' ? 'in:new' : Rule::exists('projects', 'id')->where('user_id', $userId)],
             'type' => ['required', Rule::enum(MaintenanceContractType::class)],
             'number' => ['required', 'string', 'max:50', Rule::unique('offers', 'number')->where('user_id', $userId)->ignore($offer?->id)],
             'title' => 'required|string|max:255',

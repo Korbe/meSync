@@ -93,6 +93,8 @@ class CustomerController extends Controller
             'customer' => $customer,
             'contracts' => $customer->maintenanceContracts()->orderBy('next_invoice_date')->get(),
             'invoices' => $invoices,
+            'projects' => $customer->projects()->with(['offers.items', 'maintenanceContract'])->latest()->get()
+                ->map(fn ($project) => [...$project->only(['id', 'name']), 'type_label' => $project->type->label(), 'phase' => \App\Models\Project::PHASES[$project->phase()]]),
             'offers' => $customer->offers()->with('items')->latest('offer_date')->latest('id')->get(),
             'interests' => CustomerInterest::options(),
             'stats' => [

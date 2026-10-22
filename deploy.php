@@ -12,7 +12,10 @@ set('repository', 'https://github.com/Korbe/meSync.git');
 // runs composer install, storage:link, the caches and the migrations.
 
 // PHP-FPM service on the server (systemctl name)
-set('php_fpm_service', 'php8.3-fpm');
+set('php_fpm_service', 'php8.5-fpm');
+
+// Old releases kept for a rollback (default 10); the disk of the server is small
+set('keep_releases', 3);
 
 // composer install on a small server can take a while
 set('default_timeout', 900);

@@ -5,6 +5,7 @@ import OfferForm from './OfferForm.vue';
 defineProps({
     offer: Object,
     customers: Array,
+    projects: Array,
     catalog: Array,
     types: Array,
     packages: Array,
@@ -18,7 +19,7 @@ defineProps({
 
 <template>
     <Layout title="Neues Angebot" :backTo="route('offers.index')">
-        <OfferForm :offer="offer" :customers="customers" :catalog="catalog" :types="types" :packages="packages" :features="features"
+        <OfferForm :offer="offer" :customers="customers" :projects="projects" :catalog="catalog" :types="types" :packages="packages" :features="features"
             :integrations="integrations" :contentDelivery="contentDelivery" :paymentTerms="paymentTerms" :hints="hints" />
     </Layout>
 </template>

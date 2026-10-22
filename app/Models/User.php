@@ -30,6 +30,25 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
      */
     public const DEMO_EMAIL = 'demo@mesync.test';
 
+    /** Legal documents in the profile (media collection => label), sent along with offers. */
+    public const DOCUMENTS = [
+        'terms' => 'AGB',
+        'privacy' => 'Datenschutzerklärung',
+    ];
+
+    /**
+     * The legal documents that are uploaded, as mail attachments.
+     *
+     * @return array<string, \Spatie\MediaLibrary\MediaCollections\Models\Media>
+     */
+    public function documents(): array
+    {
+        return collect(self::DOCUMENTS)
+            ->map(fn ($label, $collection) => $this->getFirstMedia($collection))
+            ->filter(fn ($media) => $media && is_file($media->getPath()))
+            ->all();
+    }
+
     protected static function booted(): void
     {
         // All business data goes with the user through the database foreign keys. Files
@@ -38,6 +57,7 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
         static::deleting(function (User $user) {
             $user->inventoryItems()->with('media')->get()->each->delete();
             $user->invoices()->whereHas('media')->with('media')->get()->each(fn (Invoice $invoice) => $invoice->clearMediaCollection('original'));
+            $user->projects()->with('media')->get()->each->delete();
         });
     }
 
@@ -100,6 +120,14 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
             ->singleFile()
             ->useDisk('local')
             ->acceptsMimeTypes(['image/png', 'image/jpeg', 'image/webp']);
+
+        // Terms (AGB) and privacy policy, attached to every offer mail
+        foreach (array_keys(self::DOCUMENTS) as $document) {
+            $this->addMediaCollection($document)
+                ->singleFile()
+                ->useDisk('local')
+                ->acceptsMimeTypes(['application/pdf']);
+        }
     }
 
     public function emotions()
@@ -160,6 +188,16 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
     public function offers()
     {
         return $this->hasMany(Offer::class);
+    }
+
+    public function projects()
+    {
+        return $this->hasMany(Project::class);
+    }
+
+    public function monitors()
+    {
+        return $this->hasMany(Monitor::class);
     }
 
     /**

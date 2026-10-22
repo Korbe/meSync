@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\MaintenanceContract;
+use App\Models\Monitor;
 use App\Models\SiteCheck;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -22,17 +22,15 @@ class MonitoringReport
      */
     public function forUser(User $user): array
     {
-        $contracts = $user->maintenanceContracts()
-            ->with('customer')
-            ->whereNotNull('url')
-            ->where('url', '!=', '')
+        $monitors = $user->monitors()
+            ->with(['customer', 'maintenanceContract'])
             // Own order first, then by creation (new websites are added at the end)
-            ->orderByRaw('CASE WHEN monitor_position IS NULL THEN 1 ELSE 0 END')
-            ->orderBy('monitor_position')
+            ->orderByRaw('CASE WHEN position IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('position')
             ->orderBy('id')
             ->get();
 
-        $monitored = $contracts->filter(fn (MaintenanceContract $contract) => $contract->monitor_enabled && $contract->isBillable());
+        $monitored = $monitors->filter(fn (Monitor $monitor) => $monitor->isActive());
         $ids = $monitored->pluck('id');
 
         $uptime = [
@@ -41,24 +39,24 @@ class MonitoringReport
             '30d' => $this->uptime($ids, now()->subDays(30)),
         ];
 
-        $lastDay = SiteCheck::whereIn('maintenance_contract_id', $ids)
+        $lastDay = SiteCheck::whereIn('monitor_id', $ids)
             ->where('checked_at', '>=', now()->subDay())
             ->orderBy('checked_at')
-            ->get(['maintenance_contract_id', 'checked_at', 'up', 'response_ms'])
-            ->groupBy('maintenance_contract_id');
+            ->get(['monitor_id', 'checked_at', 'up', 'response_ms'])
+            ->groupBy('monitor_id');
 
         $incidents = $this->incidents($monitored, now()->subDays(30));
 
-        $sites = $monitored->map(fn (MaintenanceContract $contract) => [
-            ...$this->site($contract),
+        $sites = $monitored->map(fn (Monitor $monitor) => [
+            ...$this->site($monitor),
             'uptime' => [
-                '24h' => $uptime['24h'][$contract->id]['percent'] ?? null,
-                '7d' => $uptime['7d'][$contract->id]['percent'] ?? null,
-                '30d' => $uptime['30d'][$contract->id]['percent'] ?? null,
+                '24h' => $uptime['24h'][$monitor->id]['percent'] ?? null,
+                '7d' => $uptime['7d'][$monitor->id]['percent'] ?? null,
+                '30d' => $uptime['30d'][$monitor->id]['percent'] ?? null,
             ],
-            'avg_response_ms' => $uptime['24h'][$contract->id]['avg_ms'] ?? null,
-            'timeline' => $this->timeline($lastDay->get($contract->id, collect())),
-            'incidents_30d' => $incidents->where('contract_id', $contract->id)->count(),
+            'avg_response_ms' => $uptime['24h'][$monitor->id]['avg_ms'] ?? null,
+            'timeline' => $this->timeline($lastDay->get($monitor->id, collect())),
+            'incidents_30d' => $incidents->where('monitor_id', $monitor->id)->count(),
         ])->values();
 
         $all30 = collect($uptime['30d']);
@@ -66,7 +64,7 @@ class MonitoringReport
 
         return [
             'sites' => $sites,
-            'unmonitored' => $contracts->reject(fn ($contract) => $monitored->contains($contract))->map(fn ($contract) => $this->site($contract))->values(),
+            'unmonitored' => $monitors->reject(fn (Monitor $monitor) => $monitored->contains($monitor))->map(fn (Monitor $monitor) => $this->site($monitor))->values(),
             'incidents' => $incidents->sortByDesc('started_at')->values(),
             'summary' => [
                 'total' => $sites->count(),
@@ -83,44 +81,51 @@ class MonitoringReport
     /**
      * @return array<string, mixed>
      */
-    private function site(MaintenanceContract $contract): array
+    private function site(Monitor $monitor): array
     {
         return [
-            'id' => $contract->id,
-            'name' => $contract->name,
-            'url' => $contract->url,
-            'created_at' => $contract->created_at?->toIso8601String(),
-            'customer' => $contract->customer?->display_name,
-            'monitor_enabled' => $contract->monitor_enabled,
-            'ended' => ! $contract->isBillable(),
-            'status' => $contract->monitor_status,
-            'status_since' => $contract->monitor_status_since?->toIso8601String(),
-            'checked_at' => $contract->monitor_checked_at?->toIso8601String(),
-            'response_ms' => $contract->monitor_response_ms,
-            'failures' => $contract->monitor_failures,
-            'error' => $contract->monitor_error,
-            'ssl_expires_at' => $contract->ssl_expires_at?->toIso8601String(),
-            'ssl_days' => $contract->ssl_expires_at ? (int) floor(now()->diffInDays($contract->ssl_expires_at, false)) : null,
+            'id' => $monitor->id,
+            'contract_id' => $monitor->maintenance_contract_id,
+            'customer_id' => $monitor->customer_id,
+            'name' => $monitor->name,
+            'url' => $monitor->url,
+            'created_at' => $monitor->created_at?->toIso8601String(),
+            'customer' => $monitor->customer?->display_name,
+            'enabled' => $monitor->enabled,
+            // Contract ended or waiting for the go-live: not checked
+            'paused' => $monitor->maintenance_contract_id !== null && ! $monitor->maintenanceContract?->isBillable(),
+            'paused_reason' => $monitor->maintenanceContract?->isPending() ? 'Wartet auf Go-Live' : 'Vertrag beendet',
+            'auth' => $monitor->auth,
+            'auth_user' => $monitor->auth_user,
+            'has_password' => $monitor->has_password,
+            'status' => $monitor->status,
+            'status_since' => $monitor->status_since?->toIso8601String(),
+            'checked_at' => $monitor->checked_at?->toIso8601String(),
+            'response_ms' => $monitor->response_ms,
+            'failures' => $monitor->failures,
+            'error' => $monitor->error,
+            'ssl_expires_at' => $monitor->ssl_expires_at?->toIso8601String(),
+            'ssl_days' => $monitor->ssl_expires_at ? (int) floor(now()->diffInDays($monitor->ssl_expires_at, false)) : null,
         ];
     }
 
     /**
-     * Share of successful checks and average response time per contract since a point in time.
+     * Share of successful checks and average response time per monitor since a point in time.
      *
      * @return array<int, array{checks: int, up: int, percent: float, avg_ms: int|null}>
      */
     private function uptime(Collection $ids, Carbon $since): array
     {
-        return SiteCheck::whereIn('maintenance_contract_id', $ids)
+        return SiteCheck::whereIn('monitor_id', $ids)
             ->where('checked_at', '>=', $since)
-            ->groupBy('maintenance_contract_id')
+            ->groupBy('monitor_id')
             ->get([
-                'maintenance_contract_id',
+                'monitor_id',
                 DB::raw('COUNT(*) as checks'),
                 DB::raw('SUM(CASE WHEN up THEN 1 ELSE 0 END) as up_checks'),
                 DB::raw('AVG(CASE WHEN up THEN response_ms END) as avg_ms'),
             ])
-            ->mapWithKeys(fn ($row) => [$row->maintenance_contract_id => [
+            ->mapWithKeys(fn ($row) => [$row->monitor_id => [
                 'checks' => (int) $row->checks,
                 'up' => (int) $row->up_checks,
                 'percent' => round($row->up_checks / max(1, $row->checks) * 100, 2),
@@ -161,30 +166,30 @@ class MonitoringReport
      * Outages: runs of failed checks long enough to count as down (like the alert mails),
      * ending with the next successful check.
      */
-    private function incidents(Collection $contracts, Carbon $since): Collection
+    private function incidents(Collection $monitors, Carbon $since): Collection
     {
-        if ($contracts->isEmpty()) {
+        if ($monitors->isEmpty()) {
             return collect();
         }
 
-        $failed = SiteCheck::whereIn('maintenance_contract_id', $contracts->pluck('id'))
+        $failed = SiteCheck::whereIn('monitor_id', $monitors->pluck('id'))
             ->where('checked_at', '>=', $since)
             ->where('up', false)
             ->orderBy('checked_at')
             ->get()
-            ->groupBy('maintenance_contract_id');
+            ->groupBy('monitor_id');
 
         $incidents = collect();
 
-        foreach ($failed as $contractId => $checks) {
-            $contract = $contracts->firstWhere('id', $contractId);
+        foreach ($failed as $monitorId => $checks) {
+            $monitor = $monitors->firstWhere('id', $monitorId);
 
-            foreach ($this->runs($contractId, $checks) as $run) {
+            foreach ($this->runs($monitorId, $checks) as $run) {
                 if ($run->count() < SiteMonitor::FAILURES_BEFORE_DOWN) {
                     continue;
                 }
 
-                $endedAt = SiteCheck::where('maintenance_contract_id', $contractId)
+                $endedAt = SiteCheck::where('monitor_id', $monitorId)
                     ->where('checked_at', '>', $run->last()->checked_at)
                     ->where('up', true)
                     ->orderBy('checked_at')
@@ -194,9 +199,10 @@ class MonitoringReport
                 $ended = $endedAt ? Carbon::parse($endedAt) : null;
 
                 $incidents->push([
-                    'contract_id' => $contractId,
-                    'name' => $contract->name,
-                    'url' => $contract->url,
+                    'monitor_id' => $monitorId,
+                    'contract_id' => $monitor->maintenance_contract_id,
+                    'name' => $monitor->name,
+                    'url' => $monitor->url,
                     'started_at' => $started->toIso8601String(),
                     'ended_at' => $ended?->toIso8601String(),
                     'minutes' => (int) round($started->diffInMinutes($ended ?? now())),
@@ -214,14 +220,14 @@ class MonitoringReport
      *
      * @return array<int, Collection>
      */
-    private function runs(int $contractId, Collection $failed): array
+    private function runs(int $monitorId, Collection $failed): array
     {
         $runs = [];
         $current = collect();
 
         foreach ($failed as $check) {
             if ($current->isNotEmpty()) {
-                $upBetween = SiteCheck::where('maintenance_contract_id', $contractId)
+                $upBetween = SiteCheck::where('monitor_id', $monitorId)
                     ->whereBetween('checked_at', [$current->last()->checked_at, $check->checked_at])
                     ->where('up', true)
                     ->exists();

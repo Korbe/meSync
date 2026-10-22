@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Prunable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One website check of a maintenance contract.
+ * One check of a monitored website.
  */
 class SiteCheck extends Model
 {
@@ -38,9 +38,9 @@ class SiteCheck extends Model
         ];
     }
 
-    public function contract(): BelongsTo
+    public function monitor(): BelongsTo
     {
-        return $this->belongsTo(MaintenanceContract::class, 'maintenance_contract_id');
+        return $this->belongsTo(Monitor::class);
     }
 
     public function prunable(): Builder

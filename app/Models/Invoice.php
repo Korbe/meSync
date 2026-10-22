@@ -23,12 +23,14 @@ class Invoice extends Model implements HasMedia
      */
     protected $fillable = [
         'customer_id',
+        'project_id',
         'maintenance_contract_id',
         'cancels_invoice_id',
         'number',
         'invoice_date',
         'due_date',
         'tax_rate',
+        'prices_include_tax',
         'paid_amount',
         'paid_in_cash',
         'notes',
@@ -57,6 +59,7 @@ class Invoice extends Model implements HasMedia
             'invoice_date' => 'date:Y-m-d',
             'due_date' => 'date:Y-m-d',
             'tax_rate' => 'decimal:2',
+            'prices_include_tax' => 'boolean',
             'paid_amount' => 'decimal:2',
             'paid_in_cash' => 'boolean',
             'sent_at' => 'datetime',
@@ -78,6 +81,11 @@ class Invoice extends Model implements HasMedia
     public function maintenanceContract(): BelongsTo
     {
         return $this->belongsTo(MaintenanceContract::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     /**
@@ -137,6 +145,7 @@ class Invoice extends Model implements HasMedia
             'invoice_date' => $today,
             'due_date' => $today,
             'tax_rate' => $this->tax_rate,
+            'prices_include_tax' => (bool) $this->prices_include_tax,
             'paid_amount' => 0,
             'notes' => null, // the PDF and the app show the reference to the original invoice
             'recipient' => $this->recipient,
@@ -170,17 +179,29 @@ class Invoice extends Model implements HasMedia
 
     /*
      * Amounts and payment status as SQL, for filtering and sums in the database (paginated
-     * lists). Same rounding as the subtotal/tax/outstanding attributes below.
+     * lists). Same rounding as the subtotal/tax/outstanding attributes below. The items are
+     * net, or gross for invoices with prices_include_tax (PC help, PC builds).
      */
 
-    public static function sqlSubtotal(): string
+    private static function sqlItems(): string
     {
         return '(SELECT COALESCE(SUM(ROUND(ii.quantity * ii.unit_price, 2)), 0) FROM invoice_items ii WHERE ii.invoice_id = invoices.id)';
     }
 
     public static function sqlTax(): string
     {
-        return 'ROUND('.self::sqlSubtotal().' * invoices.tax_rate / 100, 2)';
+        $items = self::sqlItems();
+
+        return "(CASE WHEN invoices.prices_include_tax THEN ROUND({$items} * invoices.tax_rate / (100 + invoices.tax_rate), 2)"
+            ." ELSE ROUND({$items} * invoices.tax_rate / 100, 2) END)";
+    }
+
+    /**
+     * Net amount.
+     */
+    public static function sqlSubtotal(): string
+    {
+        return '(CASE WHEN invoices.prices_include_tax THEN '.self::sqlItems().' - '.self::sqlTax().' ELSE '.self::sqlItems().' END)';
     }
 
     public static function sqlOutstanding(): string
@@ -235,14 +256,31 @@ class Invoice extends Model implements HasMedia
         return sprintf('%d-%03d', $year, $highest + 1);
     }
 
+    /**
+     * Sum of the items as entered: net, or gross when the prices include the tax.
+     */
+    private function itemsTotal(): float
+    {
+        return round($this->items->sum(fn (InvoiceItem $item) => $item->line_total), 2);
+    }
+
+    /**
+     * Net amount. With gross prices the contained tax is taken out.
+     */
     protected function subtotal(): Attribute
     {
-        return Attribute::get(fn () => round($this->items->sum(fn (InvoiceItem $item) => $item->line_total), 2));
+        return Attribute::get(fn () => $this->prices_include_tax
+            ? round($this->itemsTotal() - $this->tax_amount, 2)
+            : $this->itemsTotal());
     }
 
     protected function taxAmount(): Attribute
     {
-        return Attribute::get(fn () => round($this->subtotal * (float) $this->tax_rate / 100, 2));
+        $rate = (float) $this->tax_rate;
+
+        return Attribute::get(fn () => $this->prices_include_tax
+            ? round($this->itemsTotal() * $rate / (100 + $rate), 2)
+            : round($this->itemsTotal() * $rate / 100, 2));
     }
 
     protected function total(): Attribute

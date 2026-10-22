@@ -38,8 +38,6 @@ class MaintenanceContractSeeder extends Seeder
                 // Some contracts were cancelled
                 'end_date' => fake()->boolean(12) ? today()->subDays(fake()->numberBetween(10, 200)) : null,
                 'notes' => fake()->optional(0.3)->randomElement(['Hosting bei World4You.', 'WordPress, Updates monatlich.', 'Laravel, Server bei Hetzner.']),
-                // The domains are made up: no uptime checks against them
-                'monitor_enabled' => false,
             ]);
         }
     }

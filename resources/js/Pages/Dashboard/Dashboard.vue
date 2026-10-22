@@ -55,7 +55,7 @@ const monthNames = ['Jän', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'S
 const maxRevenue = computed(() => Math.max(1, ...props.revenueByMonth.map(Number)));
 const barHeight = (value) => `${Math.max(0, Number(value)) / maxRevenue.value * 100}%`;
 
-const sitesDown = computed(() => props.sites.filter(site => site.monitor_status === 'down'));
+const sitesDown = computed(() => props.sites.filter(site => site.status === 'down'));
 </script>
 
 <template>
@@ -129,18 +129,18 @@ const sitesDown = computed(() => props.sites.filter(site => site.monitor_status 
                         {{ sitesDown.length ? `${sitesDown.length} down` : 'alle online' }}
                     </span>
                 </div>
-                <p v-if="sites.length === 0" class="px-6 pb-6 text-sm text-gray-500">Noch keine überwachten Websites. Hinterlege bei einem Wartungsvertrag eine URL.</p>
+                <p v-if="sites.length === 0" class="px-6 pb-6 text-sm text-gray-500">Noch keine überwachten Websites. Hinterlege bei einem Wartungsvertrag eine URL oder füge im Monitoring Center eine hinzu.</p>
                 <ul v-else class="max-h-64 divide-y divide-gray-100 overflow-y-auto dark:divide-white/[0.06]">
                     <li v-for="site in sites" :key="site.id">
-                        <Link :href="route('contracts.edit', site.id)" class="flex items-center gap-3 px-6 py-2.5 transition hover:bg-primary-500/[0.04]">
-                            <SiteStatusDot :contract="site" />
+                        <Link :href="site.maintenance_contract_id ? route('contracts.edit', site.maintenance_contract_id) : route('monitoring.index')" class="flex items-center gap-3 px-6 py-2.5 transition hover:bg-primary-500/[0.04]">
+                            <SiteStatusDot :site="site" />
                             <div class="min-w-0 flex-1">
                                 <div class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ site.name }}</div>
                                 <div class="truncate text-xs text-gray-500">{{ site.url.replace(/^https?:\/\//, '') }}</div>
                             </div>
                             <span class="text-right text-xs text-gray-500">
-                                <template v-if="site.monitor_status === 'down'"><span class="text-red-600 dark:text-red-400">{{ timeAgo(site.monitor_status_since).replace('vor ', 'seit ') }}</span></template>
-                                <template v-else-if="site.monitor_response_ms">{{ site.monitor_response_ms }} ms</template>
+                                <template v-if="site.status === 'down'"><span class="text-red-600 dark:text-red-400">{{ timeAgo(site.status_since).replace('vor ', 'seit ') }}</span></template>
+                                <template v-else-if="site.response_ms">{{ site.response_ms }} ms</template>
                             </span>
                         </Link>
                     </li>

@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import { ArrowDownTrayIcon, ArrowUturnLeftIcon, NoSymbolIcon, EnvelopeIcon, CheckCircleIcon } from '@heroicons/vue/24/outline';
+import { EyeIcon, ArrowUturnLeftIcon, NoSymbolIcon, EnvelopeIcon, CheckCircleIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import VModal from '@/components/VModal.vue';
@@ -39,9 +39,9 @@ const cancelInvoice = () => {
 <template>
     <Layout :title="`${invoice.cancels ? 'Stornorechnung' : 'Rechnung'} ${invoice.number}`" :backTo="route('invoices.index')">
         <template v-slot:actions>
-            <!-- Plain link: the PDF is a file download, not an Inertia page -->
-            <a :href="route('invoices.download', invoice.id)" class="btn cursor-pointer bg-primary-500 text-white hover:bg-primary-600 hover:shadow-[0_8px_24px_-8px_rgba(31,173,174,0.8)]">
-                <ArrowDownTrayIcon class="mr-2 h-5 w-5" />{{ original ? 'Original-PDF' : 'PDF herunterladen' }}
+            <!-- Plain link in a new tab: the browser shows the PDF (with its own download button) -->
+            <a :href="route('invoices.download', invoice.id)" target="_blank" rel="noopener\" class="btn cursor-pointer bg-primary-500 text-white hover:bg-primary-600 hover:shadow-[0_8px_24px_-8px_rgba(31,173,174,0.8)]">
+                <EyeIcon class="mr-2 h-5 w-5" />{{ original ? 'Original-PDF' : 'PDF ansehen' }}
             </a>
             <VButton variant="secondary" @click="sending = true">
                 <span class="inline-flex items-center"><EnvelopeIcon class="mr-2 h-5 w-5" />Per E-Mail senden</span>

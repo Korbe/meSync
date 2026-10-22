@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\MaintenanceContract;
+use App\Models\User;
 use Inertia\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
@@ -50,6 +51,12 @@ class HandleInertiaRequests extends Middleware
             'signatureUrl' => fn () => $request->routeIs('profile.show') && ($signature = $request->user()?->getFirstMedia('signature'))
                 ? route('profile.signature.show', ['v' => $signature->id])
                 : null,
+            // Terms and privacy policy (private PDFs), only needed on the profile page
+            'documents' => fn () => $request->routeIs('profile.show') && $request->user()
+                ? collect(User::DOCUMENTS)->map(fn ($label, $collection) => ($media = $request->user()->getFirstMedia($collection))
+                    ? ['name' => $media->file_name, 'size' => $media->size, 'updated_at' => $media->updated_at]
+                    : null)
+                : null,
             // Sender / bank details for invoices, only needed on the profile page
             'businessProfile' => fn () => $request->routeIs('profile.show')
                 ? $request->user()?->businessProfile
@@ -74,9 +81,9 @@ class HandleInertiaRequests extends Middleware
                 ->first()
                 ?->only(['id', 'status', 'elapsed_seconds', 'running_since', 'customer']),
             // Red dot on "Monitoring" in the sidebar
-            'sitesDownCount' => fn () => $request->user()?->maintenanceContracts()
-                ->monitored()
-                ->where('monitor_status', 'down')
+            'sitesDownCount' => fn () => $request->user()?->monitors()
+                ->active()
+                ->where('status', 'down')
                 ->count() ?? 0,
         ]);
     }

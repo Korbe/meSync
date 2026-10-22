@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Invoice;
 use App\Models\MaintenanceContract;
+use App\Models\Monitor;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -59,8 +60,8 @@ class DashboardController extends Controller
                     'payment_status' => $invoice->payment_status,
                 ]),
             // Down sites first
-            'sites' => $contracts->filter(fn (MaintenanceContract $contract) => $contract->monitor_enabled && filled($contract->url))
-                ->sortBy(fn (MaintenanceContract $contract) => [$contract->monitor_status === 'down' ? 0 : 1, $contract->name])
+            'sites' => $user->monitors()->active()->get()
+                ->sortBy(fn (Monitor $monitor) => [$monitor->status === 'down' ? 0 : 1, $monitor->name])
                 ->values(),
             'recentCustomers' => $user->customers()->latest()->take(5)->get(),
         ]);

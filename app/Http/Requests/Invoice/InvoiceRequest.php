@@ -46,13 +46,17 @@ class InvoiceRequest extends FormRequest
         return [
             'customer_id' => ['required', Rule::exists('customers', 'id')->where('user_id', $userId)],
             'maintenance_contract_id' => ['nullable', Rule::exists('maintenance_contracts', 'id')->where('user_id', $userId)],
+            'project_id' => ['nullable', Rule::exists('projects', 'id')->where('user_id', $userId)],
             'number' => ['required', 'string', 'max:50', Rule::unique('invoices', 'number')->where('user_id', $userId)->ignore($invoice?->id)],
             'invoice_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:invoice_date',
             'tax_rate' => 'required|numeric|min:0|max:100',
+            // Gross prices (PC help, PC builds) or net prices plus tax (web design)
+            'prices_include_tax' => 'boolean',
             'paid_amount' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string|max:5000',
             'paid_in_cash' => 'boolean',
+            'send_after_save' => 'boolean',
             // Existing invoice as PDF, replaces the generated one
             'original' => 'nullable|file|mimes:pdf|max:10240',
             // Accepted offer billed with this invoice

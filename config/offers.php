@@ -33,10 +33,16 @@ return [
             'type' => 'website',
             'name' => 'Starter Website',
             'price' => 2500,
+            // Written out in full: the customer doesn't know what is in the One Pager
             'features' => [
-                'Alles aus dem One Pager Paket',
-                'Bis zu 5 Unterseiten',
+                'Individuell entwickelte Website mit bis zu 5 Unterseiten',
                 'Bis zu 8 Inhaltsbereiche pro Seite',
+                'Modernes UI/UX-Design, responsive auf allen Geräten',
+                'Conversionoptimierte Struktur',
+                'SEO-Basisoptimierung, Google Analytics & Cookie Banner',
+                'Basis Impressum & Datenschutz',
+                'Hosting-Unterstützung',
+                'Skalierbar für zukünftige Erweiterungen',
             ],
         ],
         'webapp' => [

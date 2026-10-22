@@ -8,9 +8,9 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * 30 days of simulated website checks for the demo contracts: mostly up, two short
- * outages in the past and one site that is down right now. Nothing is requested for
- * real, the demo checks are simulated by the SiteMonitor as well.
+ * Monitors for the running demo contracts plus an own app without contract, with 30 days of
+ * simulated checks: mostly up, two short outages in the past and one site that is down right
+ * now. Nothing is requested for real, the demo checks are simulated by the SiteMonitor as well.
  */
 class MonitoringSeeder extends Seeder
 {
@@ -18,11 +18,17 @@ class MonitoringSeeder extends Seeder
 
     public function run(User $user): void
     {
-        $contracts = $user->maintenanceContracts()->whereNotNull('url')->get()
+        $monitors = $user->maintenanceContracts()->whereNotNull('url')->get()
             ->filter(fn (MaintenanceContract $contract) => $contract->isBillable())
+            ->map(fn (MaintenanceContract $contract) => $contract->syncMonitor(['enabled' => true]))
             ->values();
 
-        foreach ($contracts as $index => $contract) {
+        // An own app, monitored without maintenance contract
+        $own = $user->monitors()->make(['name' => 'Eigene App', 'url' => 'https://app.meine-firma.at', 'enabled' => true]);
+        $own->forceFill(['user_id' => $user->id])->save();
+        $monitors->push($own);
+
+        foreach ($monitors as $index => $monitor) {
             $base = fake()->numberBetween(120, 380);
 
             // Outages: [minutes ago it started, duration in minutes]
@@ -38,7 +44,7 @@ class MonitoringSeeder extends Seeder
                 $down = collect($outages)->contains(fn ($outage) => $minutesAgo <= $outage[0] && $minutesAgo > $outage[0] - $outage[1]);
 
                 $rows[] = [
-                    'maintenance_contract_id' => $contract->id,
+                    'monitor_id' => $monitor->id,
                     'checked_at' => now()->subMinutes($minutesAgo)->second(0),
                     'up' => ! $down,
                     'response_ms' => $down ? null : max(40, $base + fake()->numberBetween(-60, 140) + ($minutesAgo % 1440 < 120 ? 180 : 0)),
@@ -53,16 +59,13 @@ class MonitoringSeeder extends Seeder
             $last = end($rows);
             $currentlyDown = $index === 2;
 
-            $contract->update([
-                'monitor_enabled' => true,
-            ]);
-            $contract->forceFill([
-                'monitor_status' => $currentlyDown ? 'down' : 'up',
-                'monitor_status_since' => $currentlyDown ? now()->subMinutes(25) : now()->subDays($index === 1 ? 2 : 6),
-                'monitor_checked_at' => $last['checked_at'],
-                'monitor_failures' => $currentlyDown ? 3 : 0,
-                'monitor_response_ms' => $last['response_ms'],
-                'monitor_error' => $last['error'],
+            $monitor->forceFill([
+                'status' => $currentlyDown ? 'down' : 'up',
+                'status_since' => $currentlyDown ? now()->subMinutes(25) : now()->subDays($index === 1 ? 2 : 6),
+                'checked_at' => $last['checked_at'],
+                'failures' => $currentlyDown ? 3 : 0,
+                'response_ms' => $last['response_ms'],
+                'error' => $last['error'],
                 'ssl_expires_at' => now()->addDays($index === 3 ? 9 : fake()->numberBetween(25, 85)),
             ])->save();
         }

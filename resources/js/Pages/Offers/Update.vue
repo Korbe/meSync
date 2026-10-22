@@ -1,7 +1,7 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { ArrowDownTrayIcon, EnvelopeIcon, CheckCircleIcon, XCircleIcon, ArrowUturnLeftIcon, DocumentDuplicateIcon, LockClosedIcon, HandRaisedIcon, DocumentTextIcon } from '@heroicons/vue/24/outline';
+import { EyeIcon, EnvelopeIcon, CheckCircleIcon, XCircleIcon, ArrowUturnLeftIcon, DocumentDuplicateIcon, LockClosedIcon, HandRaisedIcon, DocumentTextIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import OfferForm from './OfferForm.vue';
@@ -17,6 +17,7 @@ const props = defineProps({
     locked: Boolean,
     canReopen: Boolean,
     customers: Array,
+    projects: Array,
     catalog: Array,
     types: Array,
     packages: Array,
@@ -29,12 +30,16 @@ const props = defineProps({
 
 const sending = ref(false);
 
+// Accepted, project still being worked on: the invoice comes after the implementation
+const inImplementation = computed(() => !!props.offer.accepted_at && !props.offer.invoice && props.offer.payment_terms === 'on_completion'
+    && !!props.offer.project && !props.offer.project.completed_at);
+
 const post = (name) => router.post(route(name, props.offer.id), {}, { preserveScroll: true });
 
 const accept = async () => {
     if (await confirm({
         title: `Angebot ${props.offer.number} angenommen?`,
-        message: 'Danach erstellst du die Rechnung: Projekt und erstes Betreuungsjahr werden übernommen, und der Wartungsvertrag wird angelegt. Er wartet auf den Go-Live und wird dort gestartet.',
+        message: 'Danach erstellst du die Projektrechnung, und der Wartungsvertrag wird angelegt. Er wartet auf den Go-Live und wird dort gestartet.',
         confirmText: 'Angenommen',
     })) post('offers.accept');
 };
@@ -64,9 +69,9 @@ const remove = async () => {
 <template>
     <Layout :title="`Angebot ${offer.number}`" :backTo="route('offers.index')">
         <template v-slot:actions>
-            <!-- Plain link: the PDF is a file download, not an Inertia page -->
-            <a :href="route('offers.download', offer.id)" class="btn cursor-pointer bg-primary-500 text-white hover:bg-primary-600 hover:shadow-[0_8px_24px_-8px_rgba(31,173,174,0.8)]">
-                <ArrowDownTrayIcon class="mr-2 h-5 w-5" />PDF herunterladen
+            <!-- Plain link in a new tab: the browser shows the PDF (with its own download button) -->
+            <a :href="route('offers.download', offer.id)" target="_blank" rel="noopener\" class="btn cursor-pointer bg-primary-500 text-white hover:bg-primary-600 hover:shadow-[0_8px_24px_-8px_rgba(31,173,174,0.8)]">
+                <EyeIcon class="mr-2 h-5 w-5" />PDF ansehen
             </a>
             <VButton variant="secondary" @click="sending = true">
                 <span class="inline-flex items-center"><EnvelopeIcon class="mr-2 h-5 w-5" />Per E-Mail senden</span>
@@ -80,6 +85,9 @@ const remove = async () => {
         <!-- Status + decision -->
         <section class="card mb-6 flex flex-wrap items-center gap-3 p-4">
             <OfferStatusBadge :status="offer.status" />
+            <Link v-if="offer.project" :href="route('projects.show', offer.project.id)" class="rounded-full bg-primary-500/10 px-2.5 py-0.5 text-xs font-medium text-primary-700 ring-1 ring-inset ring-primary-500/25 hover:bg-primary-500/20 dark:text-primary-300">
+                Projekt: {{ offer.project.name }}
+            </Link>
             <span class="text-sm text-gray-600 dark:text-gray-400">
                 <template v-if="offer.status === 'accepted'">Angenommen am <strong>{{ formatDate(offer.accepted_at) }}</strong></template>
                 <template v-else-if="offer.status === 'declined'">Abgelehnt am <strong>{{ formatDate(offer.declined_at) }}</strong></template>
@@ -99,7 +107,7 @@ const remove = async () => {
                         <span class="inline-flex items-center"><CheckCircleIcon class="mr-2 h-5 w-5" />Angenommen</span>
                     </VButton>
                 </template>
-                <VButton v-if="offer.accepted_at && !offer.invoice" :href="route('invoices.create', { offer: offer.id })" icon="DocumentTextIcon">Rechnung erstellen</VButton>
+                <VButton v-if="offer.accepted_at && !offer.invoice && !inImplementation" :href="route('invoices.create', { offer: offer.id })" icon="DocumentTextIcon">Rechnung erstellen</VButton>
                 <VButton v-if="canReopen" variant="secondary" @click="reopen">
                     <span class="inline-flex items-center"><ArrowUturnLeftIcon class="mr-2 h-5 w-5" />Zurücksetzen</span>
                 </VButton>
@@ -107,8 +115,13 @@ const remove = async () => {
         </section>
 
         <!-- Accepted: what came out of it -->
-        <div v-if="offer.accepted_at && !offer.invoice" class="mb-6 rounded-xl bg-primary-500/[0.06] px-4 py-3 text-sm text-gray-700 ring-1 ring-primary-500/25 dark:text-gray-300">
-            Nächster Schritt: <strong>Rechnung erstellen</strong> – Projekt und erstes Betreuungsjahr werden übernommen, der Wartungsvertrag wird angelegt und wartet auf den Go-Live.
+        <div v-if="inImplementation" class="mb-6 rounded-xl bg-primary-500/[0.06] px-4 py-3 text-sm text-gray-700 ring-1 ring-primary-500/25 dark:text-gray-300">
+            Verrechnet wird bei Fertigstellung. Nächster Schritt: <strong>das Projekt umsetzen</strong>. Sobald die Arbeit fertig ist, im
+            <Link :href="route('projects.show', offer.project.id)" class="font-semibold underline">Projekt</Link>
+            „Umsetzung abschließen“ – dann kommt die Projektrechnung.
+        </div>
+        <div v-else-if="offer.accepted_at && !offer.invoice" class="mb-6 rounded-xl bg-primary-500/[0.06] px-4 py-3 text-sm text-gray-700 ring-1 ring-primary-500/25 dark:text-gray-300">
+            Nächster Schritt: <strong>Rechnung erstellen</strong> für das Projekt. Der Wartungsvertrag wird dabei angelegt und wartet auf den Go-Live – beim Start kommt die Wartungsrechnung.
         </div>
         <div v-if="offer.maintenance_contract || offer.invoice" class="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl bg-primary-500/[0.06] px-4 py-3 text-sm text-gray-700 ring-1 ring-primary-500/25 dark:text-gray-300">
             <span v-if="offer.maintenance_contract" class="inline-flex flex-wrap items-center gap-1.5">
@@ -120,7 +133,7 @@ const remove = async () => {
                 <DocumentTextIcon class="h-4 w-4 text-primary-500" />Verrechnet mit Rechnung
                 <Link :href="route('invoices.edit', offer.invoice.id)" class="font-mono font-semibold underline">{{ offer.invoice.number }}</Link>
             </span>
-            <span v-if="offer.maintenance_contract?.status === 'pending'" class="text-gray-500">Sobald die Seite live ist: Vertrag starten, dann geht die Rechnung raus.</span>
+            <span v-if="offer.maintenance_contract?.status === 'pending'" class="text-gray-500">Sobald die Seite live ist: Vertrag starten, dann geht die Wartungsrechnung raus.</span>
         </div>
 
         <!-- Sent -->
@@ -133,7 +146,7 @@ const remove = async () => {
             </span>
         </div>
 
-        <OfferForm :offer="offer" :customers="customers" :catalog="catalog" :types="types" :packages="packages" :features="features"
+        <OfferForm :offer="offer" :customers="customers" :projects="projects" :catalog="catalog" :types="types" :packages="packages" :features="features"
             :integrations="integrations" :contentDelivery="contentDelivery" :paymentTerms="paymentTerms" :hints="hints"
             :readonly="locked" is-edit />
 

@@ -17,7 +17,7 @@ class ContractPdf
 {
     public function render(MaintenanceContract $contract): string
     {
-        $contract->loadMissing(['customer', 'invoices', 'user.businessProfile']);
+        $contract->loadMissing(['customer', 'invoices', 'monitor', 'user.businessProfile']);
 
         $profile = $contract->user->businessProfile;
         $issuer = $profile?->toIssuer() ?? ['name' => $contract->user->name, 'email' => $contract->user->email];
@@ -57,7 +57,7 @@ class ContractPdf
 
         return response($this->render($contract), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => HeaderUtils::makeDisposition('attachment', $name, Str::ascii($name)),
+            'Content-Disposition' => HeaderUtils::makeDisposition('inline', $name, Str::ascii($name)),
         ]);
     }
 

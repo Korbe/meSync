@@ -14,6 +14,10 @@
         <link rel="manifest" href="/manifest.json">
         <meta name="theme-color" content="#f9fafb" media="(prefers-color-scheme: light)">
         <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+        <!-- Favicon: the transparent logo, dark lines on light tabs and white lines on dark tabs (the SVG
+             switches by itself); Safari takes the ICO. ?v against cached old icons. -->
+        <link rel="icon" href="/favicon.ico?v=4" sizes="48x48">
+        <link rel="icon" href="/favicon.svg?v=4" type="image/svg+xml">
         <link rel="apple-touch-icon" href="/images/pwa/apple-touch-icon.png">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="mobile-web-app-capable" content="yes">
@@ -43,20 +47,6 @@
     </head>
     <body>
         <script>
-            function updateFavicon() {
-                const favicon = document.querySelector('link[rel="icon"][sizes="512x512"]');
-                if (!favicon) return;
-                
-                const darkModeActive = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                favicon.href = darkModeActive ? "/images/logo/logo-512x512-dark.png?v=2" : "/images/logo/logo-512x512.png?v=2";
-            }
-
-            updateFavicon();
-
-            const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-            darkModeMediaQuery.addEventListener('change', updateFavicon);
-
-
             if (localStorage.getItem('sidebar-expanded') == 'true') {
                 document.querySelector('body').classList.add('sidebar-expanded');
             } else {

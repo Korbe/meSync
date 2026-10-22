@@ -86,7 +86,7 @@ class InvoiceController extends Controller
         ]);
     }
 
-    public function create(Request $request): Response
+    public function create(Request $request): Response|RedirectResponse
     {
         $user = $request->user();
         $profile = $user->businessProfile;
@@ -94,11 +94,14 @@ class InvoiceController extends Controller
 
         $invoice = [
             'customer_id' => $request->integer('customer') ?: null,
+            'project_id' => null,
             'maintenance_contract_id' => null,
             'number' => Invoice::nextNumberFor($user, $today->year),
             'invoice_date' => $today->toDateString(),
             'due_date' => $today->copy()->addDays($profile->payment_terms_days ?? 14)->toDateString(),
             'tax_rate' => $profile->default_tax_rate ?? 20,
+            // Web design net, PC help gross: set below by where the invoice comes from
+            'prices_include_tax' => false,
             'paid_amount' => 0,
             'notes' => '',
             'items' => [['description' => '', 'quantity' => 1, 'unit' => 'Stück', 'unit_price' => '']],
@@ -110,6 +113,7 @@ class InvoiceController extends Controller
             $periodEnd = $contract->next_invoice_date->copy()->addYear()->subDay();
 
             $invoice['customer_id'] = $contract->customer_id;
+            $invoice['project_id'] = $contract->project_id;
             $invoice['maintenance_contract_id'] = $contract->id;
             $invoice['items'] = [[
                 'description' => "{$contract->type_label} Wartung & Betreuung – {$contract->name}\n"
@@ -123,12 +127,25 @@ class InvoiceController extends Controller
         // Prefill from an accepted offer: the project plus the first year of maintenance.
         // Saving creates the maintenance contract, which then waits for the go-live.
         if ($offerId = $request->integer('offer')) {
-            $offer = $user->offers()->with('items')->whereNotNull('accepted_at')->whereNull('invoice_id')->findOrFail($offerId);
+            $offer = $user->offers()->with(['items', 'project'])->whereNotNull('accepted_at')->whereNull('invoice_id')->findOrFail($offerId);
+
+            // Billed on completion: not before the implementation is finished
+            if ($offer->billsOnCompletion() && $offer->project && $offer->project->completed_at === null) {
+                return to_route('projects.show', $offer->project)->with('error', 'Erst die Umsetzung abschließen, dann die Projektrechnung erstellen.');
+            }
 
             $invoice['customer_id'] = $offer->customer_id;
+            $invoice['project_id'] = $offer->project_id;
             $invoice['offer_id'] = $offer->id;
             $invoice['tax_rate'] = $offer->tax_rate;
             $invoice['items'] = $offer->toInvoiceItems();
+        }
+
+        // Further invoice for a project (e.g. extra work)
+        if ($projectId = $request->integer('project')) {
+            $project = $user->projects()->findOrFail($projectId);
+            $invoice['customer_id'] = $project->customer_id;
+            $invoice['project_id'] = $project->id;
         }
 
         // Prefill from stopwatch runs (one item per run)
@@ -139,6 +156,8 @@ class InvoiceController extends Controller
             if ($sessions->isNotEmpty()) {
                 $invoice['customer_id'] = $sessions->first()->customer_id ?? $invoice['customer_id'];
                 $invoice['items'] = $sessions->map->toInvoiceItem()->all();
+                // Stopwatch: PC help on site, priced gross
+                $invoice['prices_include_tax'] = true;
                 $invoice['time_session_ids'] = $sessions->pluck('id')->all();
             }
         }
@@ -148,6 +167,9 @@ class InvoiceController extends Controller
             'invoice' => $invoice,
             'contract' => isset($contract) ? $contract->only(['id', 'name', 'next_invoice_date']) : null,
             'offer' => isset($offer) ? $offer->only(['id', 'number', 'title']) : null,
+            'project' => ($projectId = $invoice['project_id']) ? $user->projects()->find($projectId)?->only(['id', 'name']) : null,
+            // Opens the send dialog once the invoice is saved (e.g. right after the go-live)
+            'sendAfterSave' => $request->boolean('send'),
         ]);
     }
 
@@ -159,6 +181,7 @@ class InvoiceController extends Controller
             $invoice = $user->invoices()->create([
                 ...$this->invoiceAttributes($request),
                 'maintenance_contract_id' => $request->validated('maintenance_contract_id'),
+                'project_id' => $request->validated('project_id'),
             ]);
 
             $this->syncItems($invoice, $request->validated('items'));
@@ -203,7 +226,8 @@ class InvoiceController extends Controller
             $invoice->addMediaFromRequest('original')->toMediaCollection('original');
         }
 
-        return to_route('invoices.edit', $invoice)->with('success', "Rechnung {$invoice->number} wurde erstellt.");
+        return to_route('invoices.edit', ['invoice' => $invoice, 'send' => $request->boolean('send_after_save') ? 1 : null])
+            ->with('success', "Rechnung {$invoice->number} wurde erstellt.");
     }
 
     public function edit(Request $request, Invoice $invoice): Response
@@ -375,6 +399,7 @@ class InvoiceController extends Controller
 
         return [
             ...$request->safe()->only(['customer_id', 'number', 'tax_rate', 'notes']),
+            'prices_include_tax' => $request->boolean('prices_include_tax'),
             'invoice_date' => Carbon::parse($request->validated('invoice_date')),
             'due_date' => Carbon::parse($request->validated('due_date')),
             'paid_amount' => $request->validated('paid_amount') ?? 0,
@@ -407,9 +432,11 @@ class InvoiceController extends Controller
      */
     private function dropPendingContract(Invoice $invoice): void
     {
-        if ($invoice->maintenanceContract?->isPending()) {
-            $invoice->user->offers()->where('invoice_id', $invoice->id)->update(['invoice_id' => null, 'maintenance_contract_id' => null]);
-            $invoice->maintenanceContract->delete();
+        $offer = $invoice->user->offers()->with('maintenanceContract')->where('invoice_id', $invoice->id)->first();
+
+        if ($offer && (! $offer->maintenanceContract || $offer->maintenanceContract->isPending())) {
+            $offer->maintenanceContract?->delete();
+            $offer->forceFill(['invoice_id' => null, 'maintenance_contract_id' => null])->save();
         }
     }
 
@@ -438,6 +465,8 @@ class InvoiceController extends Controller
                     'value' => $customer->id,
                     'label' => $customer->display_name,
                     'recipient' => $customer->toRecipient(),
+                    // Web customers get net prices, PC help customers gross ones (default for a new invoice)
+                    'gross' => ! array_intersect($customer->interests ?? [], ['website', 'webapp']),
                 ]),
             'catalog' => $request->user()->catalogItems()->orderBy('name')->get(['id', 'name', 'description', 'unit', 'unit_price', 'pricing', 'base_minutes', 'step_minutes', 'step_price']),
             'paymentTermsDays' => $profile->payment_terms_days ?? 14,

@@ -59,12 +59,12 @@ class QueuedMailTest extends TestCase
     public function test_recovered_mail_shows_the_outage_duration_even_when_sent_later(): void
     {
         Carbon::setTestNow('2026-10-21 12:00:00');
-        $contract = MaintenanceContract::factory()->create();
-        $notification = new SiteRecoveredNotification($contract, now()->subMinutes(30));
+        $monitor = MaintenanceContract::factory()->create()->syncMonitor(['enabled' => true]);
+        $notification = new SiteRecoveredNotification($monitor, now()->subMinutes(30));
 
         // The worker sends it two hours later
         Carbon::setTestNow('2026-10-21 14:00:00');
-        $mail = $notification->toMail($contract->user);
+        $mail = $notification->toMail($monitor->user);
 
         $this->assertStringContainsString('30 Minuten', implode(' ', $mail->introLines));
     }

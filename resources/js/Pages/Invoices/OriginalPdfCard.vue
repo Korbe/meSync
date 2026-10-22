@@ -53,7 +53,7 @@ const formatSize = (bytes) => bytes < 1024 * 1024 ? `${Math.max(1, Math.round(by
                     {{ original.name }} · {{ formatSize(original.size) }} – wird beim Download und im Steuerberater-Export statt des erzeugten PDFs verwendet.
                 </div>
             </div>
-            <a :href="route('invoices.download', invoice.id)" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-300">Öffnen</a>
+            <a :href="route('invoices.download', invoice.id)" target="_blank" rel="noopener\" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-300">Öffnen</a>
             <button type="button" class="cursor-pointer rounded-lg p-1.5 text-gray-400 transition hover:bg-red-500/10 hover:text-red-500" title="Original-PDF entfernen" @click="remove">
                 <XMarkIcon class="h-5 w-5" />
             </button>

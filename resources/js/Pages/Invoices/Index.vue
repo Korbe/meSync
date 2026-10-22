@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { DocumentTextIcon, BanknotesIcon, ReceiptPercentIcon, ArrowDownTrayIcon, PencilSquareIcon, TrashIcon, WrenchScrewdriverIcon, ClockIcon, PaperClipIcon, EnvelopeIcon } from '@heroicons/vue/24/outline';
+import { DocumentTextIcon, BanknotesIcon, ReceiptPercentIcon, EyeIcon, PencilSquareIcon, TrashIcon, WrenchScrewdriverIcon, ClockIcon, PaperClipIcon, EnvelopeIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import PaymentStatusBadge from './PaymentStatusBadge.vue';
@@ -191,8 +191,8 @@ const edit = (invoice) => router.visit(route('invoices.edit', invoice.id));
                             <td class="px-5 py-3.5"><PaymentStatusBadge :status="invoice.payment_status" /></td>
                             <td class="px-5 py-3.5">
                                 <div class="flex justify-end gap-1 opacity-60 transition group-hover:opacity-100">
-                                    <a :href="route('invoices.download', invoice.id)" class="rounded-lg p-2 text-gray-500 hover:bg-primary-500/10 hover:text-primary-600 dark:hover:text-primary-300" title="PDF herunterladen" @click.stop>
-                                        <ArrowDownTrayIcon class="h-4 w-4" />
+                                    <a :href="route('invoices.download', invoice.id)" target="_blank" rel="noopener\" class="rounded-lg p-2 text-gray-500 hover:bg-primary-500/10 hover:text-primary-600 dark:hover:text-primary-300" title="PDF ansehen" @click.stop>
+                                        <EyeIcon class="h-4 w-4" />
                                     </a>
                                     <Link :href="route('invoices.edit', invoice.id)" class="rounded-lg p-2 text-gray-500 hover:bg-primary-500/10 hover:text-primary-600 dark:hover:text-primary-300" title="Bearbeiten" @click.stop>
                                         <PencilSquareIcon class="h-4 w-4" />
@@ -217,8 +217,8 @@ const edit = (invoice) => router.visit(route('invoices.edit', invoice.id));
                         <div v-else-if="invoice.cancels" class="text-[11px] font-medium text-gray-500">Storno zu {{ invoice.cancels.number }}</div>
                         <div class="mt-1 font-medium text-gray-900 dark:text-gray-100">{{ formatMoney(invoice.total) }}</div>
                     </Link>
-                    <a :href="route('invoices.download', invoice.id)" class="glass-button" title="PDF herunterladen">
-                        <ArrowDownTrayIcon class="h-4 w-4" />
+                    <a :href="route('invoices.download', invoice.id)" target="_blank" rel="noopener\" class="glass-button" title="PDF ansehen">
+                        <EyeIcon class="h-4 w-4" />
                     </a>
                 </div>
             </div>

@@ -5,6 +5,8 @@
     $money = fn ($value) => number_format((float) $value, 2, ',', '.');
     $quantity = fn ($value) => fmod((float) $value, 1) == 0 ? number_format((float) $value, 0, ',', '.') : number_format((float) $value, 2, ',', '.');
     $taxRate = rtrim(rtrim(number_format((float) $invoice->tax_rate, 2, ',', ''), '0'), ',');
+    // PC help and PC builds: gross prices (VAT included), web design: net prices plus VAT
+    $gross = (bool) $invoice->prices_include_tax;
 
     $issuerCity = trim(($issuer['zip'] ?? '').' '.($issuer['city'] ?? ''));
     $issuerAddress = implode(' · ', array_filter([$issuer['street'] ?? null, $issuerCity]));
@@ -332,6 +334,12 @@
         white-space: nowrap;
     }
 
+    .tax-note {
+        margin-top: 14px;
+        font-size: 7.5pt;
+        color: #737373;
+    }
+
     .notes {
         margin-top: 30px;
         padding: 10px 12px;
@@ -512,7 +520,7 @@
             <th>Beschreibung</th>
             <th class="num" style="width: 50px;">Menge</th>
             <th class="unit" style="width: 60px;">Einheit</th>
-            <th class="num" style="width: 70px;">Preis</th>
+            <th class="num" style="width: 70px;">Preis {{ $gross ? 'brutto' : 'netto' }}</th>
             <th class="num" style="width: 75px;">Betrag</th>
         </tr>
     </thead>
@@ -530,20 +538,35 @@
     </tbody>
 </table>
 
-{{-- Totals --}}
+{{-- Totals: net plus VAT, or gross with the contained VAT shown --}}
 <table class="totals">
-    <tr>
-        <td class="muted">Zwischensumme netto</td>
-        <td class="num">€ {{ $money($invoice->subtotal) }}</td>
-    </tr>
-    <tr>
-        <td class="muted">USt. {{ $taxRate }} %</td>
-        <td class="num">€ {{ $money($invoice->tax_amount) }}</td>
-    </tr>
-    <tr class="sum">
-        <td>Gesamt</td>
-        <td class="num">€ {{ $money($invoice->total) }}</td>
-    </tr>
+    @if ($gross)
+        <tr class="sum">
+            <td>Gesamt brutto</td>
+            <td class="num">€ {{ $money($invoice->total) }}</td>
+        </tr>
+        <tr>
+            <td class="muted">darin enthalten netto</td>
+            <td class="num">€ {{ $money($invoice->subtotal) }}</td>
+        </tr>
+        <tr>
+            <td class="muted">darin enthalten USt. {{ $taxRate }} %</td>
+            <td class="num">€ {{ $money($invoice->tax_amount) }}</td>
+        </tr>
+    @else
+        <tr>
+            <td class="muted">Zwischensumme netto</td>
+            <td class="num">€ {{ $money($invoice->subtotal) }}</td>
+        </tr>
+        <tr>
+            <td class="muted">USt. {{ $taxRate }} %</td>
+            <td class="num">€ {{ $money($invoice->tax_amount) }}</td>
+        </tr>
+        <tr class="sum">
+            <td>Gesamt</td>
+            <td class="num">€ {{ $money($invoice->total) }}</td>
+        </tr>
+    @endif
     @if ((float) $invoice->paid_amount > 0)
         <tr>
             <td class="muted">Bereits bezahlt</td>
@@ -561,6 +584,18 @@
 
 @if ($invoice->notes)
     <div class="notes">{!! nl2br(e($invoice->notes)) !!}</div>
+@endif
+
+@if ((float) $invoice->tax_rate > 0)
+    <div class="tax-note">
+        Der Auftragnehmer ist umsatzsteuerpflichtig.
+        @if ($gross)
+            Die Preise verstehen sich als Bruttopreise inklusive der gesetzlichen Umsatzsteuer ({{ $taxRate }} %).
+        @else
+            Die Preise verstehen sich als Nettopreise zuzüglich der gesetzlichen Umsatzsteuer ({{ $taxRate }} %).
+        @endif
+        Die Umsatzsteuer ist gesondert ausgewiesen.
+    </div>
 @endif
 
 </body>

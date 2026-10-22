@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\InventoryItem;
 use App\Models\Invoice;
+use App\Models\Project;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -49,7 +50,10 @@ class Backup
                 'business_profiles' => $this->rows('business_profiles', 'user_id', [$user->id]),
                 'catalog_items' => $this->rows('catalog_items', 'user_id', [$user->id]),
                 'customers' => $this->rows('customers', 'user_id', [$user->id]),
+                'projects' => $this->rows('projects', 'user_id', [$user->id]),
                 'maintenance_contracts' => $this->rows('maintenance_contracts', 'user_id', [$user->id]),
+                // Settings and current status, the check history isn't backed up
+                'monitors' => $this->rows('monitors', 'user_id', [$user->id]),
                 'maintenance_invoices' => $this->rows('maintenance_invoices', 'maintenance_contract_id', $contractIds),
                 'invoices' => $this->rows('invoices', 'user_id', [$user->id]),
                 'invoice_items' => $this->rows('invoice_items', 'invoice_id', $invoiceIds),
@@ -64,6 +68,8 @@ class Backup
             ],
             'logo' => $image('logo'),
             'signature' => $image('signature'),
+            'terms' => $image('terms'),
+            'privacy' => $image('privacy'),
             'invoice_originals' => $user->invoices()->whereHas('media')->with('media')->get()
                 ->map(fn (Invoice $invoice) => [$invoice, $invoice->getFirstMedia('original')])
                 ->filter(fn ($pair) => $pair[1] && is_file($pair[1]->getPath()))
@@ -72,6 +78,14 @@ class Backup
                     'file_name' => $pair[1]->file_name,
                     'content' => base64_encode(file_get_contents($pair[1]->getPath())),
                 ])
+                ->values()
+                ->all(),
+            'project_files' => $user->projects()->with('media')->get()
+                ->flatMap(fn (Project $project) => $project->getMedia('files')->filter(fn ($media) => is_file($media->getPath()))->map(fn ($media) => [
+                    'project_id' => $project->id,
+                    'file_name' => $media->file_name,
+                    'content' => base64_encode(file_get_contents($media->getPath())),
+                ]))
                 ->values()
                 ->all(),
             'receipts' => $user->inventoryItems()->with('media')->get()
@@ -107,14 +121,15 @@ class Backup
         $this->validate($backup);
 
         // Older backups don't know the inventory and finances yet
-        $data = $backup['data'] + ['inventory_items' => [], 'recurring_expenses' => [], 'recurring_payments' => [], 'finance_entries' => [], 'time_sessions' => [], 'offers' => [], 'offer_items' => []];
+        $data = $backup['data'] + ['inventory_items' => [], 'recurring_expenses' => [], 'recurring_payments' => [], 'finance_entries' => [], 'time_sessions' => [], 'offers' => [], 'offer_items' => [], 'projects' => [], 'monitors' => []];
         $imported = array_fill_keys(array_keys($data), 0);
         $skippedInvoices = [];
 
         $inventory = [];
         $restoredInvoices = [];
+        $projects = [];
 
-        DB::transaction(function () use ($user, $data, $replace, &$imported, &$skippedInvoices, &$inventory, &$restoredInvoices) {
+        DB::transaction(function () use ($user, $data, $replace, &$imported, &$skippedInvoices, &$inventory, &$restoredInvoices, &$projects) {
             if ($replace) {
                 $this->wipe($user);
             }
@@ -163,6 +178,13 @@ class Backup
                 $imported['customers']++;
             }
 
+            foreach ($data['projects'] as $row) {
+                if (isset($customers[$row['customer_id']])) {
+                    $projects[$row['id']] = $this->insert('projects', $row, ['user_id' => $user->id, 'customer_id' => $customers[$row['customer_id']]]);
+                    $imported['projects']++;
+                }
+            }
+
             $contracts = [];
             foreach ($data['maintenance_contracts'] as $row) {
                 if (! isset($customers[$row['customer_id']])) {
@@ -172,8 +194,33 @@ class Backup
                 $contracts[$row['id']] = $this->insert('maintenance_contracts', $row, [
                     'user_id' => $user->id,
                     'customer_id' => $customers[$row['customer_id']],
+                    'project_id' => $projects[$row['project_id'] ?? null] ?? null,
                 ]);
                 $imported['maintenance_contracts']++;
+            }
+
+            // Monitors: of a contract or standalone. Backups from before the monitors kept the
+            // monitoring in the contract rows; it is taken from there.
+            $monitorRows = $data['monitors'] ?: collect($data['maintenance_contracts'])
+                ->filter(fn ($row) => filled($row['url'] ?? null) && array_key_exists('monitor_enabled', $row))
+                ->map(fn ($row) => [
+                    'customer_id' => $row['customer_id'], 'maintenance_contract_id' => $row['id'], 'name' => $row['name'], 'url' => $row['url'],
+                    'enabled' => $row['monitor_enabled'], 'auth' => $row['monitor_auth'] ?? 'none', 'auth_user' => $row['monitor_auth_user'] ?? null,
+                    'auth_password' => $row['monitor_auth_password'] ?? null, 'position' => $row['monitor_position'] ?? null,
+                ])->values()->all();
+
+            foreach ($monitorRows as $row) {
+                $contractId = $row['maintenance_contract_id'] ?? null;
+                if ($contractId !== null && ! isset($contracts[$contractId])) {
+                    continue;
+                }
+
+                $this->insert('monitors', $row, [
+                    'user_id' => $user->id,
+                    'customer_id' => $customers[$row['customer_id'] ?? null] ?? null,
+                    'maintenance_contract_id' => $contractId !== null ? $contracts[$contractId] : null,
+                ]);
+                $imported['monitors'] = ($imported['monitors'] ?? 0) + 1;
             }
 
             // Invoice numbers are unique: an invoice whose number already exists is skipped
@@ -194,6 +241,7 @@ class Backup
                     'user_id' => $user->id,
                     'customer_id' => $customers[$row['customer_id'] ?? null] ?? null,
                     'maintenance_contract_id' => $contracts[$row['maintenance_contract_id'] ?? null] ?? null,
+                    'project_id' => $projects[$row['project_id'] ?? null] ?? null,
                     'cancels_invoice_id' => null,
                 ]);
                 $imported['invoices']++;
@@ -244,6 +292,7 @@ class Backup
                     'customer_id' => $customers[$row['customer_id'] ?? null] ?? null,
                     'maintenance_contract_id' => $contracts[$row['maintenance_contract_id'] ?? null] ?? null,
                     'invoice_id' => $invoices[$row['invoice_id'] ?? null] ?? null,
+                    'project_id' => $projects[$row['project_id'] ?? null] ?? null,
                 ]);
                 $imported['offers']++;
             }
@@ -267,8 +316,11 @@ class Backup
         });
 
         $this->restoreImage($user, 'logo', $backup['logo'] ?? null, $replace);
-        $this->restoreImage($user, 'signature', $backup['signature'] ?? null, $replace);
+        foreach (['signature', 'terms', 'privacy'] as $collection) {
+            $this->restoreImage($user, $collection, $backup[$collection] ?? null, $replace);
+        }
         $this->restoreReceipts($backup['receipts'] ?? [], $inventory);
+        $this->restoreProjectFiles($backup['project_files'] ?? [], $projects);
         $this->restoreInvoiceOriginals($backup['invoice_originals'] ?? [], $restoredInvoices);
 
         return ['imported' => $imported, 'skipped_invoices' => $skippedInvoices];
@@ -301,9 +353,11 @@ class Backup
     {
         // Files first: deleting the rows below would leave them behind
         $user->invoices()->whereHas('media')->with('media')->get()->each(fn (Invoice $invoice) => $invoice->clearMediaCollection('original'));
+        $user->projects()->whereHas('media')->with('media')->get()->each(fn (Project $project) => $project->clearMediaCollection('files'));
 
         DB::table('invoices')->where('user_id', $user->id)->update(['cancels_invoice_id' => null]);
         DB::table('invoices')->where('user_id', $user->id)->delete();
+        DB::table('monitors')->where('user_id', $user->id)->delete();
         DB::table('maintenance_contracts')->where('user_id', $user->id)->delete();
         DB::table('customers')->where('user_id', $user->id)->delete();
         DB::table('catalog_items')->where('user_id', $user->id)->delete();
@@ -311,6 +365,7 @@ class Backup
         DB::table('finance_entries')->where('user_id', $user->id)->delete();
         DB::table('time_sessions')->where('user_id', $user->id)->delete();
         DB::table('offers')->where('user_id', $user->id)->delete();
+        DB::table('projects')->where('user_id', $user->id)->delete();
 
         // Through the models, so the receipt files are deleted too
         $user->inventoryItems()->get()->each->delete();
@@ -353,6 +408,29 @@ class Backup
      * @param  array<int, array<string, mixed>>  $receipts
      * @param  array<int, int>  $inventory  old ID => new ID
      */
+    /**
+     * @param  array<int, array<string, mixed>>  $files
+     * @param  array<int, int>  $projects  old id => new id
+     */
+    private function restoreProjectFiles(array $files, array $projects): void
+    {
+        foreach ($files as $file) {
+            $project = Project::find($projects[$file['project_id'] ?? null] ?? null);
+
+            if (! $project) {
+                continue;
+            }
+
+            try {
+                $project->addMediaFromBase64($file['content'])
+                    ->usingFileName(basename($file['file_name'] ?? 'datei.pdf'))
+                    ->toMediaCollection('files');
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+    }
+
     private function restoreReceipts(array $receipts, array $inventory): void
     {
         foreach ($receipts as $receipt) {
@@ -399,7 +477,7 @@ class Backup
      * @param  array<string, string>|null  $logo
      */
     /**
-     * Logo or signature of the user.
+     * One file of the profile: logo, signature, terms or privacy policy.
      *
      * @param  array<string, string>|null  $image
      */

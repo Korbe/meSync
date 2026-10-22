@@ -40,6 +40,10 @@ inkl. laufender Betreuung für die ersten 12 Monate<br>
 Gültig bis {{ $offer->valid_until->format('d.m.Y') }}
 </x-mail::panel>
 
+@if ($documents)
+Im Anhang finden Sie außerdem: {{ implode(' und ', $documents) }}.
+
+@endif
 Wenn das Angebot für Sie passt, senden Sie es mir einfach unterschrieben zurück – oder antworten Sie auf diese E-Mail. Ich freue mich auf die Zusammenarbeit!
 
 Beste Grüße<br>

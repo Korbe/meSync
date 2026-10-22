@@ -41,6 +41,8 @@ class OfferPdf
             'contentDelivery' => config('offers.content_delivery'),
             'paymentTerms' => config('offers.payment_terms'),
             'hints' => config('offers.hints'),
+            // Uploaded in the profile: goes along with the offer mail
+            'termsAttached' => $offer->user->getFirstMedia('terms') !== null,
             'services' => $offer->type->services(),
         ])
             ->setPaper('a4')
@@ -58,7 +60,7 @@ class OfferPdf
 
         return response($this->render($offer), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => HeaderUtils::makeDisposition('attachment', $name, Str::ascii($name)),
+            'Content-Disposition' => HeaderUtils::makeDisposition('inline', $name, Str::ascii($name)),
         ]);
     }
 }

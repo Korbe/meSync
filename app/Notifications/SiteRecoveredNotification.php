@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Models\MaintenanceContract;
+use App\Models\Monitor;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -15,7 +15,7 @@ class SiteRecoveredNotification extends Notification implements ShouldQueue
 
     public Carbon $recoveredAt;
 
-    public function __construct(public MaintenanceContract $contract, public Carbon $downSince)
+    public function __construct(public Monitor $monitor, public Carbon $downSince)
     {
         $this->recoveredAt = now();
     }
@@ -34,10 +34,10 @@ class SiteRecoveredNotification extends Notification implements ShouldQueue
 
         return (new MailMessage)
             ->success()
-            ->subject("✅ {$this->contract->name} ist wieder erreichbar")
+            ->subject("✅ {$this->monitor->name} ist wieder erreichbar")
             ->greeting('Entwarnung')
-            ->line("**{$this->contract->name}** ({$this->contract->url}) ist wieder erreichbar.")
+            ->line("**{$this->monitor->name}** ({$this->monitor->url}) ist wieder erreichbar.")
             ->line("Ausfalldauer: ca. {$duration}.")
-            ->action('Wartungsvertrag öffnen', route('contracts.edit', $this->contract));
+            ->action($this->monitor->maintenance_contract_id ? 'Wartungsvertrag öffnen' : 'Monitoring öffnen', $this->monitor->link());
     }
 }

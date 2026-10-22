@@ -18,6 +18,8 @@ use App\Http\Controllers\MaintenanceContractController;
 use App\Http\Controllers\MaintenanceInvoiceController;
 use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\OfferController;
+use App\Http\Controllers\ProfileDocumentController;
+use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProfileLogoController;
 use App\Http\Controllers\ProfileSignatureController;
 use App\Http\Controllers\RecurringExpenseController;
@@ -34,6 +36,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
     Route::post('/user/profile/logo', [ProfileLogoController::class, 'store'])->name('profile.logo.store');
     Route::delete('/user/profile/logo', [ProfileLogoController::class, 'destroy'])->name('profile.logo.destroy');
+    Route::get('/user/profile/documents/{document}', [ProfileDocumentController::class, 'show'])->whereIn('document', ['terms', 'privacy'])->name('profile.documents.show');
+    Route::post('/user/profile/documents/{document}', [ProfileDocumentController::class, 'store'])->whereIn('document', ['terms', 'privacy'])->name('profile.documents.store');
+    Route::delete('/user/profile/documents/{document}', [ProfileDocumentController::class, 'destroy'])->whereIn('document', ['terms', 'privacy'])->name('profile.documents.destroy');
     Route::get('/user/profile/signature', [ProfileSignatureController::class, 'show'])->name('profile.signature.show');
     Route::post('/user/profile/signature', [ProfileSignatureController::class, 'store'])->name('profile.signature.store');
     Route::delete('/user/profile/signature', [ProfileSignatureController::class, 'destroy'])->name('profile.signature.destroy');
@@ -47,9 +52,12 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/contracts/{contract}/delete', [MaintenanceContractController::class, 'delete'])->name('contracts.delete');
     Route::post('/contracts/{contract}/start', [MaintenanceContractController::class, 'start'])->name('contracts.start');
     Route::get('/contracts/{contract}/pdf', [MaintenanceContractController::class, 'pdf'])->name('contracts.pdf');
-    Route::post('/contracts/{contract}/check', [MaintenanceContractController::class, 'check'])->name('contracts.check');
-    Route::patch('/contracts/{contract}/monitor', [MonitoringController::class, 'toggle'])->name('contracts.monitor');
     Route::get('/monitoring', [MonitoringController::class, 'index'])->name('monitoring.index');
+    Route::post('/monitors', [MonitoringController::class, 'store'])->name('monitors.store');
+    Route::put('/monitors/{monitor}', [MonitoringController::class, 'update'])->name('monitors.update');
+    Route::delete('/monitors/{monitor}', [MonitoringController::class, 'destroy'])->name('monitors.destroy');
+    Route::post('/monitors/{monitor}/check', [MonitoringController::class, 'check'])->name('monitors.check');
+    Route::patch('/monitors/{monitor}/toggle', [MonitoringController::class, 'toggle'])->name('monitors.toggle');
 
     Route::get('/stopwatch', [TimeSessionController::class, 'index'])->name('stopwatch.index');
     Route::post('/stopwatch', [TimeSessionController::class, 'start'])->name('stopwatch.start');
@@ -73,6 +81,13 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/invoices/{invoice}/payments', [InvoicePaymentController::class, 'store'])->name('invoices.payments.store');
     Route::delete('/invoices/{invoice}/payments/{payment}', [InvoicePaymentController::class, 'destroy'])->name('invoices.payments.destroy');
     Route::resource('invoices', InvoiceController::class)->except('show');
+
+    Route::post('/projects/{project}/complete', [ProjectController::class, 'complete'])->name('projects.complete');
+    Route::delete('/projects/{project}/complete', [ProjectController::class, 'reopen'])->name('projects.reopen');
+    Route::post('/projects/{project}/files', [ProjectController::class, 'storeFiles'])->name('projects.files.store');
+    Route::get('/projects/{project}/files/{media}', [ProjectController::class, 'showFile'])->name('projects.files.show');
+    Route::delete('/projects/{project}/files/{media}', [ProjectController::class, 'destroyFile'])->name('projects.files.destroy');
+    Route::resource('projects', ProjectController::class);
 
     Route::get('/offers/{offer}/pdf', [OfferController::class, 'download'])->name('offers.download');
     Route::post('/offers/{offer}/send', [OfferController::class, 'send'])->name('offers.send');

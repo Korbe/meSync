@@ -24,7 +24,8 @@ const invoiceForm = useForm({
 
 // Go-live: start the contract (waiting since the invoice of its offer)
 const startForm = useForm({
-    start_date: today(),
+    // Usually live when the implementation of its project was finished
+    start_date: props.contract.project?.completed_at ?? today(),
     monitor_enabled: !!props.contract.url,
 });
 const start = () => startForm.post(route('contracts.start', props.contract.id), { preserveScroll: true });
@@ -55,6 +56,14 @@ const undo = async (invoice) => {
     router.delete(route('contracts.invoices.destroy', [props.contract.id, invoice.id]), { preserveScroll: true });
 };
 
+// "Fällig in 30 Tagen", "Überfällig seit 3 Tagen", "Heute fällig" (one string: a space at the
+// start of a <template> would be dropped by the compiler)
+const dueText = computed(() => {
+    if (props.contract.status === 'due_today') return 'Heute fällig';
+    const prefix = props.contract.status === 'overdue' ? 'Überfällig' : 'Fällig';
+    return `${prefix} ${relativeDays(props.contract.next_invoice_date)}`;
+});
+
 const dueClass = computed(() => ({
     overdue: 'text-red-600 dark:text-red-400',
     due_today: 'text-amber-600 dark:text-accent',
@@ -65,7 +74,7 @@ const dueClass = computed(() => ({
 <template>
     <Layout :title="contract.name" :backTo="route('contracts.index')">
         <template v-slot:actions>
-            <a :href="route('contracts.pdf', contract.id)" class="btn cursor-pointer border-gray-200! bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10! dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10" title="Vertragsinformation für den Kunden als PDF">
+            <a :href="route('contracts.pdf', contract.id)" target="_blank" rel="noopener\" class="btn cursor-pointer border-gray-200! bg-white text-gray-700 hover:bg-gray-50 dark:border-white/10! dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10" title="Vertragsinformation für den Kunden als PDF">
                 <DocumentArrowDownIcon class="mr-2 h-5 w-5" />Vertrags-PDF
             </a>
             <VButton :href="route('contracts.delete', contract.id)" variant="secondary" icon="TrashIcon">Löschen</VButton>
@@ -94,8 +103,7 @@ const dueClass = computed(() => ({
                     <template v-if="contract.status === 'pending'">
                         <h2 class="card-title"><RocketLaunchIcon class="h-5 w-5 text-accent" />Wartet auf Go-Live</h2>
                         <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">
-                            Der Vertrag beginnt, sobald die Seite live ist. Das erste Jahr ({{ formatMoney(contract.annual_price) }}) ist mit der Projektrechnung bereits verrechnet –
-                            die nächste Rechnung wird ein Jahr nach dem Start fällig.
+                            Der Vertrag beginnt, sobald die Seite live ist. Beim Start erstellst du gleich die Wartungsrechnung für die ersten 12 Monate ({{ formatMoney(contract.annual_price) }}) und verschickst sie.
                         </p>
                         <form @submit.prevent="start" class="mt-5 flex flex-wrap items-end gap-4 border-t border-gray-200 pt-5 dark:border-white/[0.08]">
                             <VInput id="start_date_live" type="date" label="Live seit" v-model="startForm.start_date" :error="startForm.errors.start_date" />
@@ -117,7 +125,7 @@ const dueClass = computed(() => ({
                                     {{ formatDate(contract.next_invoice_date) }}
                                 </div>
                                 <div class="mt-1 text-sm font-medium" :class="dueClass">
-                                    {{ contract.status === 'overdue' ? 'Überfällig' : contract.status === 'due_today' ? 'Heute fällig' : 'Fällig' }}<template v-if="contract.status !== 'due_today'"> {{ relativeDays(contract.next_invoice_date) }}</template>
+                                    {{ dueText }}
                                 </div>
                             </div>
                             <div class="text-right">

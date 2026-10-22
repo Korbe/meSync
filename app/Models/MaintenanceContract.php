@@ -3,13 +3,13 @@
 namespace App\Models;
 
 use App\Enums\MaintenanceContractType;
-use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -28,6 +28,7 @@ class MaintenanceContract extends Model
      */
     protected $fillable = [
         'customer_id',
+        'project_id',
         'type',
         'name',
         'url',
@@ -36,19 +37,6 @@ class MaintenanceContract extends Model
         'next_invoice_date',
         'end_date',
         'notes',
-        'monitor_enabled',
-        'monitor_auth',
-        'monitor_auth_user',
-        'monitor_auth_password',
-    ];
-
-    /**
-     * The password for protected websites never leaves the server.
-     *
-     * @var array<int, string>
-     */
-    protected $hidden = [
-        'monitor_auth_password',
     ];
 
     /**
@@ -60,23 +48,7 @@ class MaintenanceContract extends Model
         'type_label',
         'annual_price',
         'status',
-        'has_monitor_password',
     ];
-
-    protected static function booted(): void
-    {
-        // Monitoring switched off (toggle or form): forget the status, it would be stale later
-        static::saving(function (MaintenanceContract $contract) {
-            if ($contract->isDirty('monitor_enabled') && ! $contract->monitor_enabled) {
-                $contract->forceFill([
-                    'monitor_status' => null,
-                    'monitor_status_since' => null,
-                    'monitor_failures' => 0,
-                    'monitor_error' => null,
-                ]);
-            }
-        });
-    }
 
     protected function casts(): array
     {
@@ -86,12 +58,6 @@ class MaintenanceContract extends Model
             'start_date' => 'date:Y-m-d',
             'next_invoice_date' => 'date:Y-m-d',
             'end_date' => 'date:Y-m-d',
-            'monitor_enabled' => 'boolean',
-            'monitor_auth_password' => 'encrypted',
-            'monitor_status_since' => 'datetime',
-            'monitor_checked_at' => 'datetime',
-            'ssl_expires_at' => 'datetime',
-            'ssl_warning_sent_for' => 'date:Y-m-d',
             'reminder_sent_for' => 'date:Y-m-d',
             'due_notice_sent_for' => 'date:Y-m-d',
         ];
@@ -107,9 +73,17 @@ class MaintenanceContract extends Model
         return $this->belongsTo(Customer::class);
     }
 
-    public function siteChecks(): HasMany
+    public function project(): BelongsTo
     {
-        return $this->hasMany(SiteCheck::class);
+        return $this->belongsTo(Project::class);
+    }
+
+    /**
+     * Uptime monitoring of its website, if there is one.
+     */
+    public function monitor(): HasOne
+    {
+        return $this->hasOne(Monitor::class);
     }
 
     public function invoices(): HasMany
@@ -117,16 +91,6 @@ class MaintenanceContract extends Model
         return $this->hasMany(MaintenanceInvoice::class)->latest('period_start');
     }
 
-    /**
-     * Contracts that still have invoices to send (not ended before the next due date).
-     */
-    /**
-     * Contracts whose website should be checked: monitoring on, URL set, not ended.
-     */
-    public function scopeMonitored(Builder $query): void
-    {
-        $query->where('monitor_enabled', true)->whereNotNull('url')->where('url', '!=', '')->billable();
-    }
 
     /**
      * Running contracts with invoices still to send: started, and not ended before the next due date.
@@ -157,61 +121,15 @@ class MaintenanceContract extends Model
     }
 
     /**
-     * Go-live: the contract starts. The first year was already billed with the invoice of
-     * the offer, so it is recorded as invoiced and the next invoice is due a year later.
+     * Go-live: the contract starts and its first year is due right away (own invoice,
+     * separate from the project invoice of the offer).
      */
-    public function start(Carbon $date, ?Invoice $invoice = null): void
+    public function start(Carbon $date): void
     {
-        DB::transaction(function () use ($date, $invoice) {
-            $this->update(['start_date' => $date, 'next_invoice_date' => $date]);
-
-            if (! $invoice) {
-                return;
-            }
-
-            $this->markInvoiced($invoice->invoice_date, $invoice->number)->update(['invoice_id' => $invoice->id]);
-
-            // Not sent yet: the invoice gets the real period instead of "12 Monate ab Go-Live"
-            if ($invoice->sent_at === null && ! $invoice->isLocked()) {
-                $period = 'Zeitraum: '.$date->format('d.m.Y').' – '.$date->copy()->addYear()->subDay()->format('d.m.Y');
-
-                foreach ($invoice->items()->where('description', 'like', '%Zeitraum: 12 Monate ab Go-Live%')->get() as $item) {
-                    $lines = collect(explode("\n", $item->description))
-                        ->reject(fn (string $line) => trim($line) === config('offers.hints.maintenance_start'))
-                        ->map(fn (string $line) => trim($line) === 'Zeitraum: 12 Monate ab Go-Live' ? $period : $line);
-
-                    $item->update(['description' => $lines->implode("\n")]);
-                }
-            }
-        });
+        $this->update(['start_date' => $date, 'next_invoice_date' => $date]);
     }
 
-    /**
-     * The invoice that billed the first year (the one of the offer), if any.
-     */
-    public function firstYearInvoice(): ?Invoice
-    {
-        return Invoice::where('maintenance_contract_id', $this->id)->oldest('id')->first();
-    }
 
-    /**
-     * Password for HTTP Basic Auth, or null when none is stored or it can't be decrypted
-     * (e.g. a backup restored on a server with a different APP_KEY).
-     */
-    public function monitorPassword(): ?string
-    {
-        try {
-            return $this->monitor_auth_password;
-        } catch (DecryptException) {
-            return null;
-        }
-    }
-
-    protected function hasMonitorPassword(): Attribute
-    {
-        // Raw value: tells whether a password is stored without decrypting it
-        return Attribute::get(fn () => filled($this->attributes['monitor_auth_password'] ?? null));
-    }
 
     protected function typeLabel(): Attribute
     {
@@ -221,6 +139,39 @@ class MaintenanceContract extends Model
     protected function annualPrice(): Attribute
     {
         return Attribute::get(fn () => round((float) $this->monthly_price * 12, 2));
+    }
+
+    /**
+     * Monitoring settings from the contract form: the monitor follows name, customer and address
+     * of the contract. Without an address there is nothing to check, the monitor goes.
+     *
+     * @param  array<string, mixed>  $settings  enabled, auth, auth_user, auth_password (empty = keep)
+     */
+    public function syncMonitor(array $settings = []): ?Monitor
+    {
+        if (blank($this->url)) {
+            $this->monitor?->delete();
+            $this->setRelation('monitor', null);
+
+            return null;
+        }
+
+        $monitor = $this->monitor ?? $this->monitor()->make()->forceFill(['user_id' => $this->user_id]);
+        $monitor->fill([
+            'customer_id' => $this->customer_id,
+            'name' => $this->name,
+            'url' => $this->url,
+            ...array_filter($settings, fn ($value, $key) => $key !== 'auth_password' || filled($value), ARRAY_FILTER_USE_BOTH),
+        ]);
+
+        if (($settings['auth'] ?? $monitor->auth) !== 'basic') {
+            $monitor->fill(['auth_user' => null, 'auth_password' => null]);
+        }
+
+        $monitor->save();
+        $this->setRelation('monitor', $monitor);
+
+        return $monitor;
     }
 
     /**

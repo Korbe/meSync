@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Models\MaintenanceContract;
+use App\Models\Monitor;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -12,7 +12,7 @@ class SiteDownNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public MaintenanceContract $contract)
+    public function __construct(public Monitor $monitor)
     {
     }
 
@@ -28,12 +28,12 @@ class SiteDownNotification extends Notification implements ShouldQueue
     {
         return (new MailMessage)
             ->error()
-            ->subject("⚠️ {$this->contract->name} ist nicht erreichbar")
+            ->subject("⚠️ {$this->monitor->name} ist nicht erreichbar")
             ->greeting('Website nicht erreichbar')
-            ->line("**{$this->contract->name}** ({$this->contract->url}) ist seit {$this->contract->monitor_status_since->format('d.m.Y H:i')} Uhr nicht erreichbar.")
-            ->line('Fehler: '.($this->contract->monitor_error ?: 'unbekannt'))
-            ->line("Kunde: {$this->contract->customer->display_name}")
-            ->action('Wartungsvertrag öffnen', route('contracts.edit', $this->contract))
+            ->line("**{$this->monitor->name}** ({$this->monitor->url}) ist seit {$this->monitor->status_since->format('d.m.Y H:i')} Uhr nicht erreichbar.")
+            ->line('Fehler: '.($this->monitor->error ?: 'unbekannt'))
+            ->lineIf($this->monitor->customer !== null, "Kunde: {$this->monitor->customer?->display_name}")
+            ->action($this->monitor->maintenance_contract_id ? 'Wartungsvertrag öffnen' : 'Monitoring öffnen', $this->monitor->link())
             ->line('Sobald die Website wieder erreichbar ist, bekommst du eine Entwarnung.');
     }
 }

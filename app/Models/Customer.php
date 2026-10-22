@@ -36,6 +36,12 @@ class Customer extends Model
         'interests',
     ];
 
+    protected static function booted(): void
+    {
+        // Its projects go through the database foreign key; their files only through the models
+        static::deleting(fn (Customer $customer) => $customer->projects()->with('media')->get()->each->delete());
+    }
+
     protected function casts(): array
     {
         return [
@@ -72,6 +78,11 @@ class Customer extends Model
     public function offers(): HasMany
     {
         return $this->hasMany(Offer::class);
+    }
+
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
     }
 
     /**

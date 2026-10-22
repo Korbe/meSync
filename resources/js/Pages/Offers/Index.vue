@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { ClipboardDocumentListIcon, CheckBadgeIcon, WrenchScrewdriverIcon, ChartPieIcon, ArrowDownTrayIcon, EnvelopeIcon } from '@heroicons/vue/24/outline';
+import { ClipboardDocumentListIcon, CheckBadgeIcon, WrenchScrewdriverIcon, ChartPieIcon, EyeIcon, EnvelopeIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import VPagination from '@/components/VPagination.vue';
@@ -151,8 +151,8 @@ const edit = (offer) => router.visit(route('offers.edit', offer.id));
                             <td class="px-5 py-3.5"><OfferStatusBadge :status="offer.status" /></td>
                             <td class="px-5 py-3.5">
                                 <div class="flex justify-end opacity-60 transition group-hover:opacity-100">
-                                    <a :href="route('offers.download', offer.id)" class="rounded-lg p-2 text-gray-500 hover:bg-primary-500/10 hover:text-primary-600 dark:hover:text-primary-300" title="PDF herunterladen" @click.stop>
-                                        <ArrowDownTrayIcon class="h-4 w-4" />
+                                    <a :href="route('offers.download', offer.id)" target="_blank" rel="noopener\" class="rounded-lg p-2 text-gray-500 hover:bg-primary-500/10 hover:text-primary-600 dark:hover:text-primary-300" title="PDF ansehen" @click.stop>
+                                        <EyeIcon class="h-4 w-4" />
                                     </a>
                                 </div>
                             </td>
@@ -173,8 +173,8 @@ const edit = (offer) => router.visit(route('offers.edit', offer.id));
                         <div class="truncate text-xs text-gray-500">{{ offer.recipient.name }} · {{ formatDate(offer.offer_date) }}</div>
                         <div class="mt-1 font-medium text-gray-900 dark:text-gray-100">{{ formatMoney(offer.total) }}</div>
                     </Link>
-                    <a :href="route('offers.download', offer.id)" class="glass-button" title="PDF herunterladen">
-                        <ArrowDownTrayIcon class="h-4 w-4" />
+                    <a :href="route('offers.download', offer.id)" target="_blank" rel="noopener\" class="glass-button" title="PDF ansehen">
+                        <EyeIcon class="h-4 w-4" />
                     </a>
                 </div>
             </div>

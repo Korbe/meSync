@@ -54,6 +54,70 @@ class InvoiceTest extends TestCase
         ];
     }
 
+    public function test_pc_help_is_priced_gross_and_web_design_net(): void
+    {
+        $user = $this->userWithProfile();
+        $customer = Customer::factory()->for($user)->create();
+        $item = fn (string $price) => [['description' => 'PC-Hilfe', 'quantity' => '1', 'unit' => 'Stück', 'unit_price' => $price]];
+
+        // PC help: 120 € gross contain 100 € net and 20 € VAT
+        $this->actingAs($user)->post(route('invoices.store'), $this->payload($customer, ['number' => '2026-001', 'prices_include_tax' => true, 'items' => $item('120')]))
+            ->assertSessionHasNoErrors();
+        // Web design: 100 € net plus 20 € VAT
+        $this->actingAs($user)->post(route('invoices.store'), $this->payload($customer, ['number' => '2026-002', 'items' => $item('100')]));
+
+        [$gross, $net] = [$user->invoices()->where('number', '2026-001')->first(), $user->invoices()->where('number', '2026-002')->first()];
+        $this->assertTrue($gross->prices_include_tax);
+        foreach ([$gross, $net] as $invoice) {
+            $this->assertSame(100.0, $invoice->subtotal);
+            $this->assertSame(20.0, $invoice->tax_amount);
+            $this->assertSame(120.0, $invoice->total);
+            $this->assertSame(120.0, $invoice->outstanding);
+        }
+
+        // An odd gross price: tax taken out with the same rounding in PHP and SQL
+        $this->actingAs($user)->post(route('invoices.store'), $this->payload($customer, ['number' => '2026-003', 'prices_include_tax' => true, 'items' => $item('99,99')]));
+        $odd = $user->invoices()->where('number', '2026-003')->first();
+        $this->assertSame(16.67, $odd->tax_amount);
+        $this->assertSame(83.32, $odd->subtotal);
+        $this->assertSame(99.99, $odd->total);
+
+        $sql = $user->invoices()->toBase()->selectRaw('invoices.number, '.Invoice::sqlSubtotal().' as net, '.Invoice::sqlTax().' as tax, '.Invoice::sqlOutstanding().' as outstanding')
+            ->get()->keyBy('number');
+        foreach ([$gross, $net, $odd] as $invoice) {
+            $row = $sql[$invoice->number];
+            $this->assertEqualsWithDelta($invoice->subtotal, (float) $row->net, 0.001, $invoice->number);
+            $this->assertEqualsWithDelta($invoice->tax_amount, (float) $row->tax, 0.001, $invoice->number);
+            $this->assertEqualsWithDelta($invoice->outstanding, (float) $row->outstanding, 0.001, $invoice->number);
+        }
+
+        // The PDF shows gross prices with the contained VAT and the matching sentence
+        $html = fn (Invoice $invoice) => view('pdf.invoice', [
+            'invoice' => $invoice->load(['items', 'payments', 'cancels', 'cancellation']), 'issuer' => $invoice->issuer, 'recipient' => $invoice->recipient,
+            'logo' => null, 'qrCode' => null, 'paid' => null,
+        ])->render();
+        $this->assertStringContainsString('darin enthalten USt. 20 %', $html($gross));
+        $this->assertStringContainsString('Bruttopreise inklusive der gesetzlichen Umsatzsteuer (20 %)', $html($gross));
+        $this->assertStringContainsString('Nettopreise zuzüglich der gesetzlichen Umsatzsteuer (20 %)', $html($net));
+
+        // A cancellation keeps the way the prices were entered
+        $this->actingAs($user)->post(route('invoices.cancel', $gross));
+        $this->assertTrue($gross->fresh()->cancellation->prices_include_tax);
+        $this->assertSame(-120.0, $gross->fresh()->cancellation->total);
+    }
+
+    public function test_new_invoices_follow_customer_and_stopwatch_for_gross_or_net(): void
+    {
+        $user = $this->userWithProfile();
+        $web = Customer::factory()->for($user)->create(['interests' => ['website']]);
+        $pc = Customer::factory()->for($user)->create(['interests' => ['pc_help']]);
+
+        $this->actingAs($user)->get(route('invoices.create'))->assertInertia(fn (Assert $page) => $page
+            ->where('invoice.prices_include_tax', false)
+            ->where('customers', fn ($customers) => collect($customers)->firstWhere('value', $web->id)['gross'] === false
+                && collect($customers)->firstWhere('value', $pc->id)['gross'] === true));
+    }
+
     public function test_invoice_can_be_created_with_items_and_snapshots(): void
     {
         $user = $this->userWithProfile();
