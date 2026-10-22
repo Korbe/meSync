@@ -153,10 +153,10 @@ const taxAmount = computed(() => {
 const subtotal = computed(() => form.prices_include_tax ? itemsTotal.value - taxAmount.value : itemsTotal.value);
 const total = computed(() => subtotal.value + taxAmount.value);
 
-// Kind of service: PC help and PC builds are priced gross, web design net
+// Taxation of the entered prices: gross (PC help, PC builds) or net (web design)
 const serviceKinds = [
-    { gross: true, label: 'PC-Hilfe / PC-Build', hint: 'Preise brutto inkl. USt.' },
-    { gross: false, label: 'Webdesign / Website / Web-App', hint: 'Preise netto zzgl. USt.' },
+    { gross: true, label: 'inkl. USt. (Bruttopreise)', hint: 'z. B. PC-Hilfe, PC-Builds' },
+    { gross: false, label: 'exkl. USt. (Nettopreise)', hint: 'z. B. Webdesign, Websites, Web-Apps' },
 ];
 
 // A new free invoice follows the customer: web customers net, PC help customers gross
@@ -263,7 +263,7 @@ const submit = () => {
 
                     <!-- Gross or net prices, decides how the tax is calculated and shown -->
                     <div class="sm:col-span-6">
-                        <div class="mb-1 text-sm font-medium">Art der Leistung</div>
+                        <div class="mb-1 text-sm font-medium">Art der Versteuerung</div>
                         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                             <button v-for="kind in serviceKinds" :key="kind.label" type="button"
                                 class="rounded-xl border px-3.5 py-2.5 text-left transition"
