@@ -41,6 +41,27 @@ class CatalogItemTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->has('catalog', 1)->where('catalog.0.name', 'Website Basic'));
     }
 
+    public function test_catalog_item_created_from_the_invoice_form_returns_there(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->from(route('invoices.create'))
+            ->post(route('catalog.store'), [
+                'name' => 'PC-Hilfe vor Ort', 'pricing' => 'time', 'unit_price' => '50', 'base_minutes' => 30, 'step_minutes' => 15, 'step_price' => '20,00', 'inline' => true,
+            ])
+            ->assertRedirect(route('invoices.create'))
+            ->assertSessionHas('success');
+
+        $item = $user->catalogItems()->sole();
+        $this->assertSame('time', $item->pricing);
+        $this->assertSame('20.00', $item->step_price);
+
+        // The invoice form gets it right away
+        $this->actingAs($user)->get(route('invoices.create'))
+            ->assertInertia(fn (Assert $page) => $page->where('catalog.0.name', 'PC-Hilfe vor Ort'));
+    }
+
     public function test_catalog_items_of_other_users_are_forbidden(): void
     {
         $item = CatalogItem::factory()->create();

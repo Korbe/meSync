@@ -7,6 +7,7 @@ import VSelect from '@/components/VSelect.vue';
 import VButton from '@/components/VButton.vue';
 import VModal from '@/components/VModal.vue';
 import QuickCustomerModal from './QuickCustomerModal.vue';
+import QuickCatalogModal from './QuickCatalogModal.vue';
 import { formatDate, formatMoney, toDate, toIsoDate } from '@/utils/format';
 import { vAutosize, continueBullet, addBullet } from '@/composables/useItemText';
 import { breakdown, formatDuration, minutesForPrice, parseDuration, priceForMinutes, rateLabel } from '@/utils/timePricing';
@@ -71,6 +72,17 @@ const catalogSelection = ref('');
 const insertFromCatalog = () => {
     const entry = props.catalog.find(item => String(item.id) === String(catalogSelection.value));
     catalogSelection.value = '';
+    insertCatalogEntry(entry);
+};
+
+// New catalog item created in the dialog: inserted right away
+const creatingCatalogItem = ref(false);
+const catalogItemCreated = (entry) => {
+    creatingCatalogItem.value = false;
+    insertCatalogEntry(entry);
+};
+
+const insertCatalogEntry = (entry) => {
     if (!entry) return;
 
     // Time rates need the duration first
@@ -335,7 +347,9 @@ const submit = () => {
                         {{ entry.name }} · {{ entry.pricing === 'time' ? rateLabel(entry) : formatMoney(entry.unit_price) + (entry.unit ? ' / ' + entry.unit : '') }}
                     </option>
                 </select>
-                <Link v-else :href="route('catalog.create')" class="text-sm text-gray-500 hover:text-primary-500">Leistungskatalog anlegen</Link>
+                <button type="button" class="inline-flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400" @click="creatingCatalogItem = true">
+                    <PlusIcon class="h-4 w-4" />Neue Leistung
+                </button>
                 </div>
                 <datalist id="invoice-units">
                     <option v-for="unit in units" :key="unit" :value="unit" />
@@ -446,6 +460,7 @@ const submit = () => {
                 <VButton :disabled="durationPrice === null || durationMinutes <= 0" @click="insertTimeEntry">Position einfügen</VButton>
             </template>
         </VModal>
+        <QuickCatalogModal :show="creatingCatalogItem" :catalog="catalog" @close="creatingCatalogItem = false" @created="catalogItemCreated" />
         <QuickCustomerModal :show="creatingCustomer" :customers="customers" @close="creatingCustomer = false" @created="customerCreated" />
     </form>
 </template>

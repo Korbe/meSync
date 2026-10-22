@@ -27,6 +27,11 @@ class CatalogItemController extends Controller
     {
         $request->user()->catalogItems()->create($this->validated($request));
 
+        // Created from the invoice form: stay there, it inserts the new item
+        if ($request->boolean('inline')) {
+            return back()->with('success', 'Leistung wurde angelegt.');
+        }
+
         return to_route('catalog.index')->with('success', 'Leistung wurde angelegt.');
     }
 
