@@ -14,6 +14,7 @@ const props = defineProps({
     customers: { type: Array, required: true },
     types: { type: Array, required: true },
     customerId: { type: Number, default: null },
+    prefill: { type: Object, default: null },   // from a project: customer, type, name, url, start
 });
 
 const typeIcons = { website: GlobeAltIcon, webapp: CommandLineIcon };
@@ -30,13 +31,14 @@ const nextAnniversary = (start) => {
 };
 
 const form = useForm({
-    customer_id: props.contract?.customer_id ?? props.customerId ?? '',
-    type: props.contract?.type ?? 'website',
-    name: props.contract?.name ?? '',
-    url: props.contract?.url ?? '',
-    monthly_price: props.contract ? String(Number(props.contract.monthly_price)) : defaultPrice('website'),
-    start_date: props.contract?.start_date ?? today(),
-    next_invoice_date: props.contract?.next_invoice_date ?? today(),
+    customer_id: props.contract?.customer_id ?? props.prefill?.customer_id ?? props.customerId ?? '',
+    project_id: props.contract?.project_id ?? props.prefill?.project_id ?? null,
+    type: props.contract?.type ?? props.prefill?.type ?? 'website',
+    name: props.contract?.name ?? props.prefill?.name ?? '',
+    url: props.contract?.url ?? props.prefill?.url ?? '',
+    monthly_price: props.contract ? String(Number(props.contract.monthly_price)) : defaultPrice(props.prefill?.type ?? 'website'),
+    start_date: props.contract?.start_date ?? props.prefill?.start_date ?? today(),
+    next_invoice_date: props.contract?.next_invoice_date ?? props.prefill?.start_date ?? today(),
     end_date: props.contract?.end_date ?? '',
     notes: props.contract?.notes ?? '',
     // Monitoring of the website lives in its own monitor

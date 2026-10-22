@@ -121,6 +121,50 @@ class ProjectTest extends TestCase
             ->where('contract.id', $contract->id));
     }
 
+    public function test_project_can_be_ordered_without_an_offer(): void
+    {
+        $project = $this->project();
+        $next = fn () => $project->fresh()->load(['offers', 'maintenanceContract'])->nextStep();
+
+        // Ordered elsewhere: straight to the implementation
+        $this->post(route('projects.order', $project), ['ordered_at' => '2026-10-22'])->assertSessionHas('success');
+        $this->assertSame('implementation', $this->phase($project));
+        $this->assertSame('Projekt umsetzen', $next()['label']);
+
+        // Can be taken back until the work is done
+        $this->delete(route('projects.unorder', $project));
+        $this->assertSame('request', $this->phase($project));
+        $this->post(route('projects.order', $project), ['ordered_at' => '2026-10-22']);
+
+        $this->post(route('projects.complete', $project), ['completed_at' => '2026-11-15']);
+        $this->delete(route('projects.unorder', $project))->assertSessionHas('error');
+        $this->assertSame('Projektrechnung erstellen', $next()['label']);
+        $this->assertSame(route('invoices.create', ['project' => $project->id]), $next()['url']);
+
+        // Project invoice (free, with the project)
+        $this->post(route('invoices.store'), [
+            'customer_id' => $this->customer->id, 'project_id' => $project->id, 'number' => '2026-300',
+            'invoice_date' => '2026-11-15', 'due_date' => '2026-11-29', 'tax_rate' => 20, 'paid_amount' => 0,
+            'items' => [['description' => 'Web-App', 'quantity' => 1, 'unit_price' => 3500]],
+        ])->assertSessionHasNoErrors();
+        $this->assertSame('Wartungsvertrag anlegen', $next()['label']);
+
+        // The contract is prefilled from the project, starting with the completion
+        $this->get(route('contracts.create', ['project' => $project->id]))->assertInertia(fn (Assert $page) => $page
+            ->where('prefill.project_id', $project->id)
+            ->where('prefill.type', 'webapp')
+            ->where('prefill.name', 'Web-App Duschking')
+            ->where('prefill.url', 'https://duschking.at')
+            ->where('prefill.start_date', '2026-11-15'));
+
+        $this->post(route('contracts.store'), [
+            'customer_id' => $this->customer->id, 'project_id' => $project->id, 'type' => 'webapp', 'name' => 'Web-App Duschking',
+            'url' => 'https://duschking.at', 'monthly_price' => 59, 'start_date' => '2026-11-15', 'next_invoice_date' => '2026-11-15',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('live', $this->phase($project));
+    }
+
     public function test_with_prepayment_the_invoice_comes_before_the_work(): void
     {
         $this->actingAs($this->user)->post(route('offers.store'), [

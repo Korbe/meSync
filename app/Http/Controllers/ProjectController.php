@@ -68,7 +68,7 @@ class ProjectController extends Controller
 
         return Inertia::render('Projects/Show', [
             'project' => [
-                ...$project->only(['id', 'name', 'url', 'notes', 'customer_id', 'type', 'completed_at']),
+                ...$project->only(['id', 'name', 'url', 'notes', 'customer_id', 'type', 'completed_at', 'ordered_at']),
                 'type_label' => $project->type->label(),
                 'customer' => $project->customer->only(['id', 'display_name', 'email']),
             ],
@@ -114,6 +114,38 @@ class ProjectController extends Controller
         $project->maintenanceContract?->update(['name' => $project->name, 'url' => $project->url]);
 
         return to_route('projects.show', $project)->with('success', 'Projekt wurde gespeichert.');
+    }
+
+    /**
+     * Ordered without an offer in meSync (own contract, by phone or mail): straight to the implementation.
+     */
+    public function order(Request $request, Project $project): RedirectResponse
+    {
+        Gate::authorize('update', $project);
+
+        $date = $request->validate(['ordered_at' => 'required|date'], [
+            'ordered_at.required' => 'Bitte gib an, wann der Auftrag kam.',
+        ])['ordered_at'];
+
+        $project->forceFill(['ordered_at' => $date])->save();
+
+        return back()->with('success', 'Projekt ist beauftragt – jetzt die eigentliche Arbeit.');
+    }
+
+    /**
+     * Not ordered after all, as long as the implementation isn't finished.
+     */
+    public function unorder(Project $project): RedirectResponse
+    {
+        Gate::authorize('update', $project);
+
+        if ($project->completed_at !== null) {
+            return back()->with('error', 'Die Umsetzung ist schon abgeschlossen.');
+        }
+
+        $project->forceFill(['ordered_at' => null])->save();
+
+        return back()->with('success', 'Auftrag zurückgenommen.');
     }
 
     /**

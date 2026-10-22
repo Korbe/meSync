@@ -44,6 +44,7 @@ class Project extends Model implements HasMedia
         return [
             'type' => MaintenanceContractType::class,
             'completed_at' => 'date:Y-m-d',
+            'ordered_at' => 'date:Y-m-d',
         ];
     }
 
@@ -90,7 +91,7 @@ class Project extends Model implements HasMedia
     {
         return match (true) {
             $this->maintenanceContract && ! $this->maintenanceContract->isPending() => 'live',
-            $this->offers->contains(fn (Offer $offer) => $offer->accepted_at !== null) => 'implementation',
+            $this->offers->contains(fn (Offer $offer) => $offer->accepted_at !== null) || $this->ordered_at !== null => 'implementation',
             $this->offers->isNotEmpty() => 'offer',
             default => 'request',
         };
@@ -125,9 +126,10 @@ class Project extends Model implements HasMedia
                 $open !== null => $step('Warten auf Antwort', "{$open->number} verschickt, gültig bis {$open->valid_until->format('d.m.Y')}", 'Zusage oder Absage eintragen', route('offers.edit', $open)),
                 default => $step('Neues Angebot schreiben', 'Abgelehnt oder abgelaufen', 'Neues Angebot', route('offers.create', ['project' => $this->id])),
             },
-            // Accepted: the actual work, the project invoice (before it with prepayment, after it
-            // when billed on completion), then the go-live
-            'implementation' => match (true) {
+            // Ordered without an offer in meSync: work, project invoice, maintenance contract
+            'implementation' => $accepted === null ? $this->stepWithoutOffer() : match (true) {
+                // Accepted: the actual work, the project invoice (before it with prepayment, after it
+                // when billed on completion), then the go-live
                 $accepted->invoice_id === null && ! $accepted->billsOnCompletion() => $step('Projektrechnung erstellen', "{$accepted->number} angenommen – Vorauskasse laut Angebot", 'Projektrechnung erstellen', route('invoices.create', ['offer' => $accepted->id])),
                 $this->completed_at === null => [
                     ...$step('Projekt umsetzen', $accepted->invoice_id ? 'Projektrechnung ist raus – jetzt die eigentliche Arbeit' : "{$accepted->number} angenommen – jetzt die eigentliche Arbeit", 'Umsetzung abschließen', route('projects.complete', $this->id)),
@@ -139,6 +141,27 @@ class Project extends Model implements HasMedia
             'live' => in_array($contract->status, ['overdue', 'due_today', 'due_soon'], true)
                 ? $step('Wartungsrechnung fällig', 'Fällig am '.$contract->next_invoice_date->format('d.m.Y'), 'Wartungsrechnung erstellen', route('invoices.create', ['contract' => $contract->id]))
                 : $step('Wartung läuft', $contract->status === 'ended' ? 'Vertrag beendet' : 'Nächste Rechnung am '.$contract->next_invoice_date->format('d.m.Y'), 'Vertrag öffnen', route('contracts.edit', $contract)),
+        };
+    }
+
+    /**
+     * Next step of a project that was ordered without an offer (own contract, by phone or mail).
+     *
+     * @return array<string, string|null>
+     */
+    private function stepWithoutOffer(): array
+    {
+        $contract = $this->maintenanceContract;
+        $step = fn (string $label, string $hint, string $action, string $url) => compact('label', 'hint', 'action', 'url');
+
+        return match (true) {
+            $this->completed_at === null => [
+                ...$step('Projekt umsetzen', 'Beauftragt am '.$this->ordered_at->format('d.m.Y').' – jetzt die eigentliche Arbeit', 'Umsetzung abschließen', route('projects.complete', $this->id)),
+                'method' => 'complete',
+            ],
+            ! $this->invoices()->whereNull('maintenance_contract_id')->exists() => $step('Projektrechnung erstellen', 'Umsetzung abgeschlossen am '.$this->completed_at->format('d.m.Y'), 'Projektrechnung erstellen', route('invoices.create', ['project' => $this->id])),
+            $contract === null => $step('Wartungsvertrag anlegen', 'Projektrechnung ist raus – die Wartung fehlt noch', 'Wartungsvertrag anlegen', route('contracts.create', ['project' => $this->id])),
+            default => $step('Go-Live', 'Sobald die Seite live ist, den Vertrag starten', 'Vertrag starten', route('contracts.edit', $contract)),
         };
     }
 }

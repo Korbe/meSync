@@ -32,9 +32,21 @@ class MaintenanceContractController extends Controller
 
     public function create(Request $request): Response
     {
+        // From a project (ordered without an offer): customer, type, name and address from there,
+        // the start from the completion of the implementation
+        $project = $request->integer('project') ? $request->user()->projects()->findOrFail($request->integer('project')) : null;
+
         return Inertia::render('MaintenanceContracts/Create', [
             ...$this->formOptions($request),
             'customerId' => $request->integer('customer') ?: null,
+            'prefill' => $project ? [
+                'project_id' => $project->id,
+                'customer_id' => $project->customer_id,
+                'type' => $project->type->value,
+                'name' => $project->name,
+                'url' => $project->url,
+                'start_date' => $project->completed_at?->toDateString(),
+            ] : null,
         ]);
     }
 

@@ -43,6 +43,7 @@ class MaintenanceContractRequest extends FormRequest
         return [
             // Only the user's own customers can be assigned
             'customer_id' => ['required', Rule::exists('customers', 'id')->where('user_id', $this->user()->id)],
+            'project_id' => ['nullable', Rule::exists('projects', 'id')->where('user_id', $this->user()->id)],
             'type' => ['required', Rule::enum(MaintenanceContractType::class)],
             'name' => 'required|string|max:255',
             'url' => 'nullable|url:http,https|max:255',

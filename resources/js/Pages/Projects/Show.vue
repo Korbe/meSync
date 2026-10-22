@@ -34,6 +34,19 @@ const complete = () => completeForm.post(route('projects.complete', props.projec
     onSuccess: () => completing.value = false,
 });
 
+// Ordered elsewhere (own contract, by phone or mail): skip the offer
+const ordering = ref(false);
+const orderForm = useForm({ ordered_at: today() });
+const order = () => orderForm.post(route('projects.order', props.project.id), {
+    preserveScroll: true,
+    onSuccess: () => ordering.value = false,
+});
+const unorder = async () => {
+    if (await confirm({ title: 'Auftrag zurücknehmen?', message: 'Das Projekt ist dann wieder in der Anfrage bzw. beim Angebot.', confirmText: 'Zurücknehmen' })) {
+        router.delete(route('projects.unorder', props.project.id), { preserveScroll: true });
+    }
+};
+
 const reopen = async () => {
     if (await confirm({ title: 'Umsetzung wieder öffnen?', message: 'Das Projekt ist dann wieder in Arbeit, die Projektrechnung kommt erst nach dem nächsten Abschluss.', confirmText: 'Wieder öffnen' })) {
         router.delete(route('projects.reopen', props.project.id), { preserveScroll: true });
@@ -100,11 +113,16 @@ const remove = async () => {
                         <div class="font-mono text-[11px] uppercase tracking-[0.18em] text-gray-500">Stand</div>
                         <div class="mt-1 font-display text-xl font-semibold text-gray-900 dark:text-white">{{ lost ? 'Angebot abgelehnt oder abgelaufen' : next.label }}</div>
                         <div class="text-sm text-gray-500">{{ next.hint }}</div>
+                        <div v-if="project.ordered_at" class="mt-1 text-xs text-gray-500">
+                            Ohne Angebot beauftragt am {{ formatDate(project.ordered_at) }}
+                            <button v-if="!project.completed_at" type="button" class="ml-1 cursor-pointer underline hover:text-primary-500" @click="unorder">zurücknehmen</button>
+                        </div>
                         <div v-if="project.completed_at" class="mt-1 text-xs text-gray-500">
                             Umsetzung abgeschlossen am {{ formatDate(project.completed_at) }}
                             <button v-if="canReopen" type="button" class="ml-1 cursor-pointer underline hover:text-primary-500" @click="reopen">wieder öffnen</button>
                         </div>
                     </div>
+                    <VButton v-if="['request', 'offer'].includes(phase)" variant="secondary" icon="CheckBadgeIcon" @click="ordering = true">Ohne Angebot beauftragt</VButton>
                     <VButton v-if="next.method === 'complete'" icon="CheckIcon" @click="completing = true">{{ next.action }}</VButton>
                     <VButton v-else :href="next.url">
                         <span class="inline-flex items-center">{{ next.action }}<ArrowRightIcon class="ml-2 h-4 w-4" /></span>
@@ -179,6 +197,19 @@ const remove = async () => {
                 <p class="mt-3 whitespace-pre-line text-sm text-gray-700 dark:text-gray-300">{{ project.notes }}</p>
             </section>
         </div>
+
+        <!-- Ordered without an offer in meSync -->
+        <VModal :show="ordering" max-width="md" @close="ordering = false">
+            <template #title>Ohne Angebot beauftragt</template>
+            <template #content>
+                <p>Der Auftrag kam anderweitig – eigener Vertrag, telefonisch oder per Mail? Dann springt das Projekt direkt in die Umsetzung. Danach folgen Projektrechnung und Wartungsvertrag.</p>
+                <VInput id="ordered_at" class="mt-4" type="date" label="Beauftragt am" v-model="orderForm.ordered_at" :error="orderForm.errors.ordered_at" />
+            </template>
+            <template #footer>
+                <VButton variant="secondary" @click="ordering = false">Abbrechen</VButton>
+                <VButton :loading="orderForm.processing" :disabled="orderForm.processing" @click="order">Beauftragt</VButton>
+            </template>
+        </VModal>
 
         <!-- Implementation finished -->
         <VModal :show="completing" max-width="md" @close="completing = false">
