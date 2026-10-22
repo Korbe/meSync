@@ -237,4 +237,24 @@ class MaintenanceContractTest extends TestCase
         $this->actingAs($user)->post(route('contracts.store'), $payload(''))->assertSessionHasNoErrors();
         $this->assertNull($user->maintenanceContracts()->latest('id')->first()->url);
     }
+
+    public function test_contracts_are_only_billed_when_due_unless_on_purpose(): void
+    {
+        $user = User::factory()->create();
+        $running = MaintenanceContract::factory()->for($user)->create(['start_date' => today()->subMonth(), 'next_invoice_date' => today()->addMonths(11)]);
+        $due = MaintenanceContract::factory()->for($user)->create(['start_date' => today()->subYear(), 'next_invoice_date' => today()->addDays(10)]);
+
+        // Not due: no invoice and no billing by mistake
+        $this->actingAs($user)->get(route('invoices.create', ['contract' => $running->id]))->assertRedirect(route('contracts.edit', $running));
+        $this->actingAs($user)->post(route('contracts.invoices.store', $running), ['invoiced_at' => today()->toDateString()])->assertSessionHas('error');
+        $this->assertSame(0, $running->invoices()->count());
+
+        // On purpose ("vorzeitig verrechnen")
+        $this->actingAs($user)->get(route('invoices.create', ['contract' => $running->id, 'early' => 1]))->assertOk();
+        $this->actingAs($user)->post(route('contracts.invoices.store', $running), ['invoiced_at' => today()->toDateString(), 'early' => true])->assertSessionHas('success');
+        $this->assertSame(1, $running->invoices()->count());
+
+        // Due within 30 days: as before
+        $this->actingAs($user)->get(route('invoices.create', ['contract' => $due->id]))->assertOk();
+    }
 }

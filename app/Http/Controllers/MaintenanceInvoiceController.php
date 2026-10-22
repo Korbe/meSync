@@ -26,6 +26,10 @@ class MaintenanceInvoiceController extends Controller
             return back()->with('error', 'Dieser Vertrag ist beendet, es ist keine Rechnung mehr fällig.');
         }
 
+        if (! $contract->isDue() && ! $request->boolean('early')) {
+            return back()->with('error', 'Dieser Vertrag ist noch nicht fällig – nächste Rechnung am '.$contract->next_invoice_date->format('d.m.Y').'.');
+        }
+
         $invoice = $contract->markInvoiced(
             Carbon::parse($request->validated('invoiced_at') ?? today()),
             $request->validated('invoice_number'),

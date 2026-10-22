@@ -111,7 +111,7 @@ class ProjectTest extends TestCase
         $this->post(route('contracts.start', $contract), ['start_date' => '2026-12-01']);
         $this->assertSame('live', $this->phase($project));
         $this->delete(route('projects.reopen', $project))->assertSessionHas('error');   // live: stays completed
-        $this->get(route('invoices.create', ['contract' => $contract->id]))->assertInertia(fn (Assert $page) => $page->where('invoice.project_id', $project->id));
+        $this->get(route('invoices.create', ['contract' => $contract->id, 'early' => 1]))->assertInertia(fn (Assert $page) => $page->where('invoice.project_id', $project->id));
 
         $this->get(route('projects.show', $project))->assertInertia(fn (Assert $page) => $page
             ->component('Projects/Show')

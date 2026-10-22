@@ -1,6 +1,6 @@
 <script setup>
 import { confirm } from '@/composables/useConfirm';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import { BanknotesIcon, ClockIcon, ArrowUturnLeftIcon, CheckCircleIcon, DocumentArrowDownIcon, RocketLaunchIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
@@ -15,6 +15,7 @@ const props = defineProps({
     contract: Object,
     customers: Array,
     types: Array,
+    dueSoonDays: { type: Number, default: 30 },
 });
 
 const invoiceForm = useForm({
@@ -38,8 +39,26 @@ const periodEnd = computed(() => {
     return toIsoDate(end);
 });
 
+// Billing is offered once the contract is due; before that only on purpose
+const isDue = computed(() => ['overdue', 'due_today', 'due_soon'].includes(props.contract.status));
+const billEarly = ref(false);
+const startEarly = async () => {
+    if (await confirm({
+        title: 'Vorzeitig verrechnen?',
+        message: `Die nächste Rechnung ist erst am ${formatDate(props.contract.next_invoice_date)} fällig. Wird jetzt verrechnet, rückt der Vertrag ein Jahr weiter.`,
+        confirmText: 'Vorzeitig verrechnen',
+    })) billEarly.value = true;
+};
+// Due soon from this date on (shown while it is not due yet)
+const dueFrom = computed(() => {
+    if (!props.contract.next_invoice_date) return null;
+    const date = toDate(props.contract.next_invoice_date);
+    date.setDate(date.getDate() - props.dueSoonDays);
+    return toIsoDate(date);
+});
+
 const markInvoiced = () => {
-    invoiceForm.post(route('contracts.invoices.store', props.contract.id), {
+    invoiceForm.transform(data => ({ ...data, early: billEarly.value })).post(route('contracts.invoices.store', props.contract.id), {
         preserveScroll: true,
         onSuccess: () => invoiceForm.reset('invoice_number'),
     });
@@ -134,8 +153,16 @@ const dueClass = computed(() => ({
                             </div>
                         </div>
 
+                        <!-- Not due yet: nothing to bill, unless on purpose -->
+                        <div v-if="!isDue && !billEarly" class="mt-6 flex flex-wrap items-center gap-3 border-t border-gray-200 pt-6 text-sm text-gray-500 dark:border-white/[0.08]">
+                            <CheckCircleIcon class="h-5 w-5 shrink-0 text-primary-500" />
+                            <span>Noch nicht fällig – ab {{ formatDate(dueFrom) }} erscheint die Rechnung hier und im Dashboard, du bekommst vorher eine Erinnerung.</span>
+                            <button type="button" class="ml-auto cursor-pointer text-xs underline hover:text-primary-500" @click="startEarly">vorzeitig verrechnen</button>
+                        </div>
+
+                        <template v-else>
                         <div class="mt-6 flex flex-wrap items-center gap-3 border-t border-gray-200 pt-6 dark:border-white/[0.08]">
-                            <VButton :href="route('invoices.create', { contract: contract.id })" icon="DocumentTextIcon">Rechnung erstellen</VButton>
+                            <VButton :href="route('invoices.create', { contract: contract.id, early: isDue ? undefined : 1 })" icon="DocumentTextIcon">Rechnung erstellen</VButton>
                             <span class="text-sm text-gray-500">Rechnung mit vorausgefüllter Position, markiert den Vertrag automatisch als verrechnet.</span>
                         </div>
 
@@ -145,6 +172,7 @@ const dueClass = computed(() => ({
                             <VInput id="invoice_number" label="Rechnungsnummer (optional)" placeholder="RE-2026-001" v-model="invoiceForm.invoice_number" :error="invoiceForm.errors.invoice_number" />
                             <VButton type="submit" icon="CheckIcon" :loading="invoiceForm.processing" :disabled="invoiceForm.processing">Rechnung gesendet</VButton>
                         </form>
+                        </template>
                     </template>
 
                     <p v-else class="mt-5 text-sm text-gray-500">

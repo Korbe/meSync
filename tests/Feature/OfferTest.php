@@ -222,7 +222,7 @@ class OfferTest extends TestCase
         $contract = $offer->fresh()->maintenanceContract;
 
         $this->post(route('contracts.start', $contract), ['start_date' => '2026-12-01', 'monitor_enabled' => true])
-            ->assertRedirect(route('invoices.create', ['contract' => $contract, 'send' => 1]));
+            ->assertRedirect(route('invoices.create', ['contract' => $contract, 'send' => 1, 'early' => 1]));
 
         $contract->refresh();
         $this->assertSame('2026-12-01', $contract->start_date->toDateString());
@@ -231,7 +231,7 @@ class OfferTest extends TestCase
         $this->assertSame('https://duschking.at', $contract->monitor->url);
 
         // Maintenance invoice for 12 months from the go-live, sent right after saving
-        $this->get(route('invoices.create', ['contract' => $contract, 'send' => 1]))
+        $this->get(route('invoices.create', ['contract' => $contract, 'send' => 1, 'early' => 1]))
             ->assertInertia(fn (Assert $page) => $page
                 ->where('sendAfterSave', true)
                 ->where('invoice.maintenance_contract_id', $contract->id)

@@ -108,6 +108,14 @@ class MaintenanceContract extends Model
     }
 
     /**
+     * The yearly invoice is due: overdue, today or within the next DUE_SOON_DAYS days.
+     */
+    public function isDue(): bool
+    {
+        return in_array($this->status, ['overdue', 'due_today', 'due_soon'], true);
+    }
+
+    /**
      * Created with the invoice of an offer: waits for the go-live, nothing is due yet.
      */
     public function isPending(): bool

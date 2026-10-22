@@ -110,6 +110,11 @@ class InvoiceController extends Controller
         // Prefill from a due maintenance contract
         if ($contractId = $request->integer('contract')) {
             $contract = $user->maintenanceContracts()->billable()->findOrFail($contractId);
+
+            // Not due yet: only on purpose ("vorzeitig verrechnen"), so no year is billed twice by mistake
+            if (! $contract->isDue() && ! $request->boolean('early')) {
+                return to_route('contracts.edit', $contract)->with('error', 'Dieser Vertrag ist noch nicht fällig – nächste Rechnung am '.$contract->next_invoice_date->format('d.m.Y').'.');
+            }
             $periodEnd = $contract->next_invoice_date->copy()->addYear()->subDay();
 
             $invoice['customer_id'] = $contract->customer_id;

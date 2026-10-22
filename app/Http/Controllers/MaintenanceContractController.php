@@ -53,6 +53,7 @@ class MaintenanceContractController extends Controller
         return Inertia::render('MaintenanceContracts/Update', [
             ...$this->formOptions($request),
             'contract' => $contract->load(['customer', 'invoices', 'monitor', 'project:id,completed_at']),
+            'dueSoonDays' => MaintenanceContract::DUE_SOON_DAYS,
         ]);
     }
 
@@ -97,8 +98,8 @@ class MaintenanceContractController extends Controller
         $contract->start(Carbon::parse($validated['start_date']));
         $contract->syncMonitor(['enabled' => $request->boolean('monitor_enabled')]);
 
-        // On to the maintenance invoice for the first 12 months, sent right after saving
-        return to_route('invoices.create', ['contract' => $contract, 'send' => 1])
+        // On to the maintenance invoice for the first 12 months (also when the go-live date lies ahead), sent right after saving
+        return to_route('invoices.create', ['contract' => $contract, 'send' => 1, 'early' => 1])
             ->with('success', "Wartungsvertrag „{$contract->name}“ läuft ab {$contract->start_date->format('d.m.Y')} – jetzt die Wartungsrechnung erstellen.");
     }
 
