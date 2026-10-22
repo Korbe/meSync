@@ -24,7 +24,21 @@ const props = defineProps({
     contract: Object,
     canReopen: Boolean,
     files: Array,
+    assignable: Object,   // offers, invoices of the customer without a project
 });
+
+// Assign an existing offer or invoice of the customer, or take it off the project
+const attach = (type, id) => {
+    if (!id) return;
+    router.post(route('projects.attach', props.project.id), { type, id }, { preserveScroll: true });
+};
+const detach = async (type, document) => {
+    if (await confirm({
+        title: `${type === 'offer' ? 'Angebot' : 'Rechnung'} ${document.number} vom Projekt lösen?`,
+        message: 'Sie bleibt erhalten und gehört dann nur keinem Projekt mehr an.',
+        confirmText: 'Lösen',
+    })) router.delete(route('projects.detach', [props.project.id, type, document.id]), { preserveScroll: true });
+};
 
 // The actual work is done: from then on the project invoice can be written
 const completing = ref(false);
@@ -36,8 +50,9 @@ const complete = () => completeForm.post(route('projects.complete', props.projec
 
 // Ordered elsewhere (own contract, by phone or mail): skip the offer
 const ordering = ref(false);
-const orderForm = useForm({ ordered_at: today() });
+const orderForm = useForm({ ordered_at: today(), document: null });
 const order = () => orderForm.post(route('projects.order', props.project.id), {
+    forceFormData: true,
     preserveScroll: true,
     onSuccess: () => ordering.value = false,
 });
@@ -133,10 +148,17 @@ const remove = async () => {
             <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
                 <!-- Offers -->
                 <section class="card overflow-hidden">
-                    <div class="p-6 pb-3"><h2 class="card-title"><ClipboardDocumentListIcon class="h-5 w-5 text-primary-500" />Angebote</h2></div>
+                    <div class="flex flex-wrap items-center justify-between gap-3 p-6 pb-3">
+                        <h2 class="card-title"><ClipboardDocumentListIcon class="h-5 w-5 text-primary-500" />Angebote</h2>
+                        <select v-if="assignable.offers.length" class="form-select w-auto py-1 text-xs" value="" @change="attach('offer', $event.target.value); $event.target.value = ''">
+                            <option value="" disabled>Vorhandene zuordnen …</option>
+                            <option v-for="option in assignable.offers" :key="option.value" :value="option.value">{{ option.label }}</option>
+                        </select>
+                    </div>
                     <p v-if="offers.length === 0" class="px-6 pb-6 text-sm text-gray-500">Noch kein Angebot.</p>
                     <ul v-else class="divide-y divide-gray-100 dark:divide-white/[0.06]">
-                        <li v-for="offer in offers" :key="offer.id">
+                        <li v-for="offer in offers" :key="offer.id" class="group relative">
+                            <button type="button" class="absolute top-1/2 left-1.5 z-10 -translate-y-1/2 cursor-pointer rounded p-0.5 text-gray-300 opacity-0 transition group-hover:opacity-100 hover:text-red-500 focus:opacity-100" title="Vom Projekt lösen" @click="detach('offer', offer)">×</button>
                             <Link :href="route('offers.edit', offer.id)" class="flex items-center gap-3 px-6 py-3 transition hover:bg-primary-500/[0.04]">
                                 <div class="min-w-0 flex-1">
                                     <div class="font-mono text-sm font-medium text-gray-900 dark:text-gray-100">{{ offer.number }}</div>
@@ -153,10 +175,17 @@ const remove = async () => {
 
                 <!-- Invoices -->
                 <section class="card overflow-hidden">
-                    <div class="p-6 pb-3"><h2 class="card-title"><DocumentTextIcon class="h-5 w-5 text-primary-500" />Rechnungen</h2></div>
-                    <p v-if="invoices.length === 0" class="px-6 pb-6 text-sm text-gray-500">Noch keine Rechnung.</p>
+                    <div class="flex flex-wrap items-center justify-between gap-3 p-6 pb-3">
+                        <h2 class="card-title"><DocumentTextIcon class="h-5 w-5 text-primary-500" />Rechnungen</h2>
+                        <select v-if="assignable.invoices.length" class="form-select w-auto py-1 text-xs" value="" @change="attach('invoice', $event.target.value); $event.target.value = ''">
+                            <option value="" disabled>Vorhandene zuordnen …</option>
+                            <option v-for="option in assignable.invoices" :key="option.value" :value="option.value">{{ option.label }}</option>
+                        </select>
+                    </div>
+                    <p v-if="invoices.length === 0" class="px-6 pb-3 text-sm text-gray-500">Noch keine Rechnung.</p>
                     <ul v-else class="divide-y divide-gray-100 dark:divide-white/[0.06]">
-                        <li v-for="invoice in invoices" :key="invoice.id">
+                        <li v-for="invoice in invoices" :key="invoice.id" class="group relative">
+                            <button type="button" class="absolute top-1/2 left-1.5 z-10 -translate-y-1/2 cursor-pointer rounded p-0.5 text-gray-300 opacity-0 transition group-hover:opacity-100 hover:text-red-500 focus:opacity-100" title="Vom Projekt lösen" @click="detach('invoice', invoice)">×</button>
                             <Link :href="route('invoices.edit', invoice.id)" class="flex items-center gap-3 px-6 py-3 transition hover:bg-primary-500/[0.04]">
                                 <div class="min-w-0 flex-1">
                                     <div class="font-mono text-sm font-medium text-gray-900 dark:text-gray-100">{{ invoice.number }}</div>
@@ -169,6 +198,9 @@ const remove = async () => {
                             </Link>
                         </li>
                     </ul>
+                    <Link :href="route('invoices.create', { project: project.id })" class="block border-t border-gray-100 px-6 py-3 text-xs font-medium text-primary-600 hover:bg-primary-500/[0.04] dark:border-white/[0.06] dark:text-primary-300">
+                        + Rechnung als PDF erfassen (z. B. schon woanders geschrieben)
+                    </Link>
                 </section>
             </div>
 
@@ -204,6 +236,12 @@ const remove = async () => {
             <template #content>
                 <p>Der Auftrag kam anderweitig – eigener Vertrag, telefonisch oder per Mail? Dann springt das Projekt direkt in die Umsetzung. Danach folgen Projektrechnung und Wartungsvertrag.</p>
                 <VInput id="ordered_at" class="mt-4" type="date" label="Beauftragt am" v-model="orderForm.ordered_at" :error="orderForm.errors.ordered_at" />
+                <label class="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 p-3 text-sm text-gray-600 transition hover:border-primary-400 dark:border-white/10 dark:text-gray-400">
+                    <input type="file" accept="application/pdf,image/*" class="hidden" @change="orderForm.document = $event.target.files[0] ?? null">
+                    <span class="min-w-0 truncate">{{ orderForm.document ? orderForm.document.name : 'Auftrag als PDF anhängen (optional)' }}</span>
+                </label>
+                <div v-if="orderForm.errors.document" class="mt-1 text-xs text-red-500">{{ orderForm.errors.document }}</div>
+                <p class="mt-1 text-xs text-gray-500">Landet in den Projektdateien.</p>
             </template>
             <template #footer>
                 <VButton variant="secondary" @click="ordering = false">Abbrechen</VButton>

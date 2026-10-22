@@ -165,6 +165,69 @@ class ProjectTest extends TestCase
         $this->assertSame('live', $this->phase($project));
     }
 
+    public function test_existing_offers_and_invoices_can_be_assigned_and_detached(): void
+    {
+        $project = $this->project();
+        $invoice = $this->user->invoices()->create([
+            'customer_id' => $this->customer->id, 'number' => '2026-400', 'invoice_date' => '2026-10-01', 'due_date' => '2026-10-15',
+            'tax_rate' => 20, 'paid_amount' => 0, 'recipient' => [], 'issuer' => [],
+        ]);
+        $offer = $this->user->offers()->create([
+            'customer_id' => $this->customer->id, 'type' => 'webapp', 'number' => 'A-2026-009', 'title' => 'Altes Angebot', 'offer_date' => '2026-09-01',
+            'valid_until' => '2026-10-01', 'features' => [], 'integrations' => [], 'payment_terms' => 'prepaid', 'maintenance_monthly_price' => 59,
+            'recipient' => [], 'issuer' => [],
+        ]);
+        $offer->forceFill(['accepted_at' => now()])->save();
+        $foreign = Customer::factory()->for($this->user)->create();
+        $other = $this->user->invoices()->create([
+            'customer_id' => $foreign->id, 'number' => '2026-401', 'invoice_date' => '2026-10-01', 'due_date' => '2026-10-15',
+            'tax_rate' => 20, 'paid_amount' => 0, 'recipient' => [], 'issuer' => [],
+        ]);
+
+        // Only the customer's own documents without a project are offered
+        $this->get(route('projects.show', $project))->assertInertia(fn (Assert $page) => $page
+            ->has('assignable.invoices', 1)->where('assignable.invoices.0.value', $invoice->id)
+            ->has('assignable.offers', 1)->where('assignable.offers.0.value', $offer->id));
+
+        $this->post(route('projects.attach', $project), ['type' => 'invoice', 'id' => $invoice->id])->assertSessionHas('success');
+        $this->post(route('projects.attach', $project), ['type' => 'offer', 'id' => $offer->id])->assertSessionHas('success');
+        $this->assertSame($project->id, $invoice->fresh()->project_id);
+        // The accepted offer is the order: the project is in the implementation
+        $this->assertSame('implementation', $this->phase($project));
+
+        // Other customers' documents can't be assigned
+        $this->post(route('projects.attach', $project), ['type' => 'invoice', 'id' => $other->id])->assertStatus(422);
+
+        $this->delete(route('projects.detach', [$project, 'invoice', $invoice->id]))->assertSessionHas('success');
+        $this->assertNull($invoice->fresh()->project_id);
+        $this->assertSame(1, $this->user->invoices()->where('number', '2026-400')->count());   // kept
+
+        $this->actingAs(User::factory()->create())->post(route('projects.attach', $project), ['type' => 'invoice', 'id' => $invoice->id])->assertForbidden();
+    }
+
+    public function test_order_and_invoice_pdfs_from_elsewhere_go_with_the_project(): void
+    {
+        Storage::fake('local');
+        $project = $this->project();
+        $pdf = fn (string $name) => UploadedFile::fake()->createWithContent($name, "%PDF-1.4\n%%EOF");
+
+        // The order as PDF lands in the project files
+        $this->post(route('projects.order', $project), ['ordered_at' => '2026-10-22', 'document' => $pdf('auftrag.pdf')])->assertSessionHasNoErrors();
+        $this->assertSame(['auftrag.pdf'], $project->fresh()->getMedia('files')->pluck('file_name')->all());
+
+        // An invoice written elsewhere: captured with its PDF, belongs to the project
+        $this->get(route('invoices.create', ['project' => $project->id]))->assertInertia(fn (Assert $page) => $page->where('invoice.project_id', $project->id));
+        $this->post(route('invoices.store'), [
+            'customer_id' => $this->customer->id, 'project_id' => $project->id, 'number' => '2026-500', 'invoice_date' => '2026-10-22',
+            'due_date' => '2026-11-05', 'tax_rate' => 20, 'paid_amount' => 0, 'original' => $pdf('rechnung.pdf'),
+            'items' => [['description' => 'Website', 'quantity' => 1, 'unit_price' => 2500]],
+        ])->assertSessionHasNoErrors();
+
+        $invoice = $this->user->invoices()->where('number', '2026-500')->first();
+        $this->assertSame($project->id, $invoice->project_id);
+        $this->assertSame('rechnung.pdf', $invoice->getFirstMedia('original')->file_name);
+    }
+
     public function test_with_prepayment_the_invoice_comes_before_the_work(): void
     {
         $this->actingAs($this->user)->post(route('offers.store'), [

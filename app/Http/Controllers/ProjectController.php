@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\MaintenanceContractType;
+use App\Models\Invoice;
 use App\Models\Offer;
 use App\Models\Project;
 use Illuminate\Http\RedirectResponse;
@@ -82,6 +83,13 @@ class ProjectController extends Controller
             'contract' => $project->maintenanceContract,
             // Completion can be undone until the go-live
             'canReopen' => $project->completed_at !== null && ! $project->maintenanceContract?->start_date,
+            // Existing offers and invoices of the customer without a project: can be assigned
+            'assignable' => [
+                'offers' => $project->customer->offers()->whereNull('project_id')->with('items')->latest('offer_date')->get()
+                    ->map(fn (Offer $offer) => ['value' => $offer->id, 'label' => "{$offer->number} · {$offer->title} · € ".number_format($offer->total, 2, ',', '.')]),
+                'invoices' => $project->customer->invoices()->whereNull('project_id')->with('items')->latest('invoice_date')->get()
+                    ->map(fn (Invoice $invoice) => ['value' => $invoice->id, 'label' => "{$invoice->number} vom {$invoice->invoice_date->format('d.m.Y')} · € ".number_format($invoice->total, 2, ',', '.')]),
+            ],
             'files' => $project->getMedia('files')->sortByDesc('created_at')->values()->map(fn (Media $media) => [
                 'id' => $media->id,
                 'name' => $media->file_name,
@@ -117,17 +125,68 @@ class ProjectController extends Controller
     }
 
     /**
+     * Assign an existing offer or invoice of the customer. An accepted offer (the order) brings
+     * its maintenance contract along. Nothing changes on the document itself.
+     */
+    public function attach(Request $request, Project $project): RedirectResponse
+    {
+        Gate::authorize('update', $project);
+
+        $validated = $request->validate(['type' => 'required|in:offer,invoice', 'id' => 'required|integer']);
+        $model = $this->ownDocument($request, $validated['type'], $validated['id']);
+
+        abort_unless($model->customer_id === $project->customer_id, 422, 'Gehört zu einem anderen Kunden.');
+
+        $model->forceFill(['project_id' => $project->id])->save();
+        if ($model instanceof Offer) {
+            $model->maintenanceContract?->forceFill(['project_id' => $project->id])->save();
+        }
+
+        return back()->with('success', ($model instanceof Offer ? "Angebot {$model->number}" : "Rechnung {$model->number}").' gehört jetzt zum Projekt.');
+    }
+
+    public function detach(Request $request, Project $project, string $type, int $id): RedirectResponse
+    {
+        Gate::authorize('update', $project);
+        abort_unless(in_array($type, ['offer', 'invoice'], true), 404);
+
+        $model = $this->ownDocument($request, $type, $id);
+        abort_unless($model->project_id === $project->id, 404);
+
+        $model->forceFill(['project_id' => null])->save();
+
+        return back()->with('success', ($model instanceof Offer ? "Angebot {$model->number}" : "Rechnung {$model->number}").' gehört keinem Projekt mehr an.');
+    }
+
+    private function ownDocument(Request $request, string $type, int $id): Offer|Invoice
+    {
+        return $type === 'offer'
+            ? $request->user()->offers()->findOrFail($id)
+            : $request->user()->invoices()->findOrFail($id);
+    }
+
+    /**
      * Ordered without an offer in meSync (own contract, by phone or mail): straight to the implementation.
      */
     public function order(Request $request, Project $project): RedirectResponse
     {
         Gate::authorize('update', $project);
 
-        $date = $request->validate(['ordered_at' => 'required|date'], [
+        $date = $request->validate([
+            'ordered_at' => 'required|date',
+            // The order as PDF (own contract, signed order), kept with the project files
+            'document' => 'nullable|file|mimes:pdf,png,jpg,jpeg,webp|max:20480',
+        ], [
             'ordered_at.required' => 'Bitte gib an, wann der Auftrag kam.',
+            'document.mimes' => 'Der Auftrag muss ein PDF oder Bild sein.',
+            'document.max' => 'Die Datei darf maximal 20 MB groß sein.',
         ])['ordered_at'];
 
         $project->forceFill(['ordered_at' => $date])->save();
+
+        if ($request->hasFile('document')) {
+            $project->addMediaFromRequest('document')->toMediaCollection('files');
+        }
 
         return back()->with('success', 'Projekt ist beauftragt – jetzt die eigentliche Arbeit.');
     }

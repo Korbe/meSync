@@ -82,6 +82,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::delete('/invoices/{invoice}/payments/{payment}', [InvoicePaymentController::class, 'destroy'])->name('invoices.payments.destroy');
     Route::resource('invoices', InvoiceController::class)->except('show');
 
+    Route::post('/projects/{project}/attach', [ProjectController::class, 'attach'])->name('projects.attach');
+    Route::delete('/projects/{project}/attach/{type}/{id}', [ProjectController::class, 'detach'])->name('projects.detach');
     Route::post('/projects/{project}/order', [ProjectController::class, 'order'])->name('projects.order');
     Route::delete('/projects/{project}/order', [ProjectController::class, 'unorder'])->name('projects.unorder');
     Route::post('/projects/{project}/complete', [ProjectController::class, 'complete'])->name('projects.complete');
