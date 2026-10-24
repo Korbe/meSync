@@ -7,21 +7,15 @@
     };
     $replyTo = $issuer['email'] ?? null;
 
-    // Own logo in the header, embedded so it shows without loading external images.
-    // The view renders twice (HTML + text): reuse the logo if it is already embedded.
-    $logo = null;
-    if (isset($message) && $logoPath) {
-        $embedded = collect($message->getSymfonyMessage()->getAttachments())
-            ->first(fn ($part) => $part->getFilename() === basename($logoPath));
-        $logo = $embedded ? 'cid:'.$embedded->getContentId() : $message->embed($logoPath);
-    }
+    // Own logo in the header: embedded, with a fixed size (Outlook ignores max-width)
+    $logo = \App\Support\MailLogo::embed($message ?? null, $logoPath);
 @endphp
 <x-mail::layout>
 <x-slot:header>
 <tr>
 <td class="header">
 @if ($logo)
-<img src="{{ $logo }}" alt="{{ $senderName }}" style="max-height: 64px; max-width: 220px;">
+<img src="{{ $logo['src'] }}" width="{{ $logo['width'] }}"@if ($logo['height']) height="{{ $logo['height'] }}"@endif alt="{{ $senderName }}" style="width: {{ $logo['width'] }}px;@if ($logo['height']) height: {{ $logo['height'] }}px;@endif border: 0;">
 @else
 <span style="font-size: 22px; font-weight: 700; color: #0a0a0a;">{{ $senderName }}</span>
 @endif

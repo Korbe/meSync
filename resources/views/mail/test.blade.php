@@ -1,12 +1,6 @@
 @php
-    // Own logo in the header, embedded so it shows without loading external images.
-    // The view renders twice (HTML + text): reuse the logo if it is already embedded.
-    $logo = null;
-    if (isset($message) && $logoPath) {
-        $embedded = collect($message->getSymfonyMessage()->getAttachments())
-            ->first(fn ($part) => $part->getFilename() === basename($logoPath));
-        $logo = $embedded ? 'cid:'.$embedded->getContentId() : $message->embed($logoPath);
-    }
+    // Own logo in the header: embedded, with a fixed size (Outlook ignores max-width)
+    $logo = \App\Support\MailLogo::embed($message ?? null, $logoPath);
 @endphp
 <x-mail::message :logo="$logo">
 # Testmail ✓

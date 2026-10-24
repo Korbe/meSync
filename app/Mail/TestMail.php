@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\User;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
@@ -19,7 +20,11 @@ class TestMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Testmail – '.$this->requestedAt);
+        // Sent under the business name like the mails to customers, not the app name
+        return new Envelope(
+            from: new Address(config('mail.from.address'), $this->user->businessProfile?->displayName() ?: config('mail.from.name')),
+            subject: 'Testmail – '.$this->requestedAt,
+        );
     }
 
     public function content(): Content

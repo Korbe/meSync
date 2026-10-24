@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Mail\TestMail;
 use App\Models\User;
+use App\Support\MailLogo;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -57,6 +58,29 @@ class MailTestTest extends TestCase
         $this->actingAs($demo)->post(route('mail-test.send'), ['to' => 'irgendwer@example.test', 'via' => 'direct'])->assertSessionHas('error');
         Mail::assertNothingSent();
         Mail::assertNothingQueued();
+    }
+
+    public function test_the_logo_gets_a_fixed_size_for_outlook(): void
+    {
+        // A large logo (2000 x 800) is scaled down to fit the header box, a small one stays
+        $large = imagecreatetruecolor(2000, 800);
+        $small = imagecreatetruecolor(100, 40);
+        imagepng($large, $largePath = tempnam(sys_get_temp_dir(), 'logo'));
+        imagepng($small, $smallPath = tempnam(sys_get_temp_dir(), 'logo'));
+
+        $this->assertSame(['width' => 140, 'height' => 56], MailLogo::size($largePath));
+        $this->assertSame(['width' => 100, 'height' => 40], MailLogo::size($smallPath));
+
+        unlink($largePath);
+        unlink($smallPath);
+    }
+
+    public function test_the_test_mail_is_sent_under_the_business_name(): void
+    {
+        $user = User::factory()->create();
+        $user->businessProfile()->create(['name' => 'Lukas Korbitsch', 'brand_name' => 'Korbitsch IT']);
+
+        (new TestMail($user, 'Direkt (ohne Queue)', '24.10.2026 10:00:00'))->assertFrom(config('mail.from.address'), 'Korbitsch IT');
     }
 
     public function test_the_test_mail_renders(): void
