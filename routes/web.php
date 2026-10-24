@@ -91,6 +91,7 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/projects/{project}/files', [ProjectController::class, 'storeFiles'])->name('projects.files.store');
     Route::get('/projects/{project}/files/{media}', [ProjectController::class, 'showFile'])->name('projects.files.show');
     Route::delete('/projects/{project}/files/{media}', [ProjectController::class, 'destroyFile'])->name('projects.files.destroy');
+    Route::post('/projects/{project}/offer-documents', [ProjectController::class, 'storeOfferDocument'])->name('projects.offer-documents.store');
     Route::resource('projects', ProjectController::class);
 
     Route::get('/offers/{offer}/pdf', [OfferController::class, 'download'])->name('offers.download');

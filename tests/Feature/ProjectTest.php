@@ -286,6 +286,32 @@ class ProjectTest extends TestCase
         $this->put(route('offers.update', $offer), [...$payload, 'project_id' => $foreign->id])->assertSessionHasErrors('project_id');
     }
 
+    public function test_an_offer_written_elsewhere_can_be_uploaded(): void
+    {
+        Storage::fake('local');
+        $project = $this->project();
+
+        $this->post(route('projects.offer-documents.store', $project), ['document' => UploadedFile::fake()->create('virus.exe', 10)])
+            ->assertSessionHasErrors('document');
+        $this->post(route('projects.offer-documents.store', $project), ['document' => UploadedFile::fake()->createWithContent('angebot.pdf', "%PDF-1.4\n%%EOF")])
+            ->assertSessionHas('success');
+
+        // Counts as the offer: waiting for the answer, then the order is entered on the project
+        $this->assertSame('offer', $this->phase($project));
+        $this->get(route('projects.show', $project))->assertInertia(fn (Assert $page) => $page
+            ->has('offerDocuments', 1)->where('offerDocuments.0.name', 'angebot.pdf')
+            ->has('files', 0)
+            ->where('lost', false)
+            ->where('next.method', 'order'));
+
+        $this->post(route('projects.order', $project), ['ordered_at' => '2026-10-24'])->assertSessionHasNoErrors();
+        $this->assertSame('implementation', $this->phase($project));
+
+        $this->actingAs(User::factory()->create())
+            ->post(route('projects.offer-documents.store', $project), ['document' => UploadedFile::fake()->createWithContent('a.pdf', '%PDF')])
+            ->assertForbidden();
+    }
+
     public function test_files_are_attached_privately_and_shown_in_the_browser(): void
     {
         Storage::fake('local');

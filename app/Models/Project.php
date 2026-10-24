@@ -57,6 +57,11 @@ class Project extends Model implements HasMedia
         $this->addMediaCollection('files')
             ->useDisk('local')
             ->acceptsMimeTypes(self::FILE_TYPES);
+
+        // Offers written outside meSync (PDF): count like an offer for the phase
+        $this->addMediaCollection('offer_documents')
+            ->useDisk('local')
+            ->acceptsMimeTypes(self::FILE_TYPES);
     }
 
     public function user(): BelongsTo
@@ -92,9 +97,14 @@ class Project extends Model implements HasMedia
         return match (true) {
             $this->maintenanceContract && ! $this->maintenanceContract->isPending() => 'live',
             $this->offers->contains(fn (Offer $offer) => $offer->accepted_at !== null) || $this->ordered_at !== null => 'implementation',
-            $this->offers->isNotEmpty() => 'offer',
+            $this->offers->isNotEmpty() || $this->hasOfferDocuments() => 'offer',
             default => 'request',
         };
+    }
+
+    public function hasOfferDocuments(): bool
+    {
+        return $this->getMedia('offer_documents')->isNotEmpty();
     }
 
     /**
@@ -103,6 +113,7 @@ class Project extends Model implements HasMedia
     public function isLost(): bool
     {
         return $this->phase() === 'offer'
+            && ! $this->hasOfferDocuments()
             && $this->offers->every(fn (Offer $offer) => in_array($offer->status, ['declined', 'expired'], true));
     }
 
@@ -124,6 +135,11 @@ class Project extends Model implements HasMedia
             'offer' => match (true) {
                 $open?->status === 'draft' => $step('Angebot an den Kunden senden', "{$open->number} ist erstellt, aber noch nicht verschickt", 'Angebot öffnen', route('offers.edit', $open)),
                 $open !== null => $step('Warten auf Antwort', "{$open->number} verschickt, gültig bis {$open->valid_until->format('d.m.Y')}", 'Zusage oder Absage eintragen', route('offers.edit', $open)),
+                // Uploaded offer: the order is entered on the project
+                $this->hasOfferDocuments() => [
+                    ...$step('Warten auf Antwort', 'Angebot „'.$this->getMedia('offer_documents')->last()->file_name.'“ hochgeladen', 'Auftrag eintragen', route('projects.order', $this->id)),
+                    'method' => 'order',
+                ],
                 default => $step('Neues Angebot schreiben', 'Abgelehnt oder abgelaufen', 'Neues Angebot', route('offers.create', ['project' => $this->id])),
             },
             // Ordered without an offer in meSync: work, project invoice, maintenance contract

@@ -24,8 +24,22 @@ const props = defineProps({
     contract: Object,
     canReopen: Boolean,
     files: Array,
+    offerDocuments: Array,   // offers written outside meSync (PDF)
     assignable: Object,   // offers, invoices of the customer without a project
 });
+
+// Upload an offer written elsewhere
+const offerUpload = useForm({ document: null });
+const uploadOffer = (event) => {
+    offerUpload.document = event.target.files[0] ?? null;
+    event.target.value = '';
+    if (offerUpload.document) offerUpload.post(route('projects.offer-documents.store', props.project.id), { forceFormData: true, preserveScroll: true });
+};
+const removeOfferDocument = async (document) => {
+    if (await confirm({ title: `„${document.name}“ löschen?`, confirmText: 'Löschen', variant: 'danger' })) {
+        router.delete(route('projects.files.destroy', [props.project.id, document.id]), { preserveScroll: true });
+    }
+};
 
 // Assign an existing offer or invoice of the customer, or take it off the project
 const attach = (type, id) => {
@@ -129,7 +143,7 @@ const remove = async () => {
                         <div class="mt-1 font-display text-xl font-semibold text-gray-900 dark:text-white">{{ lost ? 'Angebot abgelehnt oder abgelaufen' : next.label }}</div>
                         <div class="text-sm text-gray-500">{{ next.hint }}</div>
                         <div v-if="project.ordered_at" class="mt-1 text-xs text-gray-500">
-                            Ohne Angebot beauftragt am {{ formatDate(project.ordered_at) }}
+                            Beauftragt am {{ formatDate(project.ordered_at) }}
                             <button v-if="!project.completed_at" type="button" class="ml-1 cursor-pointer underline hover:text-primary-500" @click="unorder">zurücknehmen</button>
                         </div>
                         <div v-if="project.completed_at" class="mt-1 text-xs text-gray-500">
@@ -137,8 +151,9 @@ const remove = async () => {
                             <button v-if="canReopen" type="button" class="ml-1 cursor-pointer underline hover:text-primary-500" @click="reopen">wieder öffnen</button>
                         </div>
                     </div>
-                    <VButton v-if="['request', 'offer'].includes(phase)" variant="secondary" icon="CheckBadgeIcon" @click="ordering = true">Ohne Angebot beauftragt</VButton>
-                    <VButton v-if="next.method === 'complete'" icon="CheckIcon" @click="completing = true">{{ next.action }}</VButton>
+                    <VButton v-if="['request', 'offer'].includes(phase) && next.method !== 'order'" variant="secondary" icon="CheckBadgeIcon" @click="ordering = true">Ohne Angebot beauftragt</VButton>
+                    <VButton v-if="next.method === 'order'" icon="CheckBadgeIcon" @click="ordering = true">{{ next.action }}</VButton>
+                    <VButton v-else-if="next.method === 'complete'" icon="CheckIcon" @click="completing = true">{{ next.action }}</VButton>
                     <VButton v-else :href="next.url">
                         <span class="inline-flex items-center">{{ next.action }}<ArrowRightIcon class="ml-2 h-4 w-4" /></span>
                     </VButton>
@@ -150,13 +165,26 @@ const remove = async () => {
                 <section class="card overflow-hidden">
                     <div class="flex flex-wrap items-center justify-between gap-3 p-6 pb-3">
                         <h2 class="card-title"><ClipboardDocumentListIcon class="h-5 w-5 text-primary-500" />Angebote</h2>
-                        <select v-if="assignable.offers.length" class="form-select w-auto py-1 text-xs" value="" @change="attach('offer', $event.target.value); $event.target.value = ''">
-                            <option value="" disabled>Vorhandene zuordnen …</option>
+                        <select class="form-select w-auto py-1 text-xs" value="" :disabled="!assignable.offers.length" @change="attach('offer', $event.target.value); $event.target.value = ''">
+                            <option value="" disabled>{{ assignable.offers.length ? 'Vorhandene zuordnen …' : 'Keine weiteren Angebote des Kunden' }}</option>
                             <option v-for="option in assignable.offers" :key="option.value" :value="option.value">{{ option.label }}</option>
                         </select>
                     </div>
-                    <p v-if="offers.length === 0" class="px-6 pb-6 text-sm text-gray-500">Noch kein Angebot.</p>
-                    <ul v-else class="divide-y divide-gray-100 dark:divide-white/[0.06]">
+                    <p v-if="offers.length === 0 && offerDocuments.length === 0" class="px-6 pb-3 text-sm text-gray-500">Noch kein Angebot.</p>
+                    <ul v-if="offerDocuments.length" class="divide-y divide-gray-100 dark:divide-white/[0.06]">
+                        <li v-for="document in offerDocuments" :key="document.id" class="group relative">
+                            <button type="button" class="absolute top-1/2 left-1.5 z-10 -translate-y-1/2 cursor-pointer rounded p-0.5 text-gray-300 opacity-0 transition group-hover:opacity-100 hover:text-red-500 focus:opacity-100" title="Löschen" @click="removeOfferDocument(document)">×</button>
+                            <a :href="document.url" target="_blank" rel="noopener" class="flex items-center gap-3 px-6 py-3 transition hover:bg-primary-500/[0.04]">
+                                <DocumentTextIcon class="h-5 w-5 shrink-0 text-gray-400" />
+                                <div class="min-w-0 flex-1">
+                                    <div class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ document.name }}</div>
+                                    <div class="text-xs text-gray-500">Hochgeladen am {{ formatDate(document.created_at) }}</div>
+                                </div>
+                                <span class="text-xs text-gray-500">PDF öffnen</span>
+                            </a>
+                        </li>
+                    </ul>
+                    <ul v-if="offers.length" class="divide-y divide-gray-100 border-gray-100 dark:divide-white/[0.06] dark:border-white/[0.06]" :class="{ 'border-t': offerDocuments.length }">
                         <li v-for="offer in offers" :key="offer.id" class="group relative">
                             <button type="button" class="absolute top-1/2 left-1.5 z-10 -translate-y-1/2 cursor-pointer rounded p-0.5 text-gray-300 opacity-0 transition group-hover:opacity-100 hover:text-red-500 focus:opacity-100" title="Vom Projekt lösen" @click="detach('offer', offer)">×</button>
                             <Link :href="route('offers.edit', offer.id)" class="flex items-center gap-3 px-6 py-3 transition hover:bg-primary-500/[0.04]">
@@ -171,6 +199,11 @@ const remove = async () => {
                             </Link>
                         </li>
                     </ul>
+                    <label class="block cursor-pointer border-t border-gray-100 px-6 py-3 text-xs font-medium text-primary-600 hover:bg-primary-500/[0.04] dark:border-white/[0.06] dark:text-primary-300">
+                        <input type="file" accept="application/pdf,image/*" class="hidden" :disabled="offerUpload.processing" @change="uploadOffer">
+                        {{ offerUpload.processing ? 'Wird hochgeladen …' : '+ Angebot als PDF hochladen (z. B. schon woanders geschrieben)' }}
+                    </label>
+                    <div v-if="offerUpload.errors.document" class="px-6 pb-3 text-xs text-red-500">{{ offerUpload.errors.document }}</div>
                 </section>
 
                 <!-- Invoices -->
@@ -232,9 +265,10 @@ const remove = async () => {
 
         <!-- Ordered without an offer in meSync -->
         <VModal :show="ordering" max-width="md" @close="ordering = false">
-            <template #title>Ohne Angebot beauftragt</template>
+            <template #title>{{ offerDocuments.length ? 'Auftrag eintragen' : 'Ohne Angebot beauftragt' }}</template>
             <template #content>
-                <p>Der Auftrag kam anderweitig – eigener Vertrag, telefonisch oder per Mail? Dann springt das Projekt direkt in die Umsetzung. Danach folgen Projektrechnung und Wartungsvertrag.</p>
+                <p v-if="offerDocuments.length">Der Kunde hat das hochgeladene Angebot angenommen? Dann springt das Projekt in die Umsetzung. Danach folgen Projektrechnung und Wartungsvertrag.</p>
+                <p v-else>Der Auftrag kam anderweitig – eigener Vertrag, telefonisch oder per Mail? Dann springt das Projekt direkt in die Umsetzung. Danach folgen Projektrechnung und Wartungsvertrag.</p>
                 <VInput id="ordered_at" class="mt-4" type="date" label="Beauftragt am" v-model="orderForm.ordered_at" :error="orderForm.errors.ordered_at" />
                 <label class="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-gray-200 p-3 text-sm text-gray-600 transition hover:border-primary-400 dark:border-white/10 dark:text-gray-400">
                     <input type="file" accept="application/pdf,image/*" class="hidden" @change="orderForm.document = $event.target.files[0] ?? null">

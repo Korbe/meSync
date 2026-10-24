@@ -25,7 +25,7 @@ class ProjectController extends Controller
     public function index(Request $request): Response
     {
         $projects = $request->user()->projects()
-            ->with(['customer', 'offers.items', 'maintenanceContract'])
+            ->with(['customer', 'offers.items', 'maintenanceContract', 'media'])
             ->latest('updated_at')
             ->get()
             ->map(fn (Project $project) => [
@@ -90,16 +90,40 @@ class ProjectController extends Controller
                 'invoices' => $project->customer->invoices()->whereNull('project_id')->with('items')->latest('invoice_date')->get()
                     ->map(fn (Invoice $invoice) => ['value' => $invoice->id, 'label' => "{$invoice->number} vom {$invoice->invoice_date->format('d.m.Y')} · € ".number_format($invoice->total, 2, ',', '.')]),
             ],
-            'files' => $project->getMedia('files')->sortByDesc('created_at')->values()->map(fn (Media $media) => [
-                'id' => $media->id,
-                'name' => $media->file_name,
-                'size' => $media->size,
-                'mime' => $media->mime_type,
-                'image' => str_starts_with($media->mime_type, 'image/'),
-                'url' => route('projects.files.show', [$project, $media]),
-                'created_at' => $media->created_at?->toIso8601String(),
-            ]),
+            'files' => $this->mediaList($project, 'files'),
+            'offerDocuments' => $this->mediaList($project, 'offer_documents'),
         ]);
+    }
+
+    private function mediaList(Project $project, string $collection)
+    {
+        return $project->getMedia($collection)->sortByDesc('created_at')->values()->map(fn (Media $media) => [
+            'id' => $media->id,
+            'name' => $media->file_name,
+            'size' => $media->size,
+            'mime' => $media->mime_type,
+            'image' => str_starts_with($media->mime_type, 'image/'),
+            'url' => route('projects.files.show', [$project, $media]),
+            'created_at' => $media->created_at?->toIso8601String(),
+        ]);
+    }
+
+    /**
+     * An offer written outside meSync (PDF or scan): the project is then in the offer phase.
+     */
+    public function storeOfferDocument(Request $request, Project $project): RedirectResponse
+    {
+        Gate::authorize('update', $project);
+
+        $request->validate(['document' => 'required|file|mimes:pdf,png,jpg,jpeg,webp|max:20480'], [
+            'document.required' => 'Bitte wähle eine Datei aus.',
+            'document.mimes' => 'Das Angebot muss ein PDF oder Bild sein.',
+            'document.max' => 'Die Datei darf maximal 20 MB groß sein.',
+        ]);
+
+        $project->addMediaFromRequest('document')->toMediaCollection('offer_documents');
+
+        return back()->with('success', 'Angebot wurde hochgeladen.');
     }
 
     public function edit(Request $request, Project $project): Response
