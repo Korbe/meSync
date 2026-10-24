@@ -80,9 +80,11 @@ class InvoicePaymentTest extends TestCase
     {
         $user = User::factory()->create();
         $invoice = $this->invoiceFor($user);
-        $invoice->load('items')->cancel();
+        $cancellation = $invoice->load('items')->cancel();
 
         $this->assertSame('cancelled', $invoice->fresh()->payment_status);
+        $this->assertStringEndsWith('-Stornorechnung.pdf', $cancellation->fileName());
+        $this->assertStringEndsNotWith('-Stornorechnung.pdf', $invoice->fileName());
         $this->actingAs($user)->post(route('invoices.payments.store', $invoice), ['paid_at' => '2026-10-10', 'amount' => '10'])
             ->assertForbidden();
     }

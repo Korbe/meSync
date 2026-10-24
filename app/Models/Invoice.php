@@ -329,12 +329,12 @@ class Invoice extends Model implements HasMedia
     }
 
     /**
-     * File name like "2026-013-Musterfirma GmbH.pdf".
+     * File name like "2026-013-Musterfirma GmbH.pdf", a cancellation ends in "-Stornorechnung".
      */
     public function fileName(): string
     {
         $name = preg_replace('/[^\pL\pN \-_.&]+/u', '', $this->recipient['name'] ?? '');
 
-        return trim($this->number.'-'.$name, '-').'.pdf';
+        return trim($this->number.'-'.$name, '-').($this->isCancellation() ? '-Stornorechnung' : '').'.pdf';
     }
 }

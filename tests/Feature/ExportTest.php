@@ -109,7 +109,7 @@ class ExportTest extends TestCase
 
         // Both PDFs, the cancellation one refers to the original with its date
         $this->assertNotFalse($zip->locateName('Rechnungen/2026-010-Max Muster.pdf'));
-        $this->assertStringStartsWith('%PDF', $zip->getFromName("Rechnungen/{$cancellation->number}-Max Muster.pdf"));
+        $this->assertStringStartsWith('%PDF', $zip->getFromName("Rechnungen/{$cancellation->number}-Max Muster-Stornorechnung.pdf"));
 
         $zip->close();
     }
