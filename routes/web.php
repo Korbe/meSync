@@ -80,6 +80,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::post('/invoices/{invoice}/send', [InvoiceController::class, 'send'])->name('invoices.send');
     Route::post('/invoices/{invoice}/payments', [InvoicePaymentController::class, 'store'])->name('invoices.payments.store');
     Route::delete('/invoices/{invoice}/payments/{payment}', [InvoicePaymentController::class, 'destroy'])->name('invoices.payments.destroy');
+    Route::get('/invoices/{invoice}/payments/{payment}/receipt', [InvoicePaymentController::class, 'receipt'])->name('invoices.payments.receipt');
+    Route::post('/invoices/{invoice}/payments/{payment}/receipt', [InvoicePaymentController::class, 'sendReceipt'])->name('invoices.payments.receipt.send');
     Route::resource('invoices', InvoiceController::class)->except('show');
 
     Route::post('/projects/{project}/attach', [ProjectController::class, 'attach'])->name('projects.attach');

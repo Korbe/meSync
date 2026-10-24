@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Mail\PaymentReceiptMail;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\User;
+use App\Services\PaymentReceiptPdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class InvoicePaymentTest extends TestCase
@@ -87,6 +90,43 @@ class InvoicePaymentTest extends TestCase
         $this->assertStringEndsNotWith('-Stornorechnung.pdf', $invoice->fileName());
         $this->actingAs($user)->post(route('invoices.payments.store', $invoice), ['paid_at' => '2026-10-10', 'amount' => '10'])
             ->assertForbidden();
+    }
+
+    public function test_a_cash_payment_gets_a_confirmation_for_the_customer(): void
+    {
+        Mail::fake();
+        $user = User::factory()->create();
+        $invoice = $this->invoiceFor($user, ['issuer' => ['name' => 'Korbitsch', 'email' => 'office@example.test']]);
+        $invoice->payments()->create(['paid_at' => '2026-10-10', 'amount' => 50, 'method' => 'cash']);
+        $payment = $invoice->payments()->first();
+
+        // The PDF opens in the browser, named after the invoice
+        $response = $this->actingAs($user)->get(route('invoices.payments.receipt', [$invoice, $payment]))->assertOk();
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+        $this->assertStringContainsString('Zahlungsbest', $response->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('inline', $response->headers->get('Content-Disposition'));
+
+        $this->post(route('invoices.payments.receipt.send', [$invoice, $payment]), ['to' => 'kunde@example.test'])->assertSessionHas('success');
+        Mail::assertQueued(PaymentReceiptMail::class, fn (PaymentReceiptMail $mail) => $mail->hasTo('kunde@example.test')
+            && $mail->payment->is($payment)
+            && str_starts_with(app(PaymentReceiptPdf::class)->render($mail->payment), '%PDF'));
+
+        // Only the own payments, never in the demo
+        $this->actingAs(User::factory()->create())->get(route('invoices.payments.receipt', [$invoice, $payment]))->assertForbidden();
+        $other = $this->invoiceFor($user);
+        $this->actingAs($user)->get(route('invoices.payments.receipt', [$other, $payment]))->assertNotFound();
+    }
+
+    public function test_the_demo_sends_no_payment_confirmation(): void
+    {
+        Mail::fake();
+        $demo = User::factory()->create(['email' => User::DEMO_EMAIL]);
+        $invoice = $this->invoiceFor($demo, ['issuer' => ['email' => 'office@example.test']]);
+        $invoice->payments()->create(['paid_at' => '2026-10-10', 'amount' => 50, 'method' => 'cash']);
+
+        $this->actingAs($demo)->post(route('invoices.payments.receipt.send', [$invoice, $invoice->payments()->first()]), ['to' => 'kunde@example.test'])
+            ->assertSessionHas('error');
+        Mail::assertNothingQueued();
     }
 
     public function test_payments_of_other_users_are_forbidden(): void

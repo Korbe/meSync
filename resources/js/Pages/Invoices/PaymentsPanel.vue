@@ -1,14 +1,30 @@
 <script setup>
 import { confirm } from '@/composables/useConfirm';
 import { router, useForm } from '@inertiajs/vue3';
-import { BanknotesIcon, CheckCircleIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { ref } from 'vue';
+import { BanknotesIcon, CheckCircleIcon, DocumentCheckIcon, EnvelopeIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import VButton from '@/components/VButton.vue';
 import VInput from '@/components/VInput.vue';
+import VModal from '@/components/VModal.vue';
 import PaymentStatusBadge from './PaymentStatusBadge.vue';
 import { formatDate, formatMoney, relativeDays, today } from '@/utils/format';
 
 const props = defineProps({
     invoice: { type: Object, required: true },
+    mail: { type: Object, default: () => ({}) },   // to, replyTo, demo
+});
+
+// Confirmation for the customer (e.g. cash): PDF in the browser or by email
+const receiptPayment = ref(null);
+const receiptForm = useForm({ to: '' });
+const openReceiptMail = (payment) => {
+    receiptForm.clearErrors();
+    receiptForm.to = props.mail.to ?? '';
+    receiptPayment.value = payment;
+};
+const sendReceipt = () => receiptForm.post(route('invoices.payments.receipt.send', [props.invoice.id, receiptPayment.value.id]), {
+    preserveScroll: true,
+    onSuccess: () => receiptPayment.value = null,
 });
 
 const toFormNumber = (value) => String(Number(value)).replace('.', ',');
@@ -93,6 +109,12 @@ const remove = async (payment) => {
                         <span class="text-gray-500"> · {{ methodLabel(payment.method) }}</span>
                         <span v-if="payment.note" class="text-gray-500"> · {{ payment.note }}</span>
                     </div>
+                    <a :href="route('invoices.payments.receipt', [invoice.id, payment.id])" target="_blank" rel="noopener" class="rounded-lg p-1.5 text-gray-400 hover:bg-primary-500/10 hover:text-primary-500" title="Zahlungsbestätigung (PDF)">
+                        <DocumentCheckIcon class="h-4 w-4" />
+                    </a>
+                    <button type="button" class="rounded-lg p-1.5 text-gray-400 hover:bg-primary-500/10 hover:text-primary-500" title="Zahlungsbestätigung per E-Mail senden" @click="openReceiptMail(payment)">
+                        <EnvelopeIcon class="h-4 w-4" />
+                    </button>
                     <button type="button" class="rounded-lg p-1.5 text-gray-400 hover:bg-red-500/10 hover:text-red-500" title="Zahlung entfernen" @click="remove(payment)">
                         <TrashIcon class="h-4 w-4" />
                     </button>
@@ -121,5 +143,21 @@ const remove = async (payment) => {
                 </div>
             </form>
         </div>
+
+        <VModal :show="receiptPayment !== null" max-width="md" @close="receiptPayment = null">
+            <template #title>Zahlungsbestätigung senden</template>
+            <template #content>
+                <template v-if="receiptPayment">
+                    <p>Der Kunde bekommt eine Bestätigung über {{ formatMoney(receiptPayment.amount) }} ({{ methodLabel(receiptPayment.method) }}) vom {{ formatDate(receiptPayment.paid_at) }} als PDF.</p>
+                    <VInput id="receipt_to" class="mt-4" type="email" label="An" v-model="receiptForm.to" :error="receiptForm.errors.to" />
+                    <p v-if="mail.replyTo" class="mt-1 text-xs text-gray-500">Antworten gehen an {{ mail.replyTo }}.</p>
+                    <p v-if="mail.demo" class="mt-3 text-xs text-amber-600 dark:text-amber-400">Im Demo-Modus werden keine E-Mails verschickt.</p>
+                </template>
+            </template>
+            <template #footer>
+                <VButton variant="secondary" @click="receiptPayment = null">Abbrechen</VButton>
+                <VButton icon="EnvelopeIcon" :loading="receiptForm.processing" :disabled="receiptForm.processing" @click="sendReceipt">Senden</VButton>
+            </template>
+        </VModal>
     </section>
 </template>

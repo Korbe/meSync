@@ -86,7 +86,7 @@ const cancelInvoice = () => {
         <OriginalPdfCard :invoice="invoice" :original="original" />
 
         <!-- Payments: not for cancelled invoices or cancellation invoices -->
-        <PaymentsPanel v-if="invoice.payment_status !== 'cancelled'" :invoice="invoice" />
+        <PaymentsPanel v-if="invoice.payment_status !== 'cancelled'" :invoice="invoice" :mail="mail" />
 
         <InvoiceForm :invoice="invoice" :customers="customers" :catalog="catalog" :paymentTermsDays="paymentTermsDays" :profileComplete="profileComplete" :readonly="locked" is-edit />
 
