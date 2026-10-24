@@ -6,13 +6,15 @@ import VButton from '@/components/VButton.vue';
 import VCheckbox from '@/components/VCheckbox.vue';
 import VInput from '@/components/VInput.vue';
 
-defineProps({
+const props = defineProps({
     canResetPassword: Boolean,
     status: String,
+    // Address of the last sign-in on this device
+    lastEmail: String,
 });
 
 const form = useForm({
-    email: '',
+    email: props.lastEmail ?? '',
     password: '',
     remember: false,
 });
@@ -41,9 +43,9 @@ const submit = () => {
         </div>
 
         <form @submit.prevent="submit" class="space-y-4">
-            <VInput id="email" type="email" label="E-Mail" v-model="form.email" :error="form.errors.email" autofocus autocomplete="username" />
+            <VInput id="email" type="email" label="E-Mail" v-model="form.email" :error="form.errors.email" :autofocus="!lastEmail" autocomplete="username" />
 
-            <VInput id="password" type="password" label="Passwort" v-model="form.password" :error="form.errors.password" autocomplete="current-password" />
+            <VInput id="password" type="password" label="Passwort" v-model="form.password" :error="form.errors.password" :autofocus="!!lastEmail" autocomplete="current-password" />
 
             <VCheckbox v-model="form.remember" name="remember" label="Angemeldet bleiben" />
 
