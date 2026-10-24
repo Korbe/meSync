@@ -1,9 +1,9 @@
-@props(['logos' => []])
+@props(['logo' => null, 'logos' => []])
 <x-mail::layout>
 {{-- Header --}}
 <x-slot:header>
-<x-mail::header :url="config('app.url')" :logos="$logos">
-{{ config('app.name') }}
+<x-mail::header :url="config('app.url')" :logo="$logo" :logos="$logos">
+Korbitsch
 </x-mail::header>
 </x-slot:header>
 
@@ -22,8 +22,7 @@
 {{-- Footer --}}
 <x-slot:footer>
 <x-mail::footer>
-{{ config('app.name') }} · ein Service von [korbitsch.at](https://korbitsch.at)<br>
-© {{ date('Y') }} Lukas Korbitsch. {{ __('All rights reserved.') }}
+© {{ date('Y') }} Korbitsch · [korbitsch.at](https://korbitsch.at)
 </x-mail::footer>
 </x-slot:footer>
 </x-mail::layout>

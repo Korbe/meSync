@@ -45,6 +45,6 @@ class ContractDueTodayNotification extends Notification implements ShouldQueue
             ->line("Die Jahresrechnung für den Wartungsvertrag **{$this->contract->name}** von {$this->contract->customer->display_name} ist **heute, am {$this->dueDate->format('d.m.Y')}**, fällig.")
             ->line("Betrag: {$amount} € netto für ein Jahr ({$this->contract->type_label}).")
             ->action('Rechnung jetzt erstellen', route('invoices.create', ['contract' => $this->contract->id]))
-            ->line('Schon erledigt? Dann markiere den Vertrag in meSync als verrechnet.');
+            ->line('Schon erledigt? Dann markiere den Vertrag als verrechnet.');
     }
 }

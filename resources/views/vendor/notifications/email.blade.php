@@ -14,7 +14,6 @@
         };
 
         $logos = [
-            'mesync' => $embed('mesync.png'),
             'korbitsch' => $embed('korbitsch.png'),
         ];
     }
@@ -60,8 +59,8 @@
 @if (! empty($salutation))
 {{ $salutation }}
 @else
-@lang('Regards,')<br>
-{{ config('app.name') }}
+Beste Grüße<br>
+Korbitsch
 @endif
 
 {{-- Subcopy --}}

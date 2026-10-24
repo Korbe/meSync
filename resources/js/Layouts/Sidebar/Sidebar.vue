@@ -127,6 +127,16 @@
                 <span class="nav-label">Inventar</span>
               </Link>
             </li>
+          </ul>
+        </div>
+
+        <!-- Admin group -->
+        <div>
+          <h3 class="pl-3 font-mono text-[10px] font-medium uppercase tracking-[0.22em] text-gray-500">
+            <span class="hidden lg:block lg:sidebar-expanded:hidden 2xl:hidden text-center w-6" aria-hidden="true">•••</span>
+            <span class="lg:hidden lg:sidebar-expanded:block 2xl:block">Admin</span>
+          </h3>
+          <ul class="mt-3 space-y-1">
             <li>
               <Link :href="route('export.index')" class="nav-link" :class="isActive('/export') && 'nav-link-active'">
                 <ArrowDownTrayIcon class="nav-icon" />
@@ -137,6 +147,12 @@
               <Link :href="route('backup.index')" class="nav-link" :class="isActive('/backup') && 'nav-link-active'">
                 <CircleStackIcon class="nav-icon" />
                 <span class="nav-label">Backup</span>
+              </Link>
+            </li>
+            <li>
+              <Link :href="route('mail-test.index')" class="nav-link" :class="isActive('/mail-test') && 'nav-link-active'">
+                <EnvelopeIcon class="nav-icon" />
+                <span class="nav-label">E-Mail-Test</span>
               </Link>
             </li>
           </ul>
@@ -163,7 +179,7 @@ import { usePage } from "@inertiajs/vue3";
 
 
 import SidebarLinkGroup from './SidebarLinkGroup.vue'
-import { BeakerIcon, HeartIcon, HomeIcon, SparklesIcon, UsersIcon, WrenchScrewdriverIcon, DocumentTextIcon, Squares2X2Icon, ArrowDownTrayIcon, CircleStackIcon, ArchiveBoxIcon, BanknotesIcon, SignalIcon, ClockIcon, ClipboardDocumentListIcon, FolderIcon } from '@heroicons/vue/24/solid';
+import { BeakerIcon, HeartIcon, HomeIcon, SparklesIcon, UsersIcon, WrenchScrewdriverIcon, DocumentTextIcon, Squares2X2Icon, ArrowDownTrayIcon, CircleStackIcon, ArchiveBoxIcon, BanknotesIcon, SignalIcon, ClockIcon, ClipboardDocumentListIcon, FolderIcon, EnvelopeIcon } from '@heroicons/vue/24/solid';
 
 export default {
   name: 'Sidebar',
@@ -188,6 +204,7 @@ export default {
     ClockIcon,
     ClipboardDocumentListIcon,
     FolderIcon,
+    EnvelopeIcon,
   },  
   setup(props, { emit }) {
 

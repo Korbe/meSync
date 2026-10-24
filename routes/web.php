@@ -9,6 +9,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoLoginController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\MailTestController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\FinanceEntryController;
 use App\Http\Controllers\InventoryItemController;
@@ -112,6 +113,9 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/backup', [BackupController::class, 'index'])->name('backup.index');
     Route::get('/backup/download', [BackupController::class, 'download'])->name('backup.download');
     Route::post('/backup/restore', [BackupController::class, 'restore'])->name('backup.restore');
+
+    Route::get('/mail-test', [MailTestController::class, 'index'])->name('mail-test.index');
+    Route::post('/mail-test', [MailTestController::class, 'send'])->middleware('throttle:10,1')->name('mail-test.send');
 
     Route::get('/catalog/{catalog}/delete', [CatalogItemController::class, 'delete'])->name('catalog.delete');
     Route::resource('catalog', CatalogItemController::class)->except('show');
