@@ -54,6 +54,7 @@
 
 <script>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useSessionTimeout } from '@/composables/useSessionTimeout'
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { UserCircleIcon, ArrowRightStartOnRectangleIcon } from '@heroicons/vue/24/outline';
 
@@ -78,9 +79,8 @@ export default {
     const trigger = ref(null)
     const dropdown = ref(null)
 
-    const logout = () => {
-      router.post(route('logout'));
-    };
+    // Signs out the other open tabs too (session timeout popup)
+    const { logout } = useSessionTimeout()
 
     // close on click outside
     const clickHandler = ({ target }) => {

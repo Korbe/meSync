@@ -5,6 +5,7 @@ import Header from './Header/Header.vue';
 import { Head } from '@inertiajs/vue3';
 import Banner from '@/components/Banner.vue';
 import VConfirmDialog from '@/components/VConfirmDialog.vue';
+import VSessionTimeout from '@/components/VSessionTimeout.vue';
 import { ChevronLeftIcon } from '@heroicons/vue/24/solid';
 
 const sidebarOpen = ref(false);
@@ -74,4 +75,5 @@ defineProps({
   </div>
 
   <VConfirmDialog />
+  <VSessionTimeout />
 </template>

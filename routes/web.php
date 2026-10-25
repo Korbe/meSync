@@ -35,6 +35,10 @@ Route::post('/demo-login', DemoLoginController::class)->middleware(['guest', 'th
 Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // Keeps the session alive (session timeout popup). A request to an expired session is
+    // a guest here: 401, unless the remember cookie logs back in.
+    Route::get('/session/keep-alive', fn () => response()->noContent())->middleware('throttle:30,1')->name('session.keep-alive');
+
     Route::post('/user/profile/logo', [ProfileLogoController::class, 'store'])->name('profile.logo.store');
     Route::delete('/user/profile/logo', [ProfileLogoController::class, 'destroy'])->name('profile.logo.destroy');
     Route::get('/user/profile/documents/{document}', [ProfileDocumentController::class, 'show'])->whereIn('document', ['terms', 'privacy'])->name('profile.documents.show');

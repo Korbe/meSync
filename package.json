@@ -5,7 +5,8 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "deploy": "dep deploy"
+        "deploy": "dep deploy",
+        "queue": "php artisan queue:listen"
     },
     "devDependencies": {
         "@inertiajs/vite": "^3.9.1",

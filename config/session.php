@@ -34,6 +34,9 @@ return [
 
     'lifetime' => (int) env('SESSION_LIFETIME', 120),
 
+    // Minutes before the end of the session when the app warns (popup with countdown)
+    'warning' => (int) env('SESSION_WARNING_MINUTES', 5),
+
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 
     /*

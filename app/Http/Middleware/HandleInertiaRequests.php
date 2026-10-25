@@ -6,6 +6,7 @@ use App\Models\MaintenanceContract;
 use App\Models\User;
 use Inertia\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 
 class HandleInertiaRequests extends Middleware
@@ -61,6 +62,13 @@ class HandleInertiaRequests extends Middleware
             'businessProfile' => fn () => $request->routeIs('profile.show')
                 ? $request->user()?->businessProfile
                 : null,
+            // Session timeout popup: lifetime and warning in minutes. With "remember me" an
+            // expired session is restored on the next request, so there is nothing to warn about.
+            'session' => fn () => $request->user() ? [
+                'lifetime' => (int) config('session.lifetime'),
+                'warning' => (int) config('session.warning'),
+                'remembered' => $request->hasCookie(Auth::guard('web')->getRecallerName()),
+            ] : null,
             // Badge in the sidebar: overdue + due soon maintenance invoices
             'dueContractsCount' => fn () => $request->user()?->maintenanceContracts()
                 ->billable()
