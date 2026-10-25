@@ -12,6 +12,8 @@ const props = defineProps({
     // Defaults for new entries
     scope: { type: String, default: 'private' },
     month: { type: String, default: null },   // YYYY-MM: default date lies in this month
+    // Unique field ids: the edit dialog sits on the same page as the entry form
+    idPrefix: { type: String, default: 'entry' },
 });
 
 const emit = defineEmits(['saved', 'cancel']);
@@ -95,27 +97,27 @@ const toggleClass = (active, tone) => active
 
         <div class="grid grid-cols-2 gap-3 md:grid-cols-12">
             <div class="col-span-2 md:col-span-4">
-                <label for="entry-description" class="mb-1 block text-sm font-medium">Wofür</label>
-                <input ref="descriptionInput" id="entry-description" v-model="form.description" list="entry-suggestions" class="form-input w-full" placeholder="z. B. Hofer, Tanken, Adobe" autocomplete="off" required />
-                <datalist id="entry-suggestions">
+                <label :for="`${idPrefix}-description`" class="mb-1 block text-sm font-medium">Wofür</label>
+                <input ref="descriptionInput" :id="`${idPrefix}-description`" v-model="form.description" :list="`${idPrefix}-suggestions`" class="form-input w-full" placeholder="z. B. Hofer, Tanken, Adobe" autocomplete="off" required />
+                <datalist :id="`${idPrefix}-suggestions`">
                     <option v-for="suggestion in suggestionList" :key="suggestion.description" :value="suggestion.description" />
                 </datalist>
                 <div v-if="form.errors.description" class="mt-1 text-xs text-red-500">{{ form.errors.description }}</div>
             </div>
             <div class="col-span-1 md:col-span-2">
-                <label for="entry-amount" class="mb-1 block text-sm font-medium">Betrag (€)</label>
-                <input id="entry-amount" v-model="form.amount" inputmode="decimal" class="form-input w-full" placeholder="12,50" autocomplete="off" required />
+                <label :for="`${idPrefix}-amount`" class="mb-1 block text-sm font-medium">Betrag (€)</label>
+                <input :id="`${idPrefix}-amount`" v-model="form.amount" inputmode="decimal" class="form-input w-full" placeholder="12,50" autocomplete="off" required />
                 <div v-if="form.errors.amount" class="mt-1 text-xs text-red-500">{{ form.errors.amount }}</div>
                 <div v-else-if="showSum" class="mt-1 text-xs font-medium text-primary-600 dark:text-primary-300">= {{ formatMoney(parsed) }}</div>
             </div>
             <div class="col-span-1 md:col-span-2">
-                <label for="entry-date" class="mb-1 block text-sm font-medium">Datum</label>
-                <input id="entry-date" v-model="form.date" type="date" class="form-input w-full" required />
+                <label :for="`${idPrefix}-date`" class="mb-1 block text-sm font-medium">Datum</label>
+                <input :id="`${idPrefix}-date`" v-model="form.date" type="date" class="form-input w-full" required />
                 <div v-if="form.errors.date" class="mt-1 text-xs text-red-500">{{ form.errors.date }}</div>
             </div>
             <div class="col-span-2 md:col-span-4">
-                <label for="entry-category" class="mb-1 block text-sm font-medium">Kategorie</label>
-                <select id="entry-category" v-model="form.category" class="form-select w-full">
+                <label :for="`${idPrefix}-category`" class="mb-1 block text-sm font-medium">Kategorie</label>
+                <select :id="`${idPrefix}-category`" v-model="form.category" class="form-select w-full">
                     <optgroup v-for="group in categoryOptions" :key="group.label" :label="group.label">
                         <option v-for="category in group.options" :key="category.value" :value="category.value">{{ category.label }}</option>
                     </optgroup>
@@ -125,8 +127,8 @@ const toggleClass = (active, tone) => active
         </div>
 
         <div v-if="entry">
-            <label for="entry-notes" class="mb-1 block text-sm font-medium">Notiz (optional)</label>
-            <textarea id="entry-notes" v-model="form.notes" rows="2" class="form-textarea w-full"></textarea>
+            <label :for="`${idPrefix}-notes`" class="mb-1 block text-sm font-medium">Notiz (optional)</label>
+            <textarea :id="`${idPrefix}-notes`" v-model="form.notes" rows="2" class="form-textarea w-full"></textarea>
         </div>
 
         <div class="flex items-center justify-between gap-3">

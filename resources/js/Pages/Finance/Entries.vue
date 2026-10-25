@@ -119,7 +119,9 @@ const remove = async (entry) => {
                         <div class="border-y border-gray-100 bg-gray-50/80 px-6 py-1.5 font-mono text-[11px] uppercase tracking-[0.15em] text-gray-500 dark:border-white/[0.06] dark:bg-white/[0.02]">
                             {{ new Date(`${day.date}T00:00:00`).toLocaleDateString('de-AT', { weekday: 'short', day: '2-digit', month: '2-digit' }) }}
                         </div>
-                        <div v-for="entry in day.entries" :key="entry.id" class="group flex items-center gap-3 px-6 py-2.5 transition hover:bg-primary-500/[0.04]">
+                        <!-- The whole row opens the booking for editing -->
+                        <div v-for="entry in day.entries" :key="entry.id" class="group flex cursor-pointer items-center gap-3 px-6 py-2.5 transition hover:bg-primary-500/[0.04]"
+                            role="button" tabindex="0" title="Bearbeiten" @click="editing = entry" @keydown.enter="editing = entry">
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2">
                                     <span class="truncate font-medium text-gray-900 dark:text-gray-100">{{ entry.description }}</span>
@@ -132,11 +134,11 @@ const remove = async (entry) => {
                             <div class="font-semibold tabular-nums" :class="entry.type === 'income' ? 'text-primary-600 dark:text-primary-300' : 'text-gray-900 dark:text-gray-100'">
                                 {{ entry.type === 'income' ? '+' : '−' }} {{ formatMoney(entry.amount) }}
                             </div>
-                            <div class="flex gap-0.5 opacity-50 transition group-hover:opacity-100">
-                                <button type="button" class="cursor-pointer rounded-lg p-1.5 text-gray-500 hover:bg-primary-500/10 hover:text-primary-600 dark:hover:text-primary-300" title="Bearbeiten" @click="editing = entry">
+                            <div class="flex gap-0.5 opacity-70 transition group-hover:opacity-100">
+                                <button type="button" class="cursor-pointer rounded-lg p-1.5 text-gray-500 hover:bg-primary-500/10 hover:text-primary-600 dark:hover:text-primary-300" title="Bearbeiten" @click.stop="editing = entry">
                                     <PencilSquareIcon class="h-4 w-4" />
                                 </button>
-                                <button type="button" class="cursor-pointer rounded-lg p-1.5 text-gray-500 hover:bg-red-500/10 hover:text-red-500" title="Löschen" @click="remove(entry)">
+                                <button type="button" class="cursor-pointer rounded-lg p-1.5 text-gray-500 hover:bg-red-500/10 hover:text-red-500" title="Löschen" @click.stop="remove(entry)">
                                     <TrashIcon class="h-4 w-4" />
                                 </button>
                             </div>
@@ -168,7 +170,7 @@ const remove = async (entry) => {
         <VModal :show="editing !== null" max-width="2xl" @close="editing = null">
             <div v-if="editing" class="p-6">
                 <h3 class="mb-4 font-display text-lg font-semibold text-gray-900 dark:text-white">Buchung bearbeiten</h3>
-                <EntryForm :key="editing.id" :entry="editing" :categories="categories" @saved="editing = null" @cancel="editing = null" />
+                <EntryForm :key="editing.id" :entry="editing" :categories="categories" id-prefix="edit-entry" @saved="editing = null" @cancel="editing = null" />
             </div>
         </VModal>
     </Layout>

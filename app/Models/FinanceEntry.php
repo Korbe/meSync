@@ -35,7 +35,8 @@ class FinanceEntry extends Model
     protected function casts(): array
     {
         return [
-            'date' => 'date',
+            // Plain date: as ISO time stamp it would be shifted to UTC (the day before)
+            'date' => 'date:Y-m-d',
             'category' => FinanceCategory::class,
             'amount' => 'decimal:2',
         ];

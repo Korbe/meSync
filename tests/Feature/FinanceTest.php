@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\FinanceCategory;
 use App\Models\Customer;
 use App\Models\InventoryItem;
 use App\Models\RecurringExpense;
@@ -139,6 +140,11 @@ class FinanceTest extends TestCase
         $this->assertSame('20.00', $entry->amount);
         $this->assertNull($entry->amount_input);
         $this->assertSame('business', $entry->scope);
+        $this->assertSame(FinanceCategory::Office, $entry->category);
+
+        // The edit form gets the booking day itself, not shifted to UTC (the day before)
+        $this->get(route('finance.entries.index', ['month' => '2026-10']))
+            ->assertInertia(fn (Assert $page) => $page->where('entries.0.date', '2026-10-10'));
 
         $this->actingAs($user)->post(route('finance.entries.store'), [
             'date' => '2026-10-10', 'description' => 'X', 'type' => 'expense', 'scope' => 'private', 'category' => 'groceries', 'amount' => 'zehn',

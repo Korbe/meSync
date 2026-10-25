@@ -46,8 +46,9 @@ class InventoryItem extends Model implements HasMedia
     {
         return [
             'category' => InventoryCategory::class,
-            'purchased_at' => 'date',
-            'retired_at' => 'date',
+            // Plain dates: as ISO time stamps they would be shifted to UTC (the day before)
+            'purchased_at' => 'date:Y-m-d',
+            'retired_at' => 'date:Y-m-d',
             'price' => 'decimal:2',
             'tax_rate' => 'decimal:2',
             'sale_price' => 'decimal:2',
