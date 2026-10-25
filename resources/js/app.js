@@ -3,7 +3,8 @@ import './bootstrap';
 import { createInertiaApp, Link } from '@inertiajs/vue3';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+// From the server at runtime (APP_NAME), not baked into the build: the assets are built locally
+const appName = document.querySelector('meta[name="application-name"]')?.content || 'meSync';
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,

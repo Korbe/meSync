@@ -5,6 +5,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        <!-- APP_NAME of the server's .env: page titles like "Dashboard - meSync" (read in app.js) -->
+        <meta name="application-name" content="{{ config('app.name') }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

@@ -19,6 +19,7 @@ enum FinanceCategory: string
     case Investments = 'investments';
     case Subscriptions = 'subscriptions';
     case Groceries = 'groceries';
+    case Tobacco = 'tobacco';
     case Health = 'health';
     case Clothing = 'clothing';
     case Mobility = 'mobility';
@@ -51,6 +52,7 @@ enum FinanceCategory: string
             self::Investments => 'Sparen & Investieren',
             self::Subscriptions => 'Verträge & Abos',
             self::Groceries => 'Lebensmittel & Haushalt',
+            self::Tobacco => 'Trafik & Tabakwaren',
             self::Health => 'Gesundheit',
             self::Clothing => 'Kleidung',
             self::Mobility => 'Mobilität',
@@ -86,7 +88,7 @@ enum FinanceCategory: string
     public function scopes(): array
     {
         return match ($this) {
-            self::Salary, self::SideJob, self::Investments, self::Groceries, self::Clothing, self::Travel, self::Cash => ['private'],
+            self::Salary, self::SideJob, self::Investments, self::Groceries, self::Tobacco, self::Clothing, self::Travel, self::Cash => ['private'],
             self::Revenue, self::Software, self::Hosting, self::Hardware, self::Office, self::Marketing => ['business'],
             default => ['private', 'business'],
         };
