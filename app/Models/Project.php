@@ -134,7 +134,7 @@ class Project extends Model implements HasMedia
             'request' => $step('Angebot schreiben', 'Noch kein Angebot', 'Angebot schreiben', route('offers.create', ['project' => $this->id])),
             'offer' => match (true) {
                 $open?->status === 'draft' => $step('Angebot an den Kunden senden', "{$open->number} ist erstellt, aber noch nicht verschickt", 'Angebot öffnen', route('offers.edit', $open)),
-                $open !== null => $step('Warten auf Antwort', "{$open->number} verschickt, gültig bis {$open->valid_until->format('d.m.Y')}", 'Zusage oder Absage eintragen', route('offers.edit', $open)),
+                $open !== null => $step('Warten auf Antwort', "{$open->number} ".($open->sent_to ? 'verschickt' : 'übergeben').", gültig bis {$open->valid_until->format('d.m.Y')}", 'Zusage oder Absage eintragen', route('offers.edit', $open)),
                 // Uploaded offer: the order is entered on the project
                 $this->hasOfferDocuments() => [
                     ...$step('Warten auf Antwort', 'Angebot „'.$this->getMedia('offer_documents')->last()->file_name.'“ hochgeladen', 'Auftrag eintragen', route('projects.order', $this->id)),

@@ -186,7 +186,7 @@ const typeIcons = { website: GlobeAltIcon, webapp: CommandLineIcon };
                             </div>
                             <div class="text-right">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ formatMoney(offer.total) }}</div>
-                                <OfferStatusBadge :status="offer.status" class="mt-1" />
+                                <OfferStatusBadge :status="offer.status" :sent-to="offer.sent_to" class="mt-1" />
                             </div>
                         </Link>
                     </li>

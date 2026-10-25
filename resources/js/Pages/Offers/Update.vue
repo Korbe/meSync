@@ -84,7 +84,7 @@ const remove = async () => {
 
         <!-- Status + decision -->
         <section class="card mb-6 flex flex-wrap items-center gap-3 p-4">
-            <OfferStatusBadge :status="offer.status" />
+            <OfferStatusBadge :status="offer.status" :sent-to="offer.sent_to" />
             <Link v-if="offer.project" :href="route('projects.show', offer.project.id)" class="rounded-full bg-primary-500/10 px-2.5 py-0.5 text-xs font-medium text-primary-700 ring-1 ring-inset ring-primary-500/25 hover:bg-primary-500/20 dark:text-primary-300">
                 Projekt: {{ offer.project.name }}
             </Link>

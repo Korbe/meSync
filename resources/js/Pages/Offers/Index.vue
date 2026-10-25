@@ -148,7 +148,7 @@ const edit = (offer) => router.visit(route('offers.edit', offer.id));
                                 <div class="font-medium text-gray-900 dark:text-gray-100">{{ formatMoney(offer.total) }}</div>
                                 <div class="text-xs text-gray-500">+ {{ formatMoney(offer.maintenance_monthly_price) }}/Monat Betreuung</div>
                             </td>
-                            <td class="px-5 py-3.5"><OfferStatusBadge :status="offer.status" /></td>
+                            <td class="px-5 py-3.5"><OfferStatusBadge :status="offer.status" :sent-to="offer.sent_to" /></td>
                             <td class="px-5 py-3.5">
                                 <div class="flex justify-end opacity-60 transition group-hover:opacity-100">
                                     <a :href="route('offers.download', offer.id)" target="_blank" rel="noopener\" class="rounded-lg p-2 text-gray-500 hover:bg-primary-500/10 hover:text-primary-600 dark:hover:text-primary-300" title="PDF ansehen" @click.stop>
@@ -167,7 +167,7 @@ const edit = (offer) => router.visit(route('offers.edit', offer.id));
                     <Link :href="route('offers.edit', offer.id)" class="min-w-0 flex-1">
                         <div class="flex items-center gap-2">
                             <span class="font-mono font-medium text-gray-900 dark:text-gray-100">{{ offer.number }}</span>
-                            <OfferStatusBadge :status="offer.status" />
+                            <OfferStatusBadge :status="offer.status" :sent-to="offer.sent_to" />
                         </div>
                         <div class="truncate text-sm text-gray-700 dark:text-gray-300">{{ offer.title }}</div>
                         <div class="truncate text-xs text-gray-500">{{ offer.recipient.name }} · {{ formatDate(offer.offer_date) }}</div>
