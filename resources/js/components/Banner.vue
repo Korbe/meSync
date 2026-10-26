@@ -33,10 +33,14 @@ onUnmounted(() => clearTimeout(timeout));
 </script>
 
 <template>
-    <div>
-        <transition leave-active-class="transition-opacity duration-300" leave-to-class="opacity-0">
-        <div v-if="show && message" :class="{ 'bg-primary-500': style == 'success', 'bg-red-700': style == 'danger' }">
-            <div class="max-w-screen-xl mx-auto py-2 px-3 sm:px-6 lg:px-8">
+    <!-- Floats over the page: visible however far down you scrolled -->
+    <div class="pointer-events-none fixed inset-x-0 top-3 z-[60] flex justify-center px-4">
+        <transition enter-active-class="transition duration-200 ease-out" enter-from-class="-translate-y-3 opacity-0"
+            leave-active-class="transition-opacity duration-300" leave-to-class="opacity-0">
+        <div v-if="show && message" role="status" aria-live="polite"
+            class="pointer-events-auto w-full max-w-xl overflow-hidden rounded-xl shadow-[0_20px_50px_-15px_rgba(0,0,0,0.5)] ring-1 ring-black/5"
+            :class="{ 'bg-primary-500': style == 'success', 'bg-red-700': style == 'danger' }">
+            <div class="py-2 px-3">
                 <div class="flex items-center justify-between flex-wrap">
                     <div class="w-0 flex-1 flex items-center min-w-0">
                         <span class="flex p-2 rounded-lg"
@@ -54,7 +58,7 @@ onUnmounted(() => clearTimeout(timeout));
                             </svg>
                         </span>
 
-                        <p class="ms-3 font-medium text-sm text-white truncate">
+                        <p class="ms-3 font-medium text-sm text-white">
                             {{ message }}
                         </p>
                     </div>
