@@ -104,11 +104,12 @@ class ProfileLogoTest extends TestCase
         $mail = new \App\Mail\TestMail($user->fresh(), 'Direkt', '26.10.2026 10:00:00');
         $html = $mail->render();
 
-        // Both versions, the dark one hidden until Outlook darkens the mail; classic Outlook a flat one
+        // Both versions, the dark one hidden until Outlook darkens the mail (classic Outlook: mso-hide)
         $this->assertStringContainsString('class="logo-light"', $html);
         $this->assertStringContainsString('class="logo-dark"', $html);
         $this->assertStringContainsString('[data-ogsc] .logo-dark', $html);
-        $this->assertStringContainsString('<!--[if mso]>', $html);
+        $this->assertStringContainsString('mso-hide: all', $html);
+        $this->assertStringNotContainsString('<!--[if', $html);   // every embedded image is in the visible HTML
         $this->assertStringContainsString('width="200" height="50"', $html);   // scaled to the header box
     }
 }

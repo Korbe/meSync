@@ -8,8 +8,8 @@ namespace App\Support;
  * image in its original size, so width and height are set as attributes.
  *
  * Dark mode: mail programs that darken the mail (new Outlook, Outlook web and apps) get the
- * logo with light lettering instead. Classic Outlook for Windows can't switch images, it gets
- * the normal logo on a solid light background, readable on its darkened header too.
+ * logo with light lettering instead. Classic Outlook for Windows can't switch images: the
+ * normal logo comes on a solid background like the header's, readable on its darkened header too.
  */
 class MailLogo
 {
@@ -21,7 +21,7 @@ class MailLogo
     public const HEADER_BACKGROUND = [245, 245, 245];
 
     /**
-     * @return array{src: string, width: int, height: int, dark: ?array{src: string, width: int, height: int}, mso: ?string}|null
+     * @return array{src: string, width: int, height: int, dark: ?array{src: string, width: int, height: int}}|null
      */
     public static function embed(mixed $message, ?string $path, ?string $darkPath = null): ?array
     {
@@ -30,14 +30,16 @@ class MailLogo
         }
 
         $dark = $darkPath && is_file($darkPath) ? ['src' => self::attach($message, $darkPath), ...self::size($darkPath)] : null;
-        $flattened = self::flattened($path);
+
+        // With a dark-mode logo the lettering is dark: the normal logo goes out on the solid
+        // header background, readable also where the image can't be switched (classic Outlook).
+        // Every embedded image is shown somewhere, else Outlook lists it as attachment.
+        $flattened = $dark ? self::flattened($path) : null;
 
         return [
-            'src' => self::attach($message, $path),
+            'src' => self::attach($message, $flattened ?? $path),
             ...self::size($path),
             'dark' => $dark,
-            // Only worth it when there is a dark-mode logo: the lettering is dark then
-            'mso' => $dark && $flattened ? self::attach($message, $flattened) : null,
         ];
     }
 
