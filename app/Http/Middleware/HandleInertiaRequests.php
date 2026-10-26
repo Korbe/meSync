@@ -49,6 +49,10 @@ class HandleInertiaRequests extends Middleware
             'logoUrl' => fn () => $request->routeIs('profile.show')
                 ? ($request->user()?->getFirstMediaUrl('logo') ?: null)
                 : null,
+            // Logo with light lettering for mails in dark mode, only needed on the profile page
+            'logoDarkUrl' => fn () => $request->routeIs('profile.show')
+                ? ($request->user()?->getFirstMediaUrl('logo_dark') ?: null)
+                : null,
             // Signature is private: shown through its own route, with the media id against stale caches
             'signatureUrl' => fn () => $request->routeIs('profile.show') && ($signature = $request->user()?->getFirstMedia('signature'))
                 ? route('profile.signature.show', ['v' => $signature->id])

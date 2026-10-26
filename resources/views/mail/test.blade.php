@@ -1,6 +1,8 @@
 @php
     // Own logo in the header: embedded, with a fixed size (Outlook ignores max-width)
-    $logo = \App\Support\MailLogo::embed($message ?? null, $logoPath);
+    $logo = $logoPath
+        ? \App\Support\MailLogo::embed($message ?? null, $logoPath, $logoDarkPath ?? null)
+        : \App\Support\MailLogo::embed($message ?? null, public_path('images/mail/korbitsch.png'), public_path('images/mail/korbitsch-white.png'));
 @endphp
 <x-mail::message :logo="$logo">
 # Testmail ✓

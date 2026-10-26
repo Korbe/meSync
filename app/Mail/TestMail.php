@@ -30,6 +30,7 @@ class TestMail extends Mailable
     public function content(): Content
     {
         $logo = $this->user->getFirstMedia('logo');
+        $logoDark = $this->user->getFirstMedia('logo_dark');
 
         return new Content(markdown: 'mail.test', with: [
             'via' => $this->via,
@@ -37,6 +38,7 @@ class TestMail extends Mailable
             'sentAt' => now()->format('d.m.Y H:i:s'),
             'mailer' => config('mail.default'),
             'logoPath' => $logo && is_file($logo->getPath()) ? $logo->getPath() : null,
+            'logoDarkPath' => $logoDark && is_file($logoDark->getPath()) ? $logoDark->getPath() : null,
             'signatureName' => $this->user->businessProfile?->name,
         ]);
     }

@@ -75,4 +75,40 @@ class ProfileLogoTest extends TestCase
             ->get(route('profile.show'))
             ->assertInertia(fn (Assert $page) => $page->where('logoUrl', fn ($url) => str_contains($url, 'logo.png')));
     }
+
+    public function test_dark_mode_logo_is_a_separate_upload(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user)->post(route('profile.logo.store'), ['logo' => UploadedFile::fake()->image('logo.png')]);
+
+        $this->actingAs($user)
+            ->post(route('profile.logo_dark.store'), ['logo_dark' => UploadedFile::fake()->image('logo-white.png', 400, 200)])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('logo-white.png', $user->getFirstMedia('logo_dark')->file_name);
+        $this->assertSame('logo.png', $user->getFirstMedia('logo')->file_name);   // untouched
+        $this->actingAs($user)->get(route('profile.show'))
+            ->assertInertia(fn (Assert $page) => $page->where('logoDarkUrl', fn ($url) => str_contains($url, 'logo-white.png')));
+
+        $this->actingAs($user)->delete(route('profile.logo_dark.destroy'));
+        $this->assertNull($user->fresh()->getFirstMedia('logo_dark'));
+        $this->assertNotNull($user->fresh()->getFirstMedia('logo'));
+    }
+
+    public function test_mails_switch_to_the_dark_mode_logo(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user)->post(route('profile.logo.store'), ['logo' => UploadedFile::fake()->image('logo.png', 800, 200)]);
+        $this->actingAs($user)->post(route('profile.logo_dark.store'), ['logo_dark' => UploadedFile::fake()->image('logo-white.png', 800, 200)]);
+
+        $mail = new \App\Mail\TestMail($user->fresh(), 'Direkt', '26.10.2026 10:00:00');
+        $html = $mail->render();
+
+        // Both versions, the dark one hidden until Outlook darkens the mail; classic Outlook a flat one
+        $this->assertStringContainsString('class="logo-light"', $html);
+        $this->assertStringContainsString('class="logo-dark"', $html);
+        $this->assertStringContainsString('[data-ogsc] .logo-dark', $html);
+        $this->assertStringContainsString('<!--[if mso]>', $html);
+        $this->assertStringContainsString('width="200" height="50"', $html);   // scaled to the header box
+    }
 }

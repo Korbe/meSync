@@ -115,6 +115,11 @@ class User extends Authenticatable implements HasMedia, MustVerifyEmail
             ->singleFile()
             ->acceptsMimeTypes(['image/png', 'image/jpeg', 'image/webp']);
 
+        // The logo with light lettering: shown in mails when the mail program is in dark mode
+        $this->addMediaCollection('logo_dark')
+            ->singleFile()
+            ->acceptsMimeTypes(['image/png', 'image/jpeg', 'image/webp']);
+
         // Handwritten signature for offers: private, only embedded into the PDF
         $this->addMediaCollection('signature')
             ->singleFile()

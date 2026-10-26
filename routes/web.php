@@ -47,6 +47,8 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
 
     Route::post('/user/profile/logo', [ProfileLogoController::class, 'store'])->name('profile.logo.store');
     Route::delete('/user/profile/logo', [ProfileLogoController::class, 'destroy'])->name('profile.logo.destroy');
+    Route::post('/user/profile/logo-dark', [ProfileLogoController::class, 'store'])->defaults('collection', 'logo_dark')->name('profile.logo_dark.store');
+    Route::delete('/user/profile/logo-dark', [ProfileLogoController::class, 'destroy'])->defaults('collection', 'logo_dark')->name('profile.logo_dark.destroy');
     Route::get('/user/profile/documents/{document}', [ProfileDocumentController::class, 'show'])->whereIn('document', ['terms', 'privacy'])->name('profile.documents.show');
     Route::post('/user/profile/documents/{document}', [ProfileDocumentController::class, 'store'])->whereIn('document', ['terms', 'privacy'])->name('profile.documents.store');
     Route::delete('/user/profile/documents/{document}', [ProfileDocumentController::class, 'destroy'])->whereIn('document', ['terms', 'privacy'])->name('profile.documents.destroy');

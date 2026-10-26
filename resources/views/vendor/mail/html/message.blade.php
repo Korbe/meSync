@@ -1,8 +1,8 @@
-@props(['logo' => null, 'logos' => []])
+@props(['logo' => null])
 <x-mail::layout>
 {{-- Header --}}
 <x-slot:header>
-<x-mail::header :url="config('app.url')" :logo="$logo" :logos="$logos">
+<x-mail::header :url="config('app.url')" :logo="$logo">
 Korbitsch
 </x-mail::header>
 </x-slot:header>

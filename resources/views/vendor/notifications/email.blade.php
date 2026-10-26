@@ -1,24 +1,9 @@
 @php
-    // Embed the logos (cid:) so they show even when the app URL isn't public.
-    // The view renders twice (HTML + text), so reuse already embedded images.
-    $logos = [];
-
-    if (isset($message)) {
-        $embed = function (string $file) use ($message) {
-            $embedded = collect($message->getSymfonyMessage()->getAttachments())
-                ->first(fn ($part) => $part->getFilename() === $file);
-
-            return $embedded
-                ? 'cid:'.$embedded->getContentId()
-                : $message->embed(public_path('images/mail/'.$file));
-        };
-
-        $logos = [
-            'korbitsch' => $embed('korbitsch.png'),
-        ];
-    }
+    // The korbitsch.at logo, embedded (cid:) so it shows even when the app URL isn't public,
+    // with the white version for mail programs in dark mode
+    $logo = \App\Support\MailLogo::embed($message ?? null, public_path('images/mail/korbitsch.png'), public_path('images/mail/korbitsch-white.png'));
 @endphp
-<x-mail::message :logos="$logos">
+<x-mail::message :logo="$logo">
 {{-- Greeting --}}
 @if (! empty($greeting))
 # {{ $greeting }}

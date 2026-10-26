@@ -3,14 +3,14 @@
     $replyTo = $issuer['email'] ?? null;
 
     // Own logo in the header: embedded, with a fixed size (Outlook ignores max-width)
-    $logo = \App\Support\MailLogo::embed($message ?? null, $logoPath);
+    $logo = \App\Support\MailLogo::embed($message ?? null, $logoPath, $logoDarkPath ?? null);
 @endphp
 <x-mail::layout>
 <x-slot:header>
 <tr>
 <td class="header">
 @if ($logo)
-<img src="{{ $logo['src'] }}" width="{{ $logo['width'] }}"@if ($logo['height']) height="{{ $logo['height'] }}"@endif alt="{{ $senderName }}" style="width: {{ $logo['width'] }}px;@if ($logo['height']) height: {{ $logo['height'] }}px;@endif border: 0;">
+@include('mail.partials.logo', ['logo' => $logo, 'alt' => $senderName])
 @else
 <span style="font-size: 22px; font-weight: 700; color: #0a0a0a;">{{ $senderName }}</span>
 @endif

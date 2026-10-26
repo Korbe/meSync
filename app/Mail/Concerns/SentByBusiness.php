@@ -36,6 +36,7 @@ trait SentByBusiness
     protected function businessViewData(): array
     {
         $logo = $this->document()->user->getFirstMedia('logo');
+        $logoDark = $this->document()->user->getFirstMedia('logo_dark');
 
         return [
             'issuer' => $this->issuer(),
@@ -44,6 +45,8 @@ trait SentByBusiness
             'signatureName' => $this->signatureName(),
             'personalMessage' => $this->personalMessage,
             'logoPath' => $logo && is_file($logo->getPath()) ? $logo->getPath() : null,
+            // Light lettering for mail programs in dark mode
+            'logoDarkPath' => $logoDark && is_file($logoDark->getPath()) ? $logoDark->getPath() : null,
         ];
     }
 

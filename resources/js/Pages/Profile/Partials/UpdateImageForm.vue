@@ -10,7 +10,7 @@ import VButton from '@/components/VButton.vue';
  */
 
 const props = defineProps({
-    field: { type: String, required: true },          // logo | signature (also the route name part)
+    field: { type: String, required: true },          // logo | logo_dark | signature (also the route name part)
     url: { type: String, default: null },
     title: { type: String, required: true },
     hint: { type: String, required: true },
@@ -18,7 +18,7 @@ const props = defineProps({
     removeMessage: { type: String, required: true },
 });
 
-const icons = { logo: PhotoIcon, signature: PencilIcon };
+const icons = { logo: PhotoIcon, logo_dark: PhotoIcon, signature: PencilIcon };
 
 const form = useForm({
     [props.field]: null,
@@ -99,7 +99,7 @@ const remove = async () => {
                 </label>
 
                 <!-- Preview on white, like in the PDF -->
-                <div class="flex min-h-44 items-center justify-center overflow-hidden rounded-xl border border-gray-200 bg-white p-5 dark:border-white/10">
+                <div class="flex min-h-44 items-center justify-center overflow-hidden rounded-xl border p-5" :class="field === 'logo_dark' ? 'border-white/10 bg-gray-900' : 'border-gray-200 bg-white dark:border-white/10'">
                     <img v-if="shown" :src="shown" :alt="`${noun}-Vorschau`" class="max-h-28 max-w-full object-contain">
                     <span v-else class="text-xs text-gray-400">Kein{{ field === 'logo' ? '' : 'e' }} {{ noun }}</span>
                 </div>

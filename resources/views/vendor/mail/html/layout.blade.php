@@ -22,6 +22,16 @@ width: 100% !important;
 width: 100% !important;
 }
 }
+
+/* Outlook (new, web, apps) in dark mode: the logo with light lettering */
+[data-ogsc] .logo-light {
+display: none !important;
+}
+
+[data-ogsc] .logo-dark {
+display: inline-block !important;
+max-height: none !important;
+}
 </style>
 {{ $head ?? '' }}
 </head>

@@ -87,6 +87,10 @@ const memberSince = computed(() => new Date(user.value.created_at).toLocaleDateS
                 hint="Steht auf deinen Rechnungen und Angeboten. PNG, JPG oder WebP, max. 2 MB. Am besten mit transparentem Hintergrund."
                 remove-message="Das Logo wird gelöscht und erscheint nicht mehr auf Rechnungen und Angeboten." />
 
+            <UpdateImageForm field="logo_dark" :url="$page.props.logoDarkUrl" title="Logo für dunklen Modus" noun="Logo"
+                hint="Dein Logo mit heller Schrift. E-Mail-Programme im Dunkelmodus (z. B. Outlook, Apple Mail) zeigen dann dieses statt dem normalen, damit es auf dunklem Hintergrund lesbar bleibt. PNG mit transparentem Hintergrund."
+                remove-message="Das Logo für den dunklen Modus wird gelöscht. Mails zeigen dann auch im Dunkelmodus das normale Logo." />
+
             <UpdateImageForm field="signature" :url="$page.props.signatureUrl" title="Unterschrift" noun="Unterschrift"
                 hint="Steht auf deinen Angeboten schon über „Unterschrift Auftragnehmer“. Ein Foto oder Scan auf weißem Papier reicht, PNG mit transparentem Hintergrund sieht am besten aus. Wird privat gespeichert."
                 remove-message="Die Unterschrift wird gelöscht. Angebote zeigen dann wieder nur die leere Linie." />
