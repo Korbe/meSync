@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { PencilSquareIcon, TrashIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, UsersIcon, BellAlertIcon, BellSlashIcon } from '@heroicons/vue/24/outline';
+import { PencilSquareIcon, TrashIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, UsersIcon, BellAlertIcon, BellSlashIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import VPagination from '@/components/VPagination.vue';
@@ -13,6 +13,7 @@ const props = defineProps({
     search: String,
     interest: String,
     notify: String,   // email notifications: yes | no
+    missingInterestCount: Number,
     interests: Array,
 });
 
@@ -94,6 +95,14 @@ const show = (customer) => router.visit(route('customers.show', customer.id));
                 {{ option.label }}
             </button>
             <span class="mx-1 hidden h-4 w-px bg-gray-200 sm:block dark:bg-white/10"></span>
+            <button v-if="missingInterestCount" type="button"
+                class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset transition"
+                :class="interest === 'none' ? 'bg-amber-500 text-white ring-amber-500' : 'text-amber-700 ring-amber-500/40 hover:ring-amber-500 dark:text-amber-300'"
+                @click="filterBy('none')">
+                <ExclamationTriangleIcon class="h-3.5 w-3.5" />
+                Interesse fehlt ({{ missingInterestCount }})
+            </button>
+            <span class="mx-1 hidden h-4 w-px bg-gray-200 sm:block dark:bg-white/10"></span>
             <button v-for="option in [{ value: 'yes', label: 'Erhält Benachrichtigungen' }, { value: 'no', label: 'Abgemeldet' }]" :key="option.value" type="button"
                 class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset transition"
                 :class="notify === option.value
@@ -152,7 +161,13 @@ const show = (customer) => router.visit(route('customers.show', customer.id));
                                     <div class="min-w-0">
                                         <div class="truncate font-medium text-gray-900 dark:text-gray-100">{{ customer.display_name }}</div>
                                         <div v-if="customer.full_name && customer.company" class="truncate text-xs text-gray-500">{{ customer.company }}</div>
-                                        <div v-if="customer.interests?.length" class="mt-1 flex flex-wrap gap-1">
+                                        <div v-if="!customer.interests?.length" class="mt-1">
+                                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-inset ring-amber-500/40 dark:text-amber-300"><ExclamationTriangleIcon class="h-3 w-3" />Interesse fehlt</span>
+                                        </div>
+                                        <div v-if="!customer.interests?.length" class="mt-1">
+                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-inset ring-amber-500/40 dark:text-amber-300"><ExclamationTriangleIcon class="h-3 w-3" />Interesse fehlt</span>
+                        </div>
+                        <div v-if="customer.interests?.length" class="mt-1 flex flex-wrap gap-1">
                                             <span v-for="value in customer.interests" :key="value" class="rounded-full bg-primary-500/10 px-2 py-0.5 text-[10px] font-medium text-primary-700 ring-1 ring-inset ring-primary-500/25 dark:text-primary-300">{{ interestLabel(value) }}</span>
                                         </div>
                                     </div>

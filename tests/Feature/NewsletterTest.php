@@ -122,7 +122,7 @@ class NewsletterTest extends TestCase
     public function test_the_customer_form_shows_and_undoes_the_unsubscribe(): void
     {
         $customer = $this->customer(['newsletter_opt_out_at' => now(), 'last_name' => 'Muster']);
-        $data = ['last_name' => 'Muster', 'email' => $customer->email];
+        $data = ['last_name' => 'Muster', 'email' => $customer->email, 'interests' => ['pc_help']];
 
         $this->put(route('customers.update', $customer), $data)->assertSessionHasNoErrors();
         $this->assertNotNull($customer->fresh()->newsletter_opt_out_at);   // untouched without the checkbox

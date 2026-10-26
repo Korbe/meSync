@@ -119,8 +119,8 @@ const submit = () => {
 
             <!-- Interessen (multiple choice) -->
             <section class="card p-6 xl:col-span-2">
-                <h2 class="card-title"><SparklesIcon class="h-5 w-5 text-primary-500" />Interessiert an</h2>
-                <p class="mt-1 text-sm text-gray-500">Mehrfachauswahl möglich.</p>
+                <h2 class="card-title"><SparklesIcon class="h-5 w-5 text-primary-500" />Interessiert an <span class="text-red-500">*</span></h2>
+                <p class="mt-1 text-sm text-gray-500">Mindestens eines, Mehrfachauswahl möglich. Danach richten sich die E-Mail-Benachrichtigungen nach Interesse.</p>
 
                 <div class="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
                     <button v-for="interest in interests" :key="interest.value" type="button"

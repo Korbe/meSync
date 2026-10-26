@@ -19,6 +19,8 @@ class CustomerController extends Controller
     {
         $search = trim((string) $request->query('search', ''));
         $interest = CustomerInterest::tryFrom((string) $request->query('interest'));
+        // Customers from before interests were mandatory
+        $missingInterest = $request->query('interest') === 'none';
         // Email notifications: "yes" = has an email address and didn't unsubscribe, "no" = unsubscribed
         $notify = in_array($request->query('notify'), ['yes', 'no'], true) ? $request->query('notify') : null;
 
@@ -31,6 +33,7 @@ class CustomerController extends Controller
                 });
             })
             ->when($interest, fn ($query) => $query->whereJsonContains('interests', $interest->value))
+            ->when($missingInterest, fn ($query) => $query->where(fn ($query) => $query->whereNull('interests')->orWhereJsonLength('interests', 0)))
             ->when($notify === 'yes', fn ($query) => $query->whereNull('newsletter_opt_out_at')->whereNotNull('email')->where('email', '!=', ''))
             ->when($notify === 'no', fn ($query) => $query->whereNotNull('newsletter_opt_out_at'))
             ->orderBy('last_name')
@@ -41,7 +44,8 @@ class CustomerController extends Controller
         return Inertia::render('Customers/Index', [
             'customers' => $customers,
             'search' => $search,
-            'interest' => $interest?->value,
+            'interest' => $missingInterest ? 'none' : $interest?->value,
+            'missingInterestCount' => $request->user()->customers()->where(fn ($query) => $query->whereNull('interests')->orWhereJsonLength('interests', 0))->count(),
             'notify' => $notify,
             'interests' => CustomerInterest::options(),
         ]);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\CustomerInterest;
 use App\Models\MaintenanceContract;
 use App\Models\User;
 use Inertia\Middleware;
@@ -69,6 +70,8 @@ class HandleInertiaRequests extends Middleware
                 'warning' => (int) config('session.warning'),
                 'remembered' => $request->hasCookie(Auth::guard('web')->getRecallerName()),
             ] : null,
+            // Interests to pick when creating a customer, also in the quick dialog of other forms
+            'customerInterests' => fn () => $request->user() ? CustomerInterest::options() : null,
             // Badge in the sidebar: overdue + due soon maintenance invoices
             'dueContractsCount' => fn () => $request->user()?->maintenanceContracts()
                 ->billable()

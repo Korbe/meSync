@@ -58,7 +58,7 @@ class DemoProfileTest extends TestCase
     public function test_demo_user_can_still_work_with_business_data(): void
     {
         $this->actingAs($this->demo())->post(route('customers.store'), [
-            'first_name' => 'Maria', 'last_name' => 'Huber', 'country' => 'Österreich',
+            'first_name' => 'Maria', 'last_name' => 'Huber', 'country' => 'Österreich', 'interests' => ['pc_help'],
         ])->assertSessionHasNoErrors();
     }
 

@@ -1,5 +1,6 @@
 <script setup>
-import { useForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { useForm, usePage } from '@inertiajs/vue3';
 import VInput from '@/components/VInput.vue';
 import VButton from '@/components/VButton.vue';
 import VModal from '@/components/VModal.vue';
@@ -21,8 +22,14 @@ const emit = defineEmits(['close', 'created']);
 const blank = () => ({
     title_prefix: '', first_name: '', last_name: '', company_name: '', company_suffix: '',
     street: '', zip: '', city: '', country: 'Österreich', email: '', phone: '', uid_number: '',
+    interests: [],
     inline: true,
 });
+
+const interestOptions = computed(() => usePage().props.customerInterests ?? []);
+const toggleInterest = (value) => {
+    form.interests = form.interests.includes(value) ? form.interests.filter(interest => interest !== value) : [...form.interests, value];
+};
 
 const form = useForm(blank());
 
@@ -86,7 +93,17 @@ const save = () => {
                 <VInput id="quick_phone" class="sm:col-span-5" type="tel" label="Telefon" v-model="form.phone" :error="form.errors.phone" />
                 <VInput id="quick_uid_number" class="sm:col-span-6" label="UID-Nummer" placeholder="ATU12345678" v-model="form.uid_number" :error="form.errors.uid_number" />
             </div>
-            <p class="mt-3 text-xs text-gray-500">Nachname oder Firmenname genügt. Weitere Angaben (Interessen, Notizen) später in der Kundenakte.</p>
+            <div class="mt-4">
+                <span class="mb-1.5 block text-sm font-medium">Interessiert an <span class="text-red-500">*</span></span>
+                <div class="flex flex-wrap gap-2">
+                    <button v-for="interest in interestOptions" :key="interest.value" type="button"
+                        class="cursor-pointer rounded-full px-3 py-1 text-sm font-medium ring-1 transition"
+                        :class="form.interests.includes(interest.value) ? 'bg-primary-500/15 text-primary-700 ring-primary-500 dark:text-primary-300' : 'text-gray-600 ring-gray-200 hover:ring-gray-300 dark:text-gray-400 dark:ring-white/10'"
+                        @click="toggleInterest(interest.value)">{{ interest.label }}</button>
+                </div>
+                <div v-if="form.errors.interests" class="mt-1 text-xs text-red-500">{{ form.errors.interests }}</div>
+            </div>
+            <p class="mt-3 text-xs text-gray-500">Nachname oder Firmenname genügt. Weitere Angaben (Notizen) später in der Kundenakte.</p>
         </template>
 
         <template #footer>

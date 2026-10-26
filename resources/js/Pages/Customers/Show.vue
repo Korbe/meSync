@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { EnvelopeIcon, PhoneIcon, MapPinIcon, ReceiptPercentIcon, BanknotesIcon, ClockIcon, WrenchScrewdriverIcon, DocumentTextIcon, ChatBubbleBottomCenterTextIcon, ClipboardDocumentListIcon, FolderIcon, GlobeAltIcon, CommandLineIcon, BellAlertIcon, BellSlashIcon } from '@heroicons/vue/24/outline';
+import { EnvelopeIcon, PhoneIcon, MapPinIcon, ReceiptPercentIcon, BanknotesIcon, ClockIcon, WrenchScrewdriverIcon, DocumentTextIcon, ChatBubbleBottomCenterTextIcon, ClipboardDocumentListIcon, FolderIcon, GlobeAltIcon, CommandLineIcon, BellAlertIcon, BellSlashIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import StatusBadge from '@/Pages/MaintenanceContracts/StatusBadge.vue';
@@ -46,6 +46,16 @@ const typeIcons = { website: GlobeAltIcon, webapp: CommandLineIcon };
         </template>
 
         <div class="space-y-6">
+            <!-- Interest missing (customers from before it was mandatory) -->
+            <Link v-if="!customer.interests?.length" :href="route('customers.edit', customer.id)"
+                class="flex items-center gap-3 rounded-2xl bg-amber-500/10 p-4 ring-1 ring-amber-500/40 transition hover:bg-amber-500/15">
+                <ExclamationTriangleIcon class="h-6 w-6 shrink-0 text-amber-500" />
+                <div class="min-w-0 flex-1 text-sm">
+                    <div class="font-semibold text-amber-800 dark:text-amber-200">Interesse fehlt</div>
+                    <div class="text-amber-700 dark:text-amber-300/80">Ohne Interesse erreichen diesen Kunden keine E-Mail-Benachrichtigungen „nach Interesse“. Jetzt ergänzen →</div>
+                </div>
+            </Link>
+
             <!-- Contact card -->
             <section class="card relative overflow-hidden p-6">
                 <div class="pointer-events-none absolute -top-24 -left-16 h-64 w-64 rounded-full bg-primary-500/15 blur-[90px]" aria-hidden="true"></div>

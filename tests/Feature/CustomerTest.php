@@ -44,7 +44,7 @@ class CustomerTest extends TestCase
 
         $this->actingAs($user)
             ->from(route('invoices.create'))
-            ->post(route('customers.store'), ['last_name' => 'Huber', 'inline' => true])
+            ->post(route('customers.store'), ['last_name' => 'Huber', 'interests' => ['pc_help'], 'inline' => true])
             ->assertRedirect(route('invoices.create'))
             ->assertSessionHas('success');
 
@@ -94,6 +94,7 @@ class CustomerTest extends TestCase
                 'phone' => '+43 664 1234567',
                 'uid_number' => 'atu 123 456 78',
                 'notes' => 'Stammkunde',
+                'interests' => ['website'],
             ])
             ->assertRedirect(route('customers.index'));
 
@@ -109,7 +110,7 @@ class CustomerTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->post(route('customers.store'), ['company_name' => 'Musterfirma'])
+            ->post(route('customers.store'), ['company_name' => 'Musterfirma', 'interests' => ['webapp']])
             ->assertSessionHasNoErrors();
 
         $this->assertSame('Musterfirma', $user->customers()->sole()->display_name);
@@ -139,7 +140,7 @@ class CustomerTest extends TestCase
         $customer = Customer::factory()->for($user)->create();
 
         $this->actingAs($user)
-            ->put(route('customers.update', $customer), ['last_name' => 'Neu', 'city' => 'Graz'])
+            ->put(route('customers.update', $customer), ['last_name' => 'Neu', 'city' => 'Graz', 'interests' => ['pc_help']])
             ->assertRedirect(route('customers.show', $customer));
 
         $this->assertSame('Graz', $customer->fresh()->city);
@@ -192,6 +193,31 @@ class CustomerTest extends TestCase
         $this->actingAs($user)
             ->post(route('customers.store'), ['last_name' => 'Mustermann', 'interests' => ['website', 'kochkurs']])
             ->assertSessionHasErrors('interests.1');
+    }
+
+    public function test_at_least_one_interest_is_required(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('customers.store'), ['last_name' => 'Muster'])->assertSessionHasErrors('interests');
+        $this->actingAs($user)->post(route('customers.store'), ['last_name' => 'Muster', 'interests' => []])->assertSessionHasErrors('interests');
+        $this->actingAs($user)->post(route('customers.store'), ['last_name' => 'Muster', 'interests' => [], 'inline' => true])->assertSessionHasErrors('interests');
+        $this->assertSame(0, $user->customers()->count());
+    }
+
+    public function test_customers_without_interest_are_flagged(): void
+    {
+        $user = User::factory()->create();
+        Customer::factory()->for($user)->create(['last_name' => 'Web', 'interests' => ['website']]);
+        Customer::factory()->for($user)->create(['last_name' => 'Ohne', 'interests' => []]);
+        Customer::factory()->for($user)->create(['last_name' => 'Alt', 'interests' => null]);
+
+        $this->actingAs($user)
+            ->get(route('customers.index', ['interest' => 'none']))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('interest', 'none')
+                ->where('missingInterestCount', 2)
+                ->has('customers.data', 2));
     }
 
     public function test_index_can_be_filtered_by_interest(): void

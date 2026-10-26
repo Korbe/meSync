@@ -13,7 +13,10 @@ class CustomerRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        // Other users' customers: 403 before any validation
+        $customer = $this->route('customer');
+
+        return ! $customer || $this->user()->can('update', $customer);
     }
 
     /**
@@ -51,7 +54,8 @@ class CustomerRequest extends FormRequest
             // EU VAT ID: two-letter country code + 2-13 characters, e.g. ATU12345678
             'uid_number' => ['nullable', 'string', 'max:20', 'regex:/^[A-Z]{2}[0-9A-Z]{2,13}$/'],
             'notes' => 'nullable|string|max:5000',
-            'interests' => 'nullable|array',
+            // Needed for email notifications by interest
+            'interests' => 'required|array|min:1',
             'interests.*' => ['distinct', Rule::enum(CustomerInterest::class)],
             'newsletter' => 'nullable|boolean',
         ];
@@ -83,6 +87,8 @@ class CustomerRequest extends FormRequest
             'company_name.required_without' => 'Bitte gib einen Firmennamen oder einen Nachnamen an.',
             'uid_number.regex' => 'Die UID-Nummer muss das Format ATU12345678 haben.',
             'email.email' => 'Bitte gib eine gültige E-Mail-Adresse an.',
+            'interests.required' => 'Bitte wähle mindestens ein Interesse aus.',
+            'interests.min' => 'Bitte wähle mindestens ein Interesse aus.',
         ];
     }
 }
