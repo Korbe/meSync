@@ -53,7 +53,24 @@ class CustomerRequest extends FormRequest
             'notes' => 'nullable|string|max:5000',
             'interests' => 'nullable|array',
             'interests.*' => ['distinct', Rule::enum(CustomerInterest::class)],
+            'newsletter' => 'nullable|boolean',
         ];
+    }
+
+    /**
+     * The fields of the customer; "newsletter" (checkbox) becomes the unsubscribe date.
+     *
+     * @return array<string, mixed>
+     */
+    public function customerData(?\App\Models\Customer $customer = null): array
+    {
+        $data = collect($this->validated())->except('newsletter')->all();
+
+        if ($this->has('newsletter')) {
+            $data['newsletter_opt_out_at'] = $this->boolean('newsletter') ? null : ($customer?->newsletter_opt_out_at ?? now());
+        }
+
+        return $data;
     }
 
     /**

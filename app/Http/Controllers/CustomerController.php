@@ -19,6 +19,8 @@ class CustomerController extends Controller
     {
         $search = trim((string) $request->query('search', ''));
         $interest = CustomerInterest::tryFrom((string) $request->query('interest'));
+        // Email notifications: "yes" = has an email address and didn't unsubscribe, "no" = unsubscribed
+        $notify = in_array($request->query('notify'), ['yes', 'no'], true) ? $request->query('notify') : null;
 
         $customers = $request->user()->customers()
             ->when($search !== '', function ($query) use ($search) {
@@ -29,6 +31,8 @@ class CustomerController extends Controller
                 });
             })
             ->when($interest, fn ($query) => $query->whereJsonContains('interests', $interest->value))
+            ->when($notify === 'yes', fn ($query) => $query->whereNull('newsletter_opt_out_at')->whereNotNull('email')->where('email', '!=', ''))
+            ->when($notify === 'no', fn ($query) => $query->whereNotNull('newsletter_opt_out_at'))
             ->orderBy('last_name')
             ->orderBy('company_name')
             ->paginate($this->perPage($request, 'customers'))
@@ -38,6 +42,7 @@ class CustomerController extends Controller
             'customers' => $customers,
             'search' => $search,
             'interest' => $interest?->value,
+            'notify' => $notify,
             'interests' => CustomerInterest::options(),
         ]);
     }
@@ -51,7 +56,7 @@ class CustomerController extends Controller
 
     public function store(CustomerRequest $request): RedirectResponse
     {
-        $request->user()->customers()->create($request->validated());
+        $request->user()->customers()->create($request->customerData());
 
         // Created from the invoice form: stay there, it selects the new customer
         if ($request->boolean('inline')) {
@@ -120,7 +125,7 @@ class CustomerController extends Controller
     {
         Gate::authorize('update', $customer);
 
-        $customer->update($request->validated());
+        $customer->update($request->customerData($customer));
 
         return to_route('customers.show', $customer)->with('success', 'Kunde wurde gespeichert.');
     }

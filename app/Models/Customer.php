@@ -34,6 +34,7 @@ class Customer extends Model
         'uid_number',
         'notes',
         'interests',
+        'newsletter_opt_out_at',
     ];
 
     protected static function booted(): void
@@ -46,6 +47,7 @@ class Customer extends Model
     {
         return [
             'interests' => 'array',
+            'newsletter_opt_out_at' => 'datetime',
         ];
     }
 

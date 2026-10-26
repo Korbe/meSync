@@ -116,6 +116,12 @@
               </Link>
             </li>
             <li>
+              <Link :href="route('newsletters.index')" class="nav-link" :class="isActive('/newsletters') && 'nav-link-active'">
+                <BellAlertIcon class="nav-icon" />
+                <span class="nav-label">Benachrichtigungen</span>
+              </Link>
+            </li>
+            <li>
               <Link :href="route('finance.index')" class="nav-link" :class="isActive('/finance') && 'nav-link-active'">
                 <BanknotesIcon class="nav-icon" />
                 <span class="nav-label">Finanzen</span>
@@ -179,7 +185,7 @@ import { usePage } from "@inertiajs/vue3";
 
 
 import SidebarLinkGroup from './SidebarLinkGroup.vue'
-import { BeakerIcon, HeartIcon, HomeIcon, SparklesIcon, UsersIcon, WrenchScrewdriverIcon, DocumentTextIcon, Squares2X2Icon, ArrowDownTrayIcon, CircleStackIcon, ArchiveBoxIcon, BanknotesIcon, SignalIcon, ClockIcon, ClipboardDocumentListIcon, FolderIcon, EnvelopeIcon } from '@heroicons/vue/24/solid';
+import { BeakerIcon, HeartIcon, HomeIcon, SparklesIcon, UsersIcon, WrenchScrewdriverIcon, DocumentTextIcon, Squares2X2Icon, ArrowDownTrayIcon, CircleStackIcon, ArchiveBoxIcon, BanknotesIcon, SignalIcon, ClockIcon, ClipboardDocumentListIcon, FolderIcon, EnvelopeIcon, BellAlertIcon } from '@heroicons/vue/24/solid';
 
 export default {
   name: 'Sidebar',
@@ -205,6 +211,7 @@ export default {
     ClipboardDocumentListIcon,
     FolderIcon,
     EnvelopeIcon,
+    BellAlertIcon,
   },  
   setup(props, { emit }) {
 

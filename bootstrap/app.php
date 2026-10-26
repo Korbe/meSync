@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Newsletter unsubscribe: signed link and one-click from the mail client, without a session
+        $middleware->validateCsrfTokens(except: ['newsletter/unsubscribe/*']);
+
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\ProtectDemoProfile::class,

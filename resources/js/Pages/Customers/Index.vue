@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
-import { PencilSquareIcon, TrashIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, UsersIcon } from '@heroicons/vue/24/outline';
+import { PencilSquareIcon, TrashIcon, EnvelopeIcon, PhoneIcon, MapPinIcon, UsersIcon, BellAlertIcon, BellSlashIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import VPagination from '@/components/VPagination.vue';
@@ -12,11 +12,13 @@ const props = defineProps({
     customers: Object,
     search: String,
     interest: String,
+    notify: String,   // email notifications: yes | no
     interests: Array,
 });
 
 const search = ref(props.search ?? '');
 const interest = ref(props.interest ?? null);
+const notify = ref(props.notify ?? null);
 
 const interestLabel = (value) => props.interests.find(i => i.value === value)?.label ?? value;
 
@@ -24,6 +26,7 @@ const reload = () => {
     const query = {};
     if (search.value) query.search = search.value;
     if (interest.value) query.interest = interest.value;
+    if (notify.value) query.notify = notify.value;
 
     router.get(route('customers.index'), query, {
         preserveState: true,
@@ -45,6 +48,14 @@ const filterBy = (value) => {
     interest.value = interest.value === value ? null : value;
     reload();
 };
+
+const filterNotify = (value) => {
+    notify.value = notify.value === value ? null : value;
+    reload();
+};
+
+// Gets email notifications: email address and not unsubscribed
+const notifyState = (customer) => !customer.email ? 'none' : customer.newsletter_opt_out_at ? 'off' : 'on';
 
 const initials = (customer) => {
     const source = customer.last_name
@@ -82,6 +93,17 @@ const show = (customer) => router.visit(route('customers.show', customer.id));
                 @click="filterBy(option.value)">
                 {{ option.label }}
             </button>
+            <span class="mx-1 hidden h-4 w-px bg-gray-200 sm:block dark:bg-white/10"></span>
+            <button v-for="option in [{ value: 'yes', label: 'Erhält Benachrichtigungen' }, { value: 'no', label: 'Abgemeldet' }]" :key="option.value" type="button"
+                class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset transition"
+                :class="notify === option.value
+                    ? 'bg-primary-500 text-white ring-primary-500 shadow-[0_6px_16px_-6px_rgba(31,173,174,0.8)]'
+                    : 'text-gray-600 ring-gray-200 hover:ring-primary-400 hover:text-primary-600 dark:text-gray-400 dark:ring-white/10 dark:hover:text-primary-300'"
+                @click="filterNotify(option.value)">
+                <BellAlertIcon v-if="option.value === 'yes'" class="h-3.5 w-3.5" />
+                <BellSlashIcon v-else class="h-3.5 w-3.5" />
+                {{ option.label }}
+            </button>
         </div>
 
         <!-- Empty state -->
@@ -91,7 +113,7 @@ const show = (customer) => router.visit(route('customers.show', customer.id));
                 <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary-500/10 ring-1 ring-primary-500/30">
                     <UsersIcon class="h-7 w-7 text-primary-500" />
                 </div>
-                <template v-if="search || interest">
+                <template v-if="search || interest || notify">
                     <h2 class="mt-5 font-display text-xl font-semibold text-gray-900 dark:text-white">Keine Treffer</h2>
                     <p class="mt-2 text-sm text-gray-500">Für diese Suche bzw. diesen Filter wurde kein Kunde gefunden.</p>
                 </template>
@@ -140,6 +162,7 @@ const show = (customer) => router.visit(route('customers.show', customer.id));
                                 <div v-if="customer.email" class="flex items-center gap-1.5 text-gray-700 dark:text-gray-300">
                                     <EnvelopeIcon class="h-4 w-4 shrink-0 text-gray-400" />
                                     <a :href="`mailto:${customer.email}`" class="truncate hover:text-primary-500" @click.stop>{{ customer.email }}</a>
+                                    <BellSlashIcon v-if="notifyState(customer) === 'off'" class="h-4 w-4 shrink-0 text-amber-500" title="Von E-Mail-Benachrichtigungen abgemeldet" />
                                 </div>
                                 <div v-if="customer.phone" class="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500">
                                     <PhoneIcon class="h-3.5 w-3.5 shrink-0" />

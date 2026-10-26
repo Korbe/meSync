@@ -10,6 +10,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DemoLoginController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\MailTestController;
+use App\Http\Controllers\NewsletterController;
+use App\Http\Controllers\NewsletterUnsubscribeController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\FinanceEntryController;
 use App\Http\Controllers\InventoryItemController;
@@ -28,6 +30,10 @@ use App\Http\Controllers\RecurringPaymentController;
 use App\Http\Controllers\TimeSessionController;
 
 Route::redirect('/', '/dashboard');
+
+// Link to unsubscribe in every newsletter: signed, without login
+Route::get('/newsletter/unsubscribe/{customer}', [NewsletterUnsubscribeController::class, 'show'])->middleware(['signed', 'throttle:30,1'])->name('newsletter.unsubscribe');
+Route::post('/newsletter/unsubscribe/{customer}', [NewsletterUnsubscribeController::class, 'store'])->middleware(['signed', 'throttle:30,1'])->name('newsletter.unsubscribe.store');
 
 // One-click login with the demo user
 Route::post('/demo-login', DemoLoginController::class)->middleware(['guest', 'throttle:10,1'])->name('demo.login');
@@ -117,6 +123,10 @@ Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified',
     Route::get('/backup', [BackupController::class, 'index'])->name('backup.index');
     Route::get('/backup/download', [BackupController::class, 'download'])->name('backup.download');
     Route::post('/backup/restore', [BackupController::class, 'restore'])->name('backup.restore');
+
+    Route::post('/newsletters/{newsletter}/test', [NewsletterController::class, 'test'])->middleware('throttle:10,1')->name('newsletters.test');
+    Route::post('/newsletters/{newsletter}/send', [NewsletterController::class, 'send'])->name('newsletters.send');
+    Route::resource('newsletters', NewsletterController::class)->except('show');
 
     Route::get('/mail-test', [MailTestController::class, 'index'])->name('mail-test.index');
     Route::post('/mail-test', [MailTestController::class, 'send'])->middleware('throttle:10,1')->name('mail-test.send');

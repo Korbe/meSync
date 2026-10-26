@@ -27,6 +27,8 @@ const form = useForm({
         fields.map(field => [field, props.customer?.[field] ?? (field === 'country' ? 'Österreich' : '')])
     ),
     interests: [...(props.customer?.interests ?? [])],
+    // Unsubscribed through the link in a newsletter: the checkbox shows it, ticking it again subscribes
+    newsletter: !props.customer?.newsletter_opt_out_at,
 });
 
 const toggleInterest = (value) => {
@@ -108,6 +110,11 @@ const submit = () => {
                     <VInput id="email" class="sm:col-span-7" type="email" label="E-Mail" placeholder="name@firma.at" v-model="form.email" :error="form.errors.email" />
                     <VInput id="phone" class="sm:col-span-5" type="tel" label="Telefon" placeholder="+43 664 1234567" v-model="form.phone" :error="form.errors.phone" />
                 </div>
+                <label class="mt-4 flex cursor-pointer items-center gap-2 text-sm">
+                    <input type="checkbox" v-model="form.newsletter" class="form-checkbox rounded border-gray-300 text-primary-500 focus:ring-primary-500 dark:border-white/20 dark:bg-white/5" />
+                    Erhält E-Mail-Benachrichtigungen
+                    <span v-if="customer?.newsletter_opt_out_at" class="text-xs text-gray-500">(abgemeldet am {{ new Date(customer.newsletter_opt_out_at).toLocaleDateString('de-AT') }})</span>
+                </label>
             </section>
 
             <!-- Interessen (multiple choice) -->

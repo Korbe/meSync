@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { EnvelopeIcon, PhoneIcon, MapPinIcon, ReceiptPercentIcon, BanknotesIcon, ClockIcon, WrenchScrewdriverIcon, DocumentTextIcon, ChatBubbleBottomCenterTextIcon, ClipboardDocumentListIcon, FolderIcon, GlobeAltIcon, CommandLineIcon } from '@heroicons/vue/24/outline';
+import { EnvelopeIcon, PhoneIcon, MapPinIcon, ReceiptPercentIcon, BanknotesIcon, ClockIcon, WrenchScrewdriverIcon, DocumentTextIcon, ChatBubbleBottomCenterTextIcon, ClipboardDocumentListIcon, FolderIcon, GlobeAltIcon, CommandLineIcon, BellAlertIcon, BellSlashIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import StatusBadge from '@/Pages/MaintenanceContracts/StatusBadge.vue';
@@ -67,6 +67,14 @@ const typeIcons = { website: GlobeAltIcon, webapp: CommandLineIcon };
                         <div v-if="customer.email" class="flex items-center gap-2">
                             <EnvelopeIcon class="h-4 w-4 shrink-0 text-gray-400" />
                             <a :href="`mailto:${customer.email}`" class="truncate text-gray-700 hover:text-primary-500 dark:text-gray-300">{{ customer.email }}</a>
+                        </div>
+                        <!-- Email notifications: allowed or unsubscribed (link in every notification) -->
+                        <div class="flex items-center gap-2">
+                            <BellSlashIcon v-if="customer.newsletter_opt_out_at || !customer.email" class="h-4 w-4 shrink-0" :class="customer.newsletter_opt_out_at ? 'text-amber-500' : 'text-gray-400'" />
+                            <BellAlertIcon v-else class="h-4 w-4 shrink-0 text-primary-500" />
+                            <span v-if="customer.newsletter_opt_out_at" class="text-amber-700 dark:text-amber-300">Benachrichtigungen abgemeldet am {{ formatDate(customer.newsletter_opt_out_at) }}</span>
+                            <span v-else-if="!customer.email" class="text-gray-500">Keine Benachrichtigungen – E-Mail fehlt</span>
+                            <span v-else class="text-gray-700 dark:text-gray-300">Erhält E-Mail-Benachrichtigungen</span>
                         </div>
                         <div v-if="customer.phone" class="flex items-center gap-2">
                             <PhoneIcon class="h-4 w-4 shrink-0 text-gray-400" />
