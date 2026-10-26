@@ -29,8 +29,10 @@ display: none !important;
 }
 
 [data-ogsc] .logo-dark {
-display: inline-block !important;
+display: block !important;
 max-height: none !important;
+overflow: visible !important;
+line-height: normal !important;
 }
 </style>
 {{ $head ?? '' }}
