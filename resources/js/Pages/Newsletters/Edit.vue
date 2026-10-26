@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
-import { EnvelopeIcon, UsersIcon, CheckCircleIcon, ExclamationTriangleIcon, ClockIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
+import { EnvelopeIcon, UsersIcon, CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon, ClockIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
 import Layout from '@/Layouts/Layout.vue';
 import VButton from '@/components/VButton.vue';
 import VInput from '@/components/VInput.vue';
@@ -188,6 +188,18 @@ const failedCount = computed(() => props.recipients.filter(recipient => !recipie
                             <template v-if="optedOut"> · {{ optedOut }} abgemeldet</template>
                         </div>
                     </div>
+
+                    <!-- Who exactly (single customers: the list above already shows it) -->
+                    <ul v-if="form.audience !== 'selected' && chosen.length" class="mt-3 max-h-72 divide-y divide-gray-100 overflow-y-auto rounded-xl border border-gray-200 dark:divide-white/[0.06] dark:border-white/10">
+                        <li v-for="customer in chosen" :key="customer.id" class="flex items-center gap-3 px-3 py-2" :class="!reachable(customer) && 'opacity-50'">
+                            <CheckCircleIcon v-if="reachable(customer)" class="h-4 w-4 shrink-0 text-primary-500" />
+                            <XCircleIcon v-else class="h-4 w-4 shrink-0 text-gray-400" />
+                            <span class="min-w-0 flex-1">
+                                <span class="block truncate text-sm text-gray-900 dark:text-gray-100">{{ customer.name }}</span>
+                                <span class="block truncate text-xs text-gray-500">{{ customer.email || 'keine E-Mail-Adresse' }}<template v-if="customer.email && customer.opted_out"> · abgemeldet</template></span>
+                            </span>
+                        </li>
+                    </ul>
                     <p class="mt-3 text-xs text-gray-500">Werbung per E-Mail nur an Kunden, die eingewilligt haben, oder an Bestandskunden zu ähnlichen eigenen Leistungen. Jede Mail enthält einen Abmeldelink.</p>
                 </section>
 
