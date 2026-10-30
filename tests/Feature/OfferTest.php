@@ -111,15 +111,22 @@ class OfferTest extends TestCase
             'types' => config('offers.types'), 'packages' => collect(config('offers.packages'))->where('type', 'webapp')->all(),
             'features' => config('offers.features'), 'integrations' => config('offers.integrations'),
             'contentDelivery' => config('offers.content_delivery'), 'paymentTerms' => config('offers.payment_terms'),
-            'hints' => config('offers.hints'), 'services' => $offer->type->services(),
+            'hints' => config('offers.hints'), 'contract' => config('offers.contract'), 'services' => $offer->type->services(),
         ])->render();
 
         $this->assertStringContainsString('<span class="list-price">3.900,00</span>', $html);
         $this->assertStringContainsString('Laufende Betreuung (12 Monate)', $html);
-        $this->assertStringContainsString('Der Wartungsvertrag beginnt, sobald die Seite live ist.', $html);
+        $this->assertStringContainsString(config('offers.contract.maintenance_start'), $html);
+        // Website and maintenance apart, minimum term, renewal and acceptance
+        $this->assertStringContainsString($offer->type_label.'-Erstellung (einmalig)', $html);
+        $this->assertStringContainsString('Wartung (12 Monate)', $html);
+        $this->assertStringContainsString('verlängert sich der Vertrag automatisch', $html);
+        $this->assertStringContainsString('erneut im Voraus', $html);
+        $this->assertStringContainsString('Name des Unterzeichners', $html);
+        $this->assertStringContainsString('innerhalb von 14 Tagen', $html);
         $this->assertStringContainsString('USt. 20 %', $html);
         $this->assertStringContainsString('4.761,60', $html);
-        $this->assertStringContainsString('Unterschrift Auftraggeber', $html);
+        $this->assertStringContainsString('Unterschrift Kunde', $html);
         $this->assertStringContainsString('☑</span> Login-/Mitgliederbereich', $html);
         // Only what was chosen is printed
         $this->assertStringNotContainsString('☐', $html);
@@ -127,6 +134,24 @@ class OfferTest extends TestCase
         $this->assertStringNotContainsString('Website (ohne Backend-Logik', $html);
         $this->assertStringNotContainsString('Newsletter-Tool', $html);
         $this->assertStringNotContainsString('Kleinunternehmer', $html);
+    }
+
+    public function test_offers_keep_the_conditions_they_went_out_with(): void
+    {
+        $offer = $this->offer();
+        $this->assertTrue($offer->fresh()->hasContractTerms());
+        $this->assertEqualsWithDelta($offer->tax_amount, $offer->projectTaxAmount() + round($offer->tax_amount - $offer->projectTaxAmount(), 2), 0.001);
+
+        $offer->forceFill(['terms_version' => 1])->save();
+        $html = view('pdf.offer', [
+            'offer' => $offer->fresh()->load('items'), 'issuer' => $offer->issuer, 'recipient' => $offer->recipient, 'logo' => null, 'signature' => null,
+            'types' => config('offers.types'), 'packages' => [], 'features' => config('offers.features'), 'integrations' => config('offers.integrations'),
+            'contentDelivery' => config('offers.content_delivery'), 'paymentTerms' => config('offers.payment_terms'),
+            'hints' => config('offers.hints'), 'contract' => config('offers.contract'), 'services' => $offer->type->services(),
+        ])->render();
+
+        $this->assertStringNotContainsString('verlängert sich der Vertrag automatisch', $html);
+        $this->assertStringContainsString('Unterschrift Auftraggeber', $html);
     }
 
     public function test_sent_offers_are_locked_and_revised_as_a_copy(): void

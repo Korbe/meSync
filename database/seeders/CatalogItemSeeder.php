@@ -14,7 +14,7 @@ class CatalogItemSeeder extends Seeder
         ['name' => 'Datenrettung', 'description' => 'Wiederherstellung von Daten einer defekten Festplatte', 'unit' => 'Pauschale', 'unit_price' => 150],
         ['name' => 'Virenentfernung', 'description' => 'Bereinigung und Absicherung des Systems', 'unit' => 'Pauschale', 'unit_price' => 89],
         ['name' => 'PC-Zusammenbau', 'description' => "Zusammenbau nach Wunsch\n- Kabelmanagement\n- Stresstest und BIOS-Einrichtung", 'unit' => 'Pauschale', 'unit_price' => 149],
-        ['name' => 'Website Basic', 'description' => "Onepager mit bis zu 5 Abschnitten\n- responsives Design\n- Kontaktformular\n- Impressum und Datenschutz", 'unit' => 'Pauschale', 'unit_price' => 890],
+        ['name' => 'Website Basic', 'description' => "Landing Page mit bis zu 5 Abschnitten\n- responsives Design\n- Kontaktformular\n- Impressum und Datenschutz", 'unit' => 'Pauschale', 'unit_price' => 890],
         ['name' => 'Website Business', 'description' => "Mehrseitige Website mit CMS\n- bis zu 10 Seiten\n- SEO-Grundoptimierung", 'unit' => 'Pauschale', 'unit_price' => 1890],
         ['name' => 'Webanwendung – Entwicklung', 'description' => 'Individuelle Entwicklung', 'unit' => 'Stunde', 'unit_price' => 85],
         ['name' => 'Domain & Hosting Einrichtung', 'description' => 'Domainregistrierung, DNS und E-Mail-Postfächer', 'unit' => 'Pauschale', 'unit_price' => 79],

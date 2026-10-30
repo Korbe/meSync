@@ -14,6 +14,13 @@
     $showRecipientCountry = ! empty($recipient['country']) && ($recipient['country'] ?? null) !== ($issuer['country'] ?? null);
     $isWebapp = $offer->type->value === 'webapp';
     $validDays = (int) $offer->offer_date->diffInDays($offer->valid_until);
+
+    // Offers sent before the contract clause keep their old conditions
+    $contractTerms = $offer->hasContractTerms();
+    $projectTax = $offer->projectTaxAmount();
+    $maintenanceTax = round($offer->tax_amount - $projectTax, 2);
+    $paymentDays = (int) ($issuer['payment_terms_days'] ?? 14);
+    $acceptanceEmail = $issuer['email'] ?? null;
 @endphp
 <!DOCTYPE html>
 <html lang="de">
@@ -359,6 +366,52 @@
         color: #737373;
     }
 
+    /* Website and maintenance side by side in the totals */
+
+    .breakdown {
+        margin-top: 12px;
+    }
+
+    .breakdown th {
+        font-size: 6.5pt;
+        font-weight: normal;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: #737373;
+        text-align: right;
+        padding: 0 0 5px 8px;
+        border-bottom: 1.5px solid {{ $c['base'] }};
+    }
+
+    .breakdown th.first,
+    .breakdown td.first {
+        text-align: left;
+        padding-left: 0;
+    }
+
+    .breakdown td {
+        padding: 6px 0 6px 8px;
+        text-align: right;
+        white-space: nowrap;
+        border-bottom: 0.5px solid #e5e5e5;
+    }
+
+    .breakdown td.first {
+        white-space: normal;
+    }
+
+    .breakdown tr.sum td {
+        font-weight: bold;
+        color: #0a0a0a;
+        border-bottom: 0;
+    }
+
+    .clause {
+        margin-top: 4px;
+        line-height: 1.55;
+        color: #404040;
+    }
+
     /* Signatures */
 
     .signatures {
@@ -377,6 +430,14 @@
     .signatures td.gap {
         width: 4%;
         border-top: 0;
+    }
+
+    .signatures.four td {
+        width: 22%;
+    }
+
+    .signatures.four td.gap {
+        width: 4%;
     }
 
     /* Own signature sits on the line, the cells above stay empty for signing by hand */
@@ -438,6 +499,7 @@
                 @if ($issuerAddress){{ str_replace(' · ', ', ', $issuerAddress) }}<br>@endif
                 @if (! empty($issuer['email'])){{ $issuer['email'] }}<br>@endif
                 {{ implode(' · ', array_filter([$issuer['phone'] ?? null, $issuer['website'] ?? null])) }}
+                @if (! empty($issuer['uid_number']))<br><span class="muted">UID-Nr.: {{ $issuer['uid_number'] }}</span>@endif
             </td>
             <td>
                 <div class="label">Bankverbindung</div>
@@ -448,8 +510,7 @@
             <td>
                 <div class="label">Angebot</div>
                 {{ $offer->number }} vom {{ $offer->offer_date->format('d.m.Y') }}<br>
-                Gültig bis <strong>{{ $offer->valid_until->format('d.m.Y') }}</strong><br>
-                @if (! empty($issuer['uid_number']))UID: {{ $issuer['uid_number'] }}@endif
+                Gültig bis <strong>{{ $offer->valid_until->format('d.m.Y') }}</strong>
             </td>
         </tr>
     </table>
@@ -468,7 +529,7 @@
                 @if (! empty($recipient['street'])){{ $recipient['street'] }}<br>@endif
                 @if (! empty($recipient['zip']) || ! empty($recipient['city'])){{ trim(($recipient['zip'] ?? '').' '.($recipient['city'] ?? '')) }}<br>@endif
                 @if ($showRecipientCountry){{ $recipient['country'] }}<br>@endif
-                @if (! empty($recipient['uid_number']))<span class="muted">UID: {{ $recipient['uid_number'] }}</span>@endif
+                @if (! empty($recipient['uid_number']))UID-Nr.: {{ $recipient['uid_number'] }}@endif
             </div>
             @if (! empty($recipient['phone']) || ! empty($recipient['email']))
                 <div class="contact">{{ implode(' · ', array_filter([$recipient['phone'] ?? null, $recipient['email'] ?? null])) }}</div>
@@ -541,7 +602,7 @@
             <td>
                 <div class="item-title">Laufende Betreuung (12 Monate)<span class="mandatory">VERPFLICHTEND</span></div>
                 <div class="item-detail">{{ implode(' · ', array_filter([$offer->type_label.' Wartung & Betreuung', $offer->maintenance_package ? 'Paket '.$offer->maintenance_package : null])) }}</div>
-                <div class="item-detail">{{ $hints['maintenance_start'] }}</div>
+                <div class="item-detail">{{ $contractTerms ? $contract['maintenance_start'] : $hints['maintenance_start'] }}</div>
             </td>
             <td class="num">12</td>
             <td class="unit">Monat</td>
@@ -553,6 +614,34 @@
 
 {{-- Totals stay together on one page --}}
 <div style="page-break-inside: avoid;">
+@if ($contractTerms)
+<table class="breakdown">
+    <tr>
+        <th class="first"></th>
+        <th>Netto</th>
+        <th>USt. {{ $taxRate }} %</th>
+        <th>Brutto</th>
+    </tr>
+    <tr>
+        <td class="first">{{ $offer->type_label }}-Erstellung (einmalig)</td>
+        <td>€ {{ $money($offer->project_subtotal) }}</td>
+        <td>€ {{ $money($projectTax) }}</td>
+        <td>€ {{ $money($offer->project_subtotal + $projectTax) }}</td>
+    </tr>
+    <tr>
+        <td class="first">Wartung (12 Monate)</td>
+        <td>€ {{ $money($offer->maintenance_annual_price) }}</td>
+        <td>€ {{ $money($maintenanceTax) }}</td>
+        <td>€ {{ $money($offer->maintenance_annual_price + $maintenanceTax) }}</td>
+    </tr>
+    <tr class="sum">
+        <td class="first">Summe</td>
+        <td>€ {{ $money($offer->subtotal) }}</td>
+        <td>€ {{ $money($offer->tax_amount) }}</td>
+        <td>€ {{ $money($offer->total) }}</td>
+    </tr>
+</table>
+@else
 <table class="totals">
     <tr>
         <td class="muted">Summe netto</td>
@@ -563,6 +652,7 @@
         <td class="num">€ {{ $money($offer->tax_amount) }}</td>
     </tr>
 </table>
+@endif
 
 <table class="grand-total">
     <tr>
@@ -580,7 +670,7 @@
 <h2>Laufende Betreuung &amp; Wartung</h2>
 <div class="maintenance-box">
     <strong>Die laufende Betreuung ist fester Bestandteil dieses Angebots.</strong>
-    Sie beginnt mit der Inbetriebnahme, wird jährlich im Voraus verrechnet und umfasst
+    Sie beginnt {{ $contractTerms ? 'mit der Abnahme bzw. zum vereinbarten Startdatum' : 'mit der Inbetriebnahme' }}, wird jährlich im Voraus verrechnet und umfasst
     @if ($offer->maintenance_package)
         (Betreuungspaket <strong>{{ $offer->maintenance_package }}</strong>):
     @else
@@ -595,14 +685,34 @@
 
 </div>
 
+@if ($contractTerms)
+    <div style="page-break-inside: avoid;">
+        <h2>Vertragslaufzeit und automatische Verlängerung</h2>
+        <div class="clause">{{ $contract['term'] }}</div>
+        <div class="clause">{{ $contract['renewal'] }}</div>
+    </div>
+@endif
+
 {{-- Payment + terms --}}
 <h2>Zahlungsbedingungen</h2>
 <table class="choice">
     <tr>
         <td class="box">☑</td>
-        <td>{{ $paymentTerms[$offer->payment_terms] ?? $offer->payment_terms }}</td>
+        <td>{{ $contractTerms ? $offer->type_label.'-Erstellung: ' : '' }}{{ $paymentTerms[$offer->payment_terms] ?? $offer->payment_terms }}</td>
     </tr>
+    @if ($contractTerms)
+        <tr>
+            <td class="box">☑</td>
+            <td>Wartung: € {{ $money($offer->maintenance_annual_price) }} netto für zwölf Monate, jährlich im Voraus</td>
+        </tr>
+    @endif
 </table>
+@if ($contractTerms)
+    <div class="clause">
+        Rechnungen sind innerhalb von {{ $paymentDays }} Tagen ohne Abzug per Überweisung auf das unten angeführte Konto zahlbar.
+        Alle Preise verstehen sich netto zuzüglich {{ $taxRate }} % Umsatzsteuer, die auf der Rechnung gesondert ausgewiesen wird.
+    </div>
+@endif
 
 @if ($offer->notes)
     <div class="notes">{!! nl2br(e($offer->notes)) !!}</div>
@@ -612,6 +722,7 @@
     Dieses Angebot ist ab dem Ausstellungsdatum {{ $validDays }} Tage gültig (bis {{ $offer->valid_until->format('d.m.Y') }}). {{ ($termsAttached ?? false) ? rtrim($hints['terms'], '.').' (liegen bei).' : $hints['terms'] }}
 </div>
 
+@unless ($contractTerms)
 <table class="signatures"{!! $signature ? ' style="margin-top: 10px;"' : '' !!}>
     @if ($signature)
         <tr class="sign">
@@ -630,6 +741,7 @@
         <td>Unterschrift {{ $issuer['name'] ?? 'Auftragnehmer' }}</td>
     </tr>
 </table>
+@endunless
 
 {{-- Scope details: only what was chosen --}}
 @php
@@ -638,9 +750,13 @@
     $chosenIntegrations = array_intersect_key($integrations, array_flip($offer->integrations ?? []));
     $checked = fn (array $labels) => collect($labels)->values()->chunk(2);
 @endphp
-<div class="page-break"></div>
+@if ($contractTerms)
+    <h2>Art des Projekts</h2>
+@else
+    <div class="page-break"></div>
 
-<h2 style="margin-top: 0;">Art des Projekts</h2>
+    <h2 style="margin-top: 0;">Art des Projekts</h2>
+@endif
 <table class="choice">
     <tr>
         <td class="box">☑</td>
@@ -659,9 +775,6 @@
                 <tr><td class="dot">•</td><td>{{ $feature }}</td></tr>
             @endforeach
         </table>
-    @endif
-    @if (! $isWebapp)
-        <div class="hint">{{ $hints['individual'] }}</div>
     @endif
 @endif
 
@@ -714,7 +827,39 @@
     @endif
 @endif
 
-<div class="hint" style="margin-top: 14px;">{{ $hints['shop'] }}</div>
+
+@if ($contractTerms)
+    <div style="page-break-inside: avoid;">
+        <h2>Angebotsannahme und Vertragsabschluss</h2>
+        <div class="clause">{{ $contract['acceptance'] }}</div>
+        @if ($acceptanceEmail)
+            <div class="clause">Alternativ kann das Angebot per E-Mail an {{ $acceptanceEmail }} angenommen werden, unter Angabe der Angebotsnummer {{ $offer->number }}.</div>
+        @endif
+
+        <table class="signatures four"{!! $signature ? ' style="margin-top: 10px;"' : '' !!}>
+            @if ($signature)
+                <tr class="sign">
+                    <td></td>
+                    <td class="gap"></td>
+                    <td></td>
+                    <td class="gap"></td>
+                    <td></td>
+                    <td class="gap"></td>
+                    <td><img src="{{ $signature }}" alt="Unterschrift"></td>
+                </tr>
+            @endif
+            <tr>
+                <td>Ort, Datum</td>
+                <td class="gap"></td>
+                <td>Name des Unterzeichners</td>
+                <td class="gap"></td>
+                <td>Unterschrift Kunde</td>
+                <td class="gap"></td>
+                <td>Unterschrift {{ $issuer['name'] ?? 'Auftragnehmer' }}</td>
+            </tr>
+        </table>
+    </div>
+@endif
 
 </body>
 </html>

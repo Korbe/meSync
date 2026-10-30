@@ -272,6 +272,23 @@ class Offer extends Model
         return Attribute::get(fn () => round($this->subtotal * (float) $this->tax_rate / 100, 2));
     }
 
+    /**
+     * VAT of the project alone; the rest of the total VAT belongs to the maintenance, so both
+     * parts add up to the total to the cent.
+     */
+    public function projectTaxAmount(): float
+    {
+        return round($this->project_subtotal * (float) $this->tax_rate / 100, 2);
+    }
+
+    /**
+     * Sent before the minimum term and renewal clause existed: keeps the old conditions.
+     */
+    public function hasContractTerms(): bool
+    {
+        return (int) ($this->terms_version ?? 2) >= 2;
+    }
+
     protected function total(): Attribute
     {
         return Attribute::get(fn () => round($this->subtotal + $this->tax_amount, 2));

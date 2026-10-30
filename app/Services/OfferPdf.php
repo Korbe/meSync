@@ -20,6 +20,12 @@ class OfferPdf
 
         $issuer = $offer->issuer;
         $issuer['invoice_color'] ??= $offer->user->businessProfile?->invoice_color;
+        $issuer['payment_terms_days'] ??= $offer->user->businessProfile?->payment_terms_days ?? 14;
+
+        // Drafts from before the UID was in the profile
+        if ($offer->hasContractTerms() && empty($issuer['uid_number'])) {
+            $issuer['uid_number'] = $offer->user->businessProfile?->uid_number;
+        }
 
         $logo = $offer->user->getFirstMedia('logo');
         $signature = $offer->user->getFirstMedia('signature');
@@ -41,6 +47,7 @@ class OfferPdf
             'contentDelivery' => config('offers.content_delivery'),
             'paymentTerms' => config('offers.payment_terms'),
             'hints' => config('offers.hints'),
+            'contract' => config('offers.contract'),
             // Uploaded in the profile: goes along with the offer mail
             'termsAttached' => $offer->user->getFirstMedia('terms') !== null,
             'services' => $offer->type->services(),

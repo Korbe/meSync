@@ -17,7 +17,7 @@ return [
     'packages' => [
         'one_pager' => [
             'type' => 'website',
-            'name' => 'One Pager',
+            'name' => 'Landing Page',
             'price' => 1000,
             'features' => [
                 'Individuell entwickelte einseitige Website mit bis zu 6 Inhaltsbereichen',
@@ -33,7 +33,7 @@ return [
             'type' => 'website',
             'name' => 'Starter Website',
             'price' => 2500,
-            // Written out in full: the customer doesn't know what is in the One Pager
+            // Written out in full: the customer doesn't know what is in the Landing Page
             'features' => [
                 'Individuell entwickelte Website mit bis zu 5 Unterseiten',
                 'Bis zu 8 Inhaltsbereiche pro Seite',
@@ -98,10 +98,16 @@ return [
 
     'hints' => [
         'features' => 'Blog-Modul, Kontaktformular und weitere dynamische Funktionen sind nur im Rahmen einer Web-App (mit Backend-Logik) realisierbar.',
-        'shop' => 'Online-Shops und Zahlungsabwicklung werden aktuell nicht angeboten – bei Bedarf bitte separat anfragen.',
-        'individual' => 'Jedes Projekt ist individuell – Umfang und Preis können je nach Anforderungen variieren.',
         'maintenance_start' => 'Der Wartungsvertrag beginnt, sobald die Seite live ist.',
         'terms' => 'Es gelten die allgemeinen Geschäftsbedingungen (AGB) des Anbieters.',
+    ],
+
+    // Conditions of offers with terms_version 2 (older offers keep what they went out with)
+    'contract' => [
+        'maintenance_start' => 'Der Wartungsvertrag beginnt mit der Abnahme, sobald die Seite live ist, bzw. zum vereinbarten Startdatum.',
+        'term' => 'Der Wartungsvertrag wird mit einer Mindestvertragslaufzeit von zwölf Monaten abgeschlossen. Nach Ablauf der Mindestvertragslaufzeit verlängert sich der Vertrag automatisch um jeweils weitere zwölf Monate, sofern er nicht unter Einhaltung einer Kündigungsfrist von 30 Tagen vor Ablauf der jeweiligen Vertragslaufzeit schriftlich gekündigt wird.',
+        'renewal' => 'Die Wartungsgebühr wird für jede weitere Vertragsperiode von zwölf Monaten erneut im Voraus in Rechnung gestellt.',
+        'acceptance' => 'Mit der schriftlichen Annahme dieses Angebots bestätigt der Kunde die Beauftragung der beschriebenen Leistungen sowie die Zustimmung zu den enthaltenen Vertragsbedingungen, insbesondere zur zwölfmonatigen Mindestlaufzeit und zur automatischen Vertragsverlängerung der Wartung.',
     ],
 
 ];

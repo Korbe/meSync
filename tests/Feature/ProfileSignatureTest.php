@@ -62,11 +62,10 @@ class ProfileSignatureTest extends TestCase
             'maintenance_monthly_price' => 39, 'recipient' => ['name' => 'Kunde'], 'issuer' => ['name' => 'Ing. Lukas Korbitsch'],
         ]);
 
-        $withSignature = strlen(app(OfferPdf::class)->render($offer));
-        $user->clearMediaCollection('signature');
-        $withoutSignature = strlen(app(OfferPdf::class)->render($offer->fresh()));
+        $images = fn (string $pdf) => substr_count($pdf, '/Subtype /Image');
 
-        // The embedded image makes the PDF noticeably larger
-        $this->assertGreaterThan($withoutSignature + 500, $withSignature);
+        $this->assertSame(1, $images(app(OfferPdf::class)->render($offer)));
+        $user->clearMediaCollection('signature');
+        $this->assertSame(0, $images(app(OfferPdf::class)->render($offer->fresh())));
     }
 }

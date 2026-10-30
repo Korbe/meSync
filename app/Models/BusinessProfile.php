@@ -65,7 +65,7 @@ class BusinessProfile extends Model
     {
         return $this->only([
             'name', 'street', 'zip', 'city', 'country', 'email', 'phone', 'website',
-            'uid_number', 'bank_name', 'account_holder', 'iban', 'bic', 'invoice_color',
+            'uid_number', 'bank_name', 'account_holder', 'iban', 'bic', 'invoice_color', 'payment_terms_days',
         ]);
     }
 }

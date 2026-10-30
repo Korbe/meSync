@@ -19,7 +19,7 @@ class OfferSeeder extends Seeder
     private const OFFERS = [
         ['website', 'starter', 70, 'accepted', 'Website Relaunch', 300],
         ['webapp', 'webapp', 45, 'declined', 'Kundenportal', 0],
-        ['website', 'one_pager', 40, 'expired', 'One Pager Eröffnung', 0],
+        ['website', 'one_pager', 40, 'expired', 'Landing Page Eröffnung', 0],
         ['webapp', 'webapp', 6, 'sent', 'Buchungsplattform', 400],
         ['website', 'starter', 1, 'draft', 'Firmenwebsite', 0],
     ];
