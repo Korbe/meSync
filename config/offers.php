@@ -31,7 +31,7 @@ return [
         ],
         'starter' => [
             'type' => 'website',
-            'name' => 'Starter Website',
+            'name' => 'Website',
             'price' => 2500,
             // Written out in full: the customer doesn't know what is in the Landing Page
             'features' => [
